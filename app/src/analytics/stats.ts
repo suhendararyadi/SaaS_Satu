@@ -49,9 +49,28 @@ export const calculateDailyStatsJob: CalculateDailyStatsJob<
       paidUserDelta -= yesterdaysStats.paidUserCount;
     }
 
-    const totalRevenue = await paymentProcessor.fetchTotalRevenue();
+    let totalRevenue = 0;
+    try {
+      totalRevenue = await paymentProcessor.fetchTotalRevenue();
+    } catch (e) {
+      console.warn(
+        "Could not fetch total revenue from payment processor (using 0):",
+        e instanceof Error ? e.message : e,
+      );
+    }
 
-    const { totalViews, prevDayViewsChangePercent } = await getDailyPageViews();
+    let totalViews = 0;
+    let prevDayViewsChangePercent = "0";
+    try {
+      const pageViewsResult = await getDailyPageViews();
+      totalViews = pageViewsResult.totalViews;
+      prevDayViewsChangePercent = pageViewsResult.prevDayViewsChangePercent;
+    } catch (e) {
+      console.warn(
+        "Could not fetch page views from analytics provider (using 0):",
+        e instanceof Error ? e.message : e,
+      );
+    }
 
     let dailyStats = await context.entities.DailyStats.findUnique({
       where: {
@@ -90,13 +109,21 @@ export const calculateDailyStatsJob: CalculateDailyStatsJob<
         },
       });
     }
-    const sources = await getSources();
+    let sources: { source: string; visitors: number | string }[] = [];
+    try {
+      sources = await getSources();
+    } catch (e) {
+      console.warn(
+        "Could not fetch sources from analytics provider (using empty):",
+        e instanceof Error ? e.message : e,
+      );
+    }
 
     for (const source of sources) {
-      let visitors = source.visitors;
-      if (typeof source.visitors !== "number") {
-        visitors = parseInt(source.visitors);
-      }
+      const visitors: number =
+        typeof source.visitors === "number"
+          ? source.visitors
+          : parseInt(source.visitors as string) || 0;
       await context.entities.PageViewSource.upsert({
         where: {
           date_name: {

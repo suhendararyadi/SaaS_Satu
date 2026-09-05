@@ -37,9 +37,9 @@ export function AnalyticsDashboardPage({ user }: { user: AuthUser }) {
         >
           <div className="2xl:gap-7.5 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4">
             <TotalPageViewsCard
-              totalPageViews={stats?.dailyStats.totalViews}
+              totalPageViews={stats?.dailyStats?.totalViews}
               prevDayViewsChangePercent={
-                stats?.dailyStats.prevDayViewsChangePercent
+                stats?.dailyStats?.prevDayViewsChangePercent
               }
             />
             <TotalRevenueCard
