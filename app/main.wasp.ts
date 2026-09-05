@@ -17,6 +17,8 @@ import { emailSender } from "./src/server/emailSender.wasp";
 import { userSpec } from "./src/user/user.wasp";
 import { schoolSpec } from "./src/school/school.wasp";
 import { pklSpec } from "./src/pkl/pkl.wasp";
+import { lmsSpec } from "./src/lms/lms.wasp";
+
 
 export default app({
   name: "OpenSaaS",
@@ -52,6 +54,8 @@ export default app({
     adminSpec,
     schoolSpec,
     pklSpec,
+    lmsSpec,
   ],
 });
+
 
