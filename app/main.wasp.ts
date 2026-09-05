@@ -15,6 +15,7 @@ import { fileUploadSpec } from "./src/file-upload/file-upload.wasp";
 import { paymentSpec } from "./src/payment/payment.wasp";
 import { emailSender } from "./src/server/emailSender.wasp";
 import { userSpec } from "./src/user/user.wasp";
+import { schoolSpec } from "./src/school/school.wasp";
 
 export default app({
   name: "OpenSaaS",
@@ -48,5 +49,6 @@ export default app({
     fileUploadSpec,
     analyticsSpec,
     adminSpec,
+    schoolSpec,
   ],
 });
