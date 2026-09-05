@@ -39,6 +39,10 @@ function generateMockUserData(): MockUserData {
     : faker.number.int({ min: 0, max: 10 });
   const hasUserPaidOnStripe = !!subscriptionStatus || credits > 3;
   return {
+    name: `${firstName} ${lastName}`,
+    role: "STUDENT",
+    schoolId: null,
+    classRoomId: null,
     email: faker.internet.email({ firstName, lastName }),
     username: faker.internet.userName({ firstName, lastName }),
     createdAt,
