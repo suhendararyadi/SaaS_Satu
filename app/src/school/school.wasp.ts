@@ -17,6 +17,11 @@ import {
   getSchoolTeachers,
   getSchoolStudents,
 } from "./operations" with { type: "ref" };
+import {
+  importStudentsFromCsv,
+  importTeachersFromCsv,
+  importCompaniesFromCsv,
+} from "./import/operations" with { type: "ref" };
 
 export const schoolSpec: Spec = [
   // Queries
@@ -38,4 +43,7 @@ export const schoolSpec: Spec = [
   action(createClassRoom, { entities: ["ClassRoom", "Department", "AcademicYear"] }),
   action(updateClassRoom, { entities: ["ClassRoom"] }),
   action(deleteClassRoom, { entities: ["ClassRoom", "User"] }),
+  action(importStudentsFromCsv, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
+  action(importTeachersFromCsv, { entities: ["School", "User", "TeacherProfile"] }),
+  action(importCompaniesFromCsv, { entities: ["School", "Company"] }),
 ];
