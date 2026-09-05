@@ -8,13 +8,16 @@ const staticNavigationItems: NavigationItem[] = [
 ];
 
 export const marketingNavigationItems: NavigationItem[] = [
+  { name: "Portal Sekolah", to: "/school" },
   { name: "Features", to: "/#features" },
   { name: "Pricing", to: routes.PricingPageRoute.to },
   ...staticNavigationItems,
 ] as const;
 
 export const demoNavigationitems: NavigationItem[] = [
+  { name: "Portal Sekolah", to: "/school" },
   { name: "AI Scheduler", to: routes.DemoAppRoute.to },
   { name: "File Upload", to: routes.FileUploadRoute.to },
   ...staticNavigationItems,
 ] as const;
+
