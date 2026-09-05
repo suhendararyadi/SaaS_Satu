@@ -19,6 +19,7 @@ import {
   Award,
   ShieldCheck,
   Clock,
+  FileText,
   Menu,
   X,
   School as SchoolIcon,
@@ -109,6 +110,8 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       items: [
         { name: "Waka Kurikulum", href: "/school/governance/waka", icon: ShieldCheck },
         { name: "Guru Piket", href: "/school/governance/piket", icon: Clock },
+        { name: "Wali Kelas", href: "/school/governance/walikelas", icon: UserCheck },
+        { name: "Laporan & Cetak", href: "/school/reports", icon: FileText },
       ],
     },
   ];

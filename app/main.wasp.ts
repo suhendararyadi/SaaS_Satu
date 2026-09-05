@@ -5,6 +5,7 @@ import { NotFoundPage } from "./src/client/components/NotFoundPage" with { type:
 import { serverEnvValidationSchema } from "./src/env" with { type: "ref" };
 import { LandingPage } from "./src/landing-page/LandingPage" with { type: "ref" };
 import { seedMockUsers } from "./src/server/scripts/dbSeeds" with { type: "ref" };
+import { seedSmkn9Garut } from "./src/server/scripts/seedSmkn9Garut" with { type: "ref" };
 
 import { adminSpec } from "./src/admin/admin.wasp";
 import { analyticsSpec } from "./src/analytics/analytics.wasp";
@@ -18,6 +19,8 @@ import { userSpec } from "./src/user/user.wasp";
 import { schoolSpec } from "./src/school/school.wasp";
 import { pklSpec } from "./src/pkl/pkl.wasp";
 import { lmsSpec } from "./src/lms/lms.wasp";
+import { governanceSpec } from "./src/governance/governance.wasp";
+import { reportsSpec } from "./src/reports/reports.wasp";
 
 
 export default app({
@@ -31,6 +34,7 @@ export default app({
     seeds: [
       // Populates the database with a bunch of fake users to work with during development.
       seedMockUsers,
+      seedSmkn9Garut,
     ],
   },
   client: {
@@ -55,7 +59,10 @@ export default app({
     schoolSpec,
     pklSpec,
     lmsSpec,
+    governanceSpec,
+    reportsSpec,
   ],
 });
+
 
 
