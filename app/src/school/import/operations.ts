@@ -90,10 +90,11 @@ export const importStudentsFromCsv = async (
 
     try {
       // Find existing user by email or username if exists
-      let existingUser = null;
+      let existingUser: any = null;
       if (email) {
         existingUser = await prisma.user.findUnique({ where: { email } });
       }
+
 
       if (existingUser) {
         // Update user
@@ -208,10 +209,11 @@ export const importTeachersFromCsv = async (
     const username = nip || `guru_${Date.now()}_${i}`;
 
     try {
-      let existingUser = null;
+      let existingUser: any = null;
       if (email) {
         existingUser = await prisma.user.findUnique({ where: { email } });
       }
+
 
       if (existingUser) {
         await prisma.user.update({

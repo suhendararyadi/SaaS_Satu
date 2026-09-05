@@ -16,6 +16,7 @@ import { paymentSpec } from "./src/payment/payment.wasp";
 import { emailSender } from "./src/server/emailSender.wasp";
 import { userSpec } from "./src/user/user.wasp";
 import { schoolSpec } from "./src/school/school.wasp";
+import { pklSpec } from "./src/pkl/pkl.wasp";
 
 export default app({
   name: "OpenSaaS",
@@ -50,5 +51,7 @@ export default app({
     analyticsSpec,
     adminSpec,
     schoolSpec,
+    pklSpec,
   ],
 });
+

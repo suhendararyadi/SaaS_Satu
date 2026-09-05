@@ -59,7 +59,9 @@ Endah Triastuti,199011152015032002,S.Pd.,08155667788,endah@guru.sch.id,tidak`,
 PT Telkom Indonesia,Teknologi Informasi,Jl. Japati No. 1 Bandung,Budi Santoso,08123456789,-6.9008,107.6186,100,5
 CV Techno Kreatif,Software House,Jl. Cimanuk No. 45 Garut,Deni Firmansyah,08198765432,-7.2145,107.9012,150,4
 Bank BJB Cabang Garut,Perbankan,Jl. Ahmad Yani No. 10 Garut,Dewi Lestari,08132165498,-7.2189,107.9045,80,3`,
-    };
+    },
+  };
+
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
