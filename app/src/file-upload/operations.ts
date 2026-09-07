@@ -10,6 +10,7 @@ import {
 
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
+import { ensureFileUploadConfigured, isFileUploadConfigured } from "./config";
 import {
   checkFileExistsInS3,
   deleteFileFromS3,
@@ -20,7 +21,7 @@ import { ALLOWED_FILE_TYPES } from "./validation";
 
 const createFileInputSchema = z.object({
   fileType: z.enum(ALLOWED_FILE_TYPES),
-  fileName: z.string().nonempty(),
+  fileName: z.string().trim().min(1).max(255),
 });
 
 type CreateFileInput = z.infer<typeof createFileInputSchema>;
@@ -65,10 +66,15 @@ export const addFileToDb: AddFileToDb<AddFileToDbInput, File> = async (
     throw new HttpError(401);
   }
 
+  ensureFileUploadConfigured();
   const args = ensureArgsSchemaOrThrowHttpError(
     addFileToDbInputSchema,
     rawArgs,
   );
+
+  if (!args.s3Key.startsWith(`${context.user.id}/`)) {
+    throw new HttpError(403, "File key tidak sesuai dengan pemilik akun.");
+  }
 
   const fileExists = await checkFileExistsInS3({ s3Key: args.s3Key });
   if (!fileExists) {
@@ -115,11 +121,24 @@ type GetDownloadFileSignedURLInput = z.infer<
 export const getDownloadFileSignedURL: GetDownloadFileSignedURL<
   GetDownloadFileSignedURLInput,
   string
-> = async (rawArgs) => {
+> = async (rawArgs, context) => {
+  if (!context.user) {
+    throw new HttpError(401);
+  }
+
+  ensureFileUploadConfigured();
   const { s3Key } = ensureArgsSchemaOrThrowHttpError(
     getDownloadFileSignedURLInputSchema,
     rawArgs,
   );
+  const file = await context.entities.File.findFirst({
+    where: { s3Key, userId: context.user.id },
+    select: { id: true },
+  });
+  if (!file) {
+    throw new HttpError(404, "File tidak ditemukan untuk akun ini.");
+  }
+
   return await getDownloadFileSignedURLFromS3({ s3Key });
 };
 
@@ -159,3 +178,5 @@ export const deleteFile: DeleteFile<DeleteFileInput, File> = async (
 
   return deletedFile;
 };
+
+export const getFileUploadConfigurationStatus = async () => ({ enabled: isFileUploadConfigured() });

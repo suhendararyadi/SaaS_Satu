@@ -1,132 +1,106 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { randomUUID } from "crypto";
 
-export type User = {
-  id?: number;
-  email: string;
-  password?: string;
-};
+export type TestUser = { email: string; password: string };
 
-const DEFAULT_PASSWORD = "password123";
+export function createRandomUser(): TestUser {
+  return {
+    email: `e2e-${randomUUID()}@example.test`,
+    password: `Aman-${randomUUID()}!9a`,
+  };
+}
 
-export const logUserIn = async ({ page, user }: { page: Page; user: User }) => {
-  await page.goto("/login", { waitUntil: "domcontentloaded" });
-
-  await page.fill('input[name="email"]', user.email);
-  await page.fill('input[name="password"]', DEFAULT_PASSWORD);
-
-  const clickLogin = page.click('button:has-text("Log in")');
-
-  await Promise.all([
-    page
-      .waitForResponse((response) => {
-        return response.url().includes("login") && response.status() === 200;
-      })
-      .catch((err) => console.error(err.message)),
-    clickLogin,
-  ]);
-
-  await page.waitForURL("**/demo-app");
-};
-
-export const signUserUp = async ({
-  page,
-  user,
-}: {
-  page: Page;
-  user: User;
-}) => {
-  await page.goto("/signup", { waitUntil: "domcontentloaded" });
-
-  await page.evaluate(() => {
-    try {
-      const sessionId = localStorage.getItem("wasp:sessionId");
-      if (sessionId) {
-        localStorage.removeItem("wasp:sessionId");
-      }
-    } catch (e) {
-      console.error("Failed to clear localStorage:", e);
-    }
-  });
-
-  await page.fill('input[name="email"]', user.email);
-  await page.fill('input[name="password"]', DEFAULT_PASSWORD);
-
-  const clickSignup = page.click('button:has-text("Sign up")');
-
-  await Promise.all([
-    page
-      .waitForResponse((response) => {
-        return response.url().includes("signup") && response.status() === 200;
-      })
-      .catch((err) => console.error(err.message)),
-    clickSignup,
-  ]);
-};
-
-export const createRandomUser = () => {
-  const email = `${randomUUID()}@test.com`;
-  return { email, password: DEFAULT_PASSWORD } as User;
-};
-
-const getNextYearLastTwoDigits = () => {
-  const nextYear = new Date().getFullYear() + 1;
-  return nextYear.toString().slice(-2);
-};
-
-export const makeStripePayment = async ({
-  test,
-  page,
-  planId,
-}: {
-  test: typeof import("@playwright/test").test;
-  page: Page;
-  planId: "hobby" | "pro" | "credits10";
-}) => {
-  test.slow(); // Stripe payments take a long time to confirm and can cause tests to fail so we use a longer timeout
-
-  await page.goto("/pricing");
-  await page.waitForURL("**/pricing");
-
-  const buyBtn = page.locator(`button[aria-describedby="${planId}"]`);
-
-  await expect(buyBtn).toBeVisible();
-  await expect(buyBtn).toBeEnabled();
-  await buyBtn.click();
-
-  await page.waitForURL("https://checkout.stripe.com/**", {
-    waitUntil: "domcontentloaded",
-  });
-  await page.fill('input[name="cardNumber"]', "4242424242424242");
-  await page
-    .getByPlaceholder("MM / YY")
-    .fill(`12${getNextYearLastTwoDigits()}`);
-  await page.getByPlaceholder("CVC").fill("123");
-  await page.getByPlaceholder("Full name on card").fill("Test User");
-  const countrySelect = page.getByLabel("Country or region");
-  await countrySelect.selectOption("Germany");
-  // This is a weird edge case where the `payBtn` assertion tests pass, but the button click still isn't registered.
-  // That's why we wait for stripe responses below to finish loading before clicking the button.
-  await page.waitForResponse(
-    (response) =>
-      response.url().includes("trusted-types-checker") &&
-      response.status() === 200,
+export async function signUp(page: Page, user: TestUser) {
+  await page.goto("/signup");
+  await page.locator('input[name="email"]').fill(user.email);
+  await page.locator('input[name="password"]').fill(user.password);
+  const responsePromise = page.waitForResponse(
+    (response) => response.url().includes("/auth/email/signup") && response.request().method() === "POST",
   );
-  const payBtn = page.getByTestId("hosted-payment-submit-button");
-  await expect(payBtn).toBeVisible();
-  await expect(payBtn).toBeEnabled();
-  await payBtn.click();
+  await page.getByRole("button", { name: /sign up/i }).click();
+  const response = await responsePromise;
+  expect(response.ok()).toBeTruthy();
+}
 
-  await page.waitForURL("**/checkout?status=success");
-  await page.waitForURL("**/account");
-  if (planId === "credits10") {
-    await expect(page.getByText("13 credits")).toBeVisible();
-  } else {
-    await expect(page.getByText(planId)).toBeVisible();
-  }
-};
+export async function logIn(page: Page, user: TestUser) {
+  await page.goto("/login");
+  await page.locator('input[name="email"]').fill(user.email);
+  await page.locator('input[name="password"]').fill(user.password);
+  const responsePromise = page.waitForResponse(
+    (response) => response.url().includes("/auth/email/login") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: /log in/i }).click();
+  const response = await responsePromise;
+  expect(response.ok()).toBeTruthy();
+  await page.waitForURL("**/school");
+}
 
-export const acceptAllCookies = async (page: Page) => {
-  await page.waitForSelector('button:has-text("Accept all")');
-  await page.click('button:has-text("Accept all")');
-};
+export async function createLoggedInContext(browser: Browser) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const user = createRandomUser();
+  await signUp(page, user);
+  await logIn(page, user);
+  return { context, page, user } as { context: BrowserContext; page: Page; user: TestUser };
+}
+
+export async function registerSchool(page: Page, schoolName: string) {
+  await page.goto("/school");
+  await expect(page.getByText("Setup Unit Sekolah Anda")).toBeVisible({ timeout: 20000 });
+  await page.getByLabel("Nama Sekolah *").fill(schoolName);
+  const responsePromise = page.waitForResponse(
+    (response) => response.url().includes("/operations/register-school") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Daftarkan Sekolah Saya" }).click();
+  const response = await responsePromise;
+  expect(response.ok()).toBeTruthy();
+  await expect(page.getByText(schoolName).first()).toBeVisible();
+}
+
+export async function createDepartment(page: Page, code: string, name: string): Promise<string> {
+  await page.goto("/school/departments");
+  await page.getByRole("button", { name: "Tambah Jurusan" }).click();
+  await page.getByLabel("Kode Jurusan *").fill(code);
+  await page.getByLabel("Nama Lengkap Jurusan *").fill(name);
+  const responsePromise = page.waitForResponse(
+    (response) => response.url().includes("/operations/create-department") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Simpan Jurusan" }).click();
+  const response = await responsePromise;
+  expect(response.ok()).toBeTruthy();
+  const payload = (await response.json()) as { json?: { id?: string } };
+  const id = payload.json?.id;
+  if (!id) throw new Error("Create department response did not contain an id");
+  await expect(page.getByText(name)).toBeVisible();
+  return id;
+}
+
+export async function callOperation(
+  page: Page,
+  path: string,
+  args: Record<string, unknown>,
+): Promise<{ status: number; body: unknown }> {
+  return page.evaluate(
+    async ({ operationPath, operationArgs }) => {
+      const sessionValue = localStorage.getItem("wasp:sessionId");
+      const sessionId = sessionValue ? JSON.parse(sessionValue) : null;
+      const response = await fetch(`/operations/${operationPath}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionId ? { Authorization: `Bearer ${sessionId}` } : {}),
+        },
+        body: JSON.stringify({ json: operationArgs }),
+      });
+      const rawBody = await response.text();
+      let body: unknown = rawBody;
+      try {
+        body = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        // Keep non-JSON error responses as plain text.
+      }
+      return { status: response.status, body };
+    },
+    { operationPath: path, operationArgs: args },
+  );
+}

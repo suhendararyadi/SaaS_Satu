@@ -7,6 +7,7 @@ import {
   deleteFile,
   getAllFilesByUser,
   getDownloadFileSignedURL,
+  getFileUploadConfigurationStatus,
 } from "./operations" with { type: "ref" };
 
 export const fileUploadSpec: Spec = [
@@ -16,6 +17,7 @@ export const fileUploadSpec: Spec = [
     page(FileUploadPage, { authRequired: true }),
   ),
   query(getAllFilesByUser, { entities: ["User", "File"] }),
+  query(getFileUploadConfigurationStatus),
   query(getDownloadFileSignedURL, { entities: ["User", "File"] }),
   action(addFileToDb, { entities: ["User", "File"] }),
   action(createFileUploadUrl, { entities: ["User", "File"] }),

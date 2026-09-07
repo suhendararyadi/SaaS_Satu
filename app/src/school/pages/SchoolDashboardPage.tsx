@@ -36,6 +36,7 @@ export function SchoolDashboardPage({ user }: { user: AuthUser }) {
   );
 
   const isVocationalOrHighSchool = !school?.level || school?.level === "SMA_SMK";
+  const canManageSchool = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   return (
     <SchoolLayout user={user}>
@@ -75,7 +76,7 @@ export function SchoolDashboardPage({ user }: { user: AuthUser }) {
                 )}
               </div>
               <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-md-on-primary">
-                {school?.name || "Smart School SaaS"}
+                {school?.name || "SaaS Satu Smart School"}
               </h2>
             </div>
           }
@@ -85,8 +86,9 @@ export function SchoolDashboardPage({ user }: { user: AuthUser }) {
               : "Kelola data akademik, pembelajaran kelas, dan administrasi sekolah."
           }
           icon="school"
-          actionLabel="Import Data Massal"
-          actionHref="/school/import"
+          {...(canManageSchool
+            ? { actionLabel: "Import Data Massal", actionHref: "/school/import" }
+            : {})}
           className="p-6 sm:p-8"
         />
 
@@ -96,8 +98,9 @@ export function SchoolDashboardPage({ user }: { user: AuthUser }) {
             variant="warning"
             headline="Kapasitas Kuota Siswa Hampir Penuh"
             supportingText={`Sekolah telah menggunakan ${quotaPercentage}% (${studentCount}/${studentQuota}) dari alokasi siswa. Hubungi administrator untuk meningkatkan tier lisensi.`}
-            actionLabel="Upgrade Tier"
-            actionHref="/pricing"
+            {...(canManageSchool
+              ? { actionLabel: "Lihat Status Paket", actionHref: "/pricing" }
+              : {})}
           />
         )}
 
@@ -245,6 +248,7 @@ export function SchoolDashboardPage({ user }: { user: AuthUser }) {
         </div>
 
         {/* Quick Setup Checklist */}
+        {canManageSchool && (
         <M3Card variant="elevated" className="p-6 space-y-6">
           <div>
             <h3 className="text-lg font-semibold text-md-on-surface">
@@ -319,6 +323,7 @@ export function SchoolDashboardPage({ user }: { user: AuthUser }) {
             </M3Card>
           </div>
         </M3Card>
+        )}
       </div>
     </SchoolLayout>
   );

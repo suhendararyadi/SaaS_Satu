@@ -112,10 +112,10 @@ interface ChartOneState {
 export function RevenueAndProfitChart({ weeklyStats }: DailyStatsProps) {
   const dailyRevenueArray = useMemo(() => {
     if (!!weeklyStats && weeklyStats?.length > 0) {
-      const sortedWeeks = weeklyStats?.sort((a, b) => {
+      const sortedWeeks = [...weeklyStats].sort((a, b) => {
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       });
-      return sortedWeeks.map((stat) => stat.totalRevenue);
+      return sortedWeeks.map((stat) => stat.totalRevenue).filter((value): value is number => value !== null);
     }
   }, [weeklyStats]);
 
@@ -130,14 +130,7 @@ export function RevenueAndProfitChart({ weeklyStats }: DailyStatsProps) {
     }
   }, [weeklyStats]);
 
-  const [state, setState] = useState<ChartOneState>({
-    series: [
-      {
-        name: "Profit",
-        data: [4, 7, 10, 11, 13, 14, 17],
-      },
-    ],
-  });
+  const [state, setState] = useState<ChartOneState>({ series: [] });
   const [chartOptions, setChartOptions] = useState<ApexOptions>(options);
 
   useEffect(() => {
@@ -201,6 +194,15 @@ export function RevenueAndProfitChart({ weeklyStats }: DailyStatsProps) {
     }
   }, [daysOfWeekArr, dailyRevenueArray]);
 
+  if (!dailyRevenueArray || dailyRevenueArray.length === 0) {
+    return (
+      <div className="border-border bg-card col-span-12 rounded-sm border p-6 xl:col-span-8">
+        <p className="text-foreground font-semibold">Data pendapatan belum tersedia</p>
+        <p className="text-muted-foreground mt-2 text-sm">Hubungkan penyedia pembayaran untuk menampilkan riwayat pendapatan.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="border-border bg-card shadow-default pt-7.5 sm:px-7.5 col-span-12 rounded-sm border px-5 pb-5 xl:col-span-8">
       <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
@@ -210,9 +212,9 @@ export function RevenueAndProfitChart({ weeklyStats }: DailyStatsProps) {
               <span className="bg-primary block h-2.5 w-full max-w-2.5 rounded-full"></span>
             </span>
             <div className="w-full">
-              <p className="text-primary font-semibold">Total Profit</p>
+              <p className="text-primary font-semibold">Pendapatan</p>
               <p className="text-muted-foreground text-sm font-medium">
-                Last 7 Days
+                7 hari terakhir
               </p>
             </div>
           </div>
@@ -221,9 +223,9 @@ export function RevenueAndProfitChart({ weeklyStats }: DailyStatsProps) {
               <span className="bg-secondary block h-2.5 w-full max-w-2.5 rounded-full"></span>
             </span>
             <div className="w-full">
-              <p className="text-secondary font-semibold">Total Revenue</p>
+              <p className="text-secondary font-semibold">Pendapatan tercatat</p>
               <p className="text-muted-foreground text-sm font-medium">
-                Last 7 Days
+                7 hari terakhir
               </p>
             </div>
           </div>

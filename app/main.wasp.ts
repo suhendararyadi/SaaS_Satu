@@ -23,9 +23,9 @@ import { reportsSpec } from "./src/reports/reports.wasp";
 
 
 export default app({
-  name: "OpenSaaS",
+  name: "SaaSSatu",
   wasp: { version: "^0.25.0" },
-  title: "My Open SaaS App",
+  title: "SaaS Satu Smart School",
   head,
   auth: authConfig,
   db: {

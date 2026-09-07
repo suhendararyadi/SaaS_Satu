@@ -52,6 +52,12 @@ export const importStudentsFromCsv = async (
   for (const c of classes) {
     classMap.set(c.name.toLowerCase().trim(), c.id);
   }
+  if (
+    args.defaultClassRoomId &&
+    !classes.some((classRoom) => classRoom.id === args.defaultClassRoomId)
+  ) {
+    throw new HttpError(400, "Rombel default tidak terdaftar pada sekolah aktif.");
+  }
 
   let successCount = 0;
   let failedCount = 0;
@@ -70,10 +76,14 @@ export const importStudentsFromCsv = async (
 
     const nis = extractValue(row, ["nis", "noinduk", "nomorinduk"]) || null;
     const nisn = extractValue(row, ["nisn", "nomorinduksiswanasional"]) || null;
-    let gender = extractValue(row, ["gender", "jk", "jeniskelamin", "lp"]).toUpperCase();
-    if (gender.startsWith("L")) gender = "L";
-    else if (gender.startsWith("P")) gender = "P";
-    else gender = "L";
+    const rawGender = extractValue(row, ["gender", "jk", "jeniskelamin", "lp"])
+      .trim()
+      .toUpperCase();
+    const gender = rawGender.startsWith("L")
+      ? "L"
+      : rawGender.startsWith("P")
+        ? "P"
+        : null;
 
     // Class matching
     const className = extractValue(row, ["kelas", "rombel", "rombelsaatini"]);
@@ -104,53 +114,37 @@ export const importStudentsFromCsv = async (
           );
         }
 
-        // Update user
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            name,
-            role: "STUDENT",
-            schoolId: admin.schoolId,
-            classRoomId: matchedClassId,
-          },
-        });
-
-        await prisma.studentProfile.upsert({
-          where: { userId: existingUser.id },
-          create: {
-            userId: existingUser.id,
-            nis,
-            nisn,
-            gender,
-            status: "ACTIVE",
-          },
-          update: {
-            nis: nis ?? undefined,
-            nisn: nisn ?? undefined,
-            gender,
-          },
+        await prisma.$transaction(async (tx) => {
+          await tx.user.update({
+            where: { id: existingUser.id },
+            data: {
+              name,
+              role: "STUDENT",
+              schoolId: admin.schoolId,
+              classRoomId: matchedClassId,
+            },
+          });
+          await tx.studentProfile.upsert({
+            where: { userId: existingUser.id },
+            create: { userId: existingUser.id, nis, nisn, gender, status: "ACTIVE" },
+            update: { nis: nis ?? undefined, nisn: nisn ?? undefined, gender },
+          });
         });
       } else {
-        // Create new student
-        const newUser = await prisma.user.create({
-          data: {
-            name,
-            email,
-            username,
-            role: "STUDENT",
-            schoolId: admin.schoolId,
-            classRoomId: matchedClassId,
-          },
-        });
-
-        await prisma.studentProfile.create({
-          data: {
-            userId: newUser.id,
-            nis,
-            nisn,
-            gender,
-            status: "ACTIVE",
-          },
+        await prisma.$transaction(async (tx) => {
+          const newUser = await tx.user.create({
+            data: {
+              name,
+              email,
+              username,
+              role: "STUDENT",
+              schoolId: admin.schoolId,
+              classRoomId: matchedClassId,
+            },
+          });
+          await tx.studentProfile.create({
+            data: { userId: newUser.id, nis, nisn, gender, status: "ACTIVE" },
+          });
         });
       }
 
@@ -230,50 +224,25 @@ export const importTeachersFromCsv = async (
           );
         }
 
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            name,
-            role: "TEACHER",
-            schoolId: admin.schoolId,
-          },
-        });
-
-        await prisma.teacherProfile.upsert({
-          where: { userId: existingUser.id },
-          create: {
-            userId: existingUser.id,
-            nip,
-            title,
-            phone,
-            isWaka,
-          },
-          update: {
-            nip: nip ?? undefined,
-            title: title ?? undefined,
-            phone: phone ?? undefined,
-            isWaka,
-          },
+        await prisma.$transaction(async (tx) => {
+          await tx.user.update({
+            where: { id: existingUser.id },
+            data: { name, role: "TEACHER", schoolId: admin.schoolId },
+          });
+          await tx.teacherProfile.upsert({
+            where: { userId: existingUser.id },
+            create: { userId: existingUser.id, nip, title, phone, isWaka },
+            update: { nip: nip ?? undefined, title: title ?? undefined, phone: phone ?? undefined, isWaka },
+          });
         });
       } else {
-        const newUser = await prisma.user.create({
-          data: {
-            name,
-            email,
-            username,
-            role: "TEACHER",
-            schoolId: admin.schoolId,
-          },
-        });
-
-        await prisma.teacherProfile.create({
-          data: {
-            userId: newUser.id,
-            nip,
-            title,
-            phone,
-            isWaka,
-          },
+        await prisma.$transaction(async (tx) => {
+          const newUser = await tx.user.create({
+            data: { name, email, username, role: "TEACHER", schoolId: admin.schoolId },
+          });
+          await tx.teacherProfile.create({
+            data: { userId: newUser.id, nip, title, phone, isWaka },
+          });
         });
       }
 

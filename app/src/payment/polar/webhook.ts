@@ -38,10 +38,14 @@ export const polarWebhook: PaymentsWebhook = async (
 ) => {
   const prismaUserDelegate = context.entities.User;
   try {
+    const webhookSecret = env.POLAR_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      throw new Error("Polar webhook belum dikonfigurasi.");
+    }
     const event = validateEvent(
       request.body,
       request.headers as Record<string, string>,
-      env.POLAR_WEBHOOK_SECRET,
+      webhookSecret,
     );
 
     switch (event.type) {

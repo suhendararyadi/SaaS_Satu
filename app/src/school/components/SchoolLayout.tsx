@@ -269,146 +269,129 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
   }
 
   const isVocationalOrHighSchool = !school?.level || school?.level === "SMA_SMK";
+  const isPlatformAdmin = !!user?.isAdmin || user?.role === "SUPERADMIN";
+  const isSchoolAdmin = isPlatformAdmin || user?.role === "SCHOOL_ADMIN";
+  const isTeacher = user?.role === "TEACHER";
+  const isStudent = user?.role === "STUDENT";
+  const isDudiMentor = user?.role === "DUDI_MENTOR";
+  const isSchoolStaff = isSchoolAdmin || isTeacher;
 
-  const academicItems = [
-    {
-      label: "Tahun Ajaran",
-      href: "/school/academic-years",
-      icon: "calendar_month",
-    },
-    ...(isVocationalOrHighSchool
-      ? [
-          {
-            label: "Jurusan & Konsentrasi",
-            href: "/school/departments",
-            icon: "domain",
-          },
-        ]
-      : []),
-    {
-      label: "Kelas & Rombel",
-      href: "/school/classes",
-      icon: "meeting_room",
-    },
-    {
-      label: "Guru & Tendik",
-      href: "/school/teachers",
-      icon: "badge",
-    },
-    {
-      label: "Data Siswa",
-      href: "/school/students",
-      icon: "groups",
-    },
-    {
-      label: "Import Massal Data",
-      href: "/school/import",
-      icon: "upload_file",
-    },
-  ];
+  const academicItems = isSchoolStaff
+    ? [
+        {
+          label: "Tahun Ajaran",
+          href: "/school/academic-years",
+          icon: "calendar_month",
+        },
+        ...(isVocationalOrHighSchool
+          ? [
+              {
+                label: "Jurusan & Konsentrasi",
+                href: "/school/departments",
+                icon: "domain",
+              },
+            ]
+          : []),
+        {
+          label: "Kelas & Rombel",
+          href: "/school/classes",
+          icon: "meeting_room",
+        },
+        {
+          label: "Guru & Tendik",
+          href: "/school/teachers",
+          icon: "badge",
+        },
+        {
+          label: "Data Siswa",
+          href: "/school/students",
+          icon: "groups",
+        },
+        ...(isSchoolAdmin
+          ? [
+              {
+                label: "Import Massal Data",
+                href: "/school/import",
+                icon: "upload_file",
+              },
+            ]
+          : []),
+      ]
+    : [];
+
+  const pklItems = isVocationalOrHighSchool
+    ? [
+        ...(isSchoolAdmin
+          ? [
+              { label: "Mitra DUDI & Industri", href: "/school/pkl/companies", icon: "apartment" },
+              { label: "Plotting Penempatan", href: "/school/pkl/placements", icon: "work" },
+            ]
+          : []),
+        ...(isStudent
+          ? [
+              { label: "Presensi Lokasi PKL", href: "/school/pkl/attendance", icon: "schedule" },
+              { label: "Jurnal Kegiatan", href: "/school/pkl/journals", icon: "edit_note" },
+            ]
+          : []),
+        ...((isTeacher || isDudiMentor)
+          ? [
+              { label: "Jurnal Kegiatan Siswa", href: "/school/pkl/journals", icon: "edit_note" },
+              { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "warning" },
+            ]
+          : []),
+        ...(isSchoolAdmin
+          ? [
+              { label: "Jurnal Kegiatan Siswa", href: "/school/pkl/journals", icon: "edit_note" },
+              { label: "Monitoring & Deteksi EWS", href: "/school/pkl/monitoring", icon: "warning" },
+            ]
+          : []),
+      ]
+    : [];
 
   const drawerSections: M3DrawerSection[] = [
     {
       title: "Ringkasan",
-      items: [
-        {
-          label: "Dashboard",
-          href: "/school",
-          icon: "dashboard",
-        },
-      ],
+      items: [{ label: "Dashboard", href: "/school", icon: "dashboard" }],
     },
-    {
-      title: "Data Akademik",
-      items: academicItems,
-    },
-    {
-      title: "Pembelajaran LMS",
-      items: [
-        {
-          label: "Ruang Kelas & Mapel",
-          href: "/school/lms/courses",
-          icon: "menu_book",
-        },
-      ],
-    },
-    ...(isVocationalOrHighSchool
+    ...(academicItems.length > 0
+      ? [{ title: "Data Akademik", items: academicItems }]
+      : []),
+    ...(!isDudiMentor
       ? [
           {
-            title: "E-PKL",
-            items: [
-              {
-                label: "Mitra DUDI & Industri",
-                href: "/school/pkl/companies",
-                icon: "apartment",
-              },
-              {
-                label: "Plotting Penempatan",
-                href: "/school/pkl/placements",
-                icon: "work",
-              },
-              {
-                label: "Presensi GPS Siswa",
-                href: "/school/pkl/attendance",
-                icon: "schedule",
-              },
-              {
-                label: "Jurnal Kegiatan Siswa",
-                href: "/school/pkl/journals",
-                icon: "edit_note",
-              },
-              {
-                label: "Monitoring & Deteksi EWS",
-                href: "/school/pkl/monitoring",
-                icon: "warning",
-              },
-            ],
+            title: "Pembelajaran LMS",
+            items: [{ label: "Ruang Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" }],
           },
         ]
       : []),
-    {
-      title: "Tata Kelola",
-      items: [
-        {
-          label: "Guru Piket",
-          href: "/school/governance/piket",
-          icon: "access_time",
-        },
-        {
-          label: "Wali Kelas",
-          href: "/school/governance/walikelas",
-          icon: "supervisor_account",
-        },
-        {
-          label: "Waka Kurikulum",
-          href: "/school/governance/waka",
-          icon: "verified_user",
-        },
-      ],
-    },
-    {
-      title: "Laporan",
-      items: [
-        {
-          label: "Rekap & Cetak Laporan",
-          href: "/school/reports",
-          icon: "print",
-        },
-      ],
-    },
-    {
-      title: "Pengaturan",
-      items: [
-        {
-          label: "Pengaturan Sekolah",
-          href: "/school/settings",
-          icon: "settings",
-        },
-      ],
-    },
+    ...(pklItems.length > 0 ? [{ title: "E-PKL", items: pklItems }] : []),
+    ...(isSchoolStaff
+      ? [
+          {
+            title: "Tata Kelola",
+            items: [
+              { label: "Guru Piket", href: "/school/governance/piket", icon: "access_time" },
+              { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
+              { label: "Waka Kurikulum", href: "/school/governance/waka", icon: "verified_user" },
+            ],
+          },
+          {
+            title: "Laporan",
+            items: [{ label: "Rekap & Cetak Laporan", href: "/school/reports", icon: "print" }],
+          },
+        ]
+      : []),
+    ...(isSchoolAdmin
+      ? [
+          {
+            title: "Pengaturan",
+            items: [{ label: "Pengaturan Sekolah", href: "/school/settings", icon: "settings" }],
+          },
+        ]
+      : []),
   ];
 
-  if (user?.isAdmin) {
+  if (isPlatformAdmin) {
     drawerSections.push({
       title: "Super Admin",
       items: [

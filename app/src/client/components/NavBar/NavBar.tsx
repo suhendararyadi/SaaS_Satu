@@ -17,7 +17,6 @@ import { useIsLandingPage } from "../../hooks/useIsLandingPage";
 import logo from "../../static/logo.svg";
 import { cn } from "../../utils";
 import { DarkModeSwitcher } from "../DarkModeSwitcher";
-import { Announcement } from "./Announcement";
 
 export interface NavigationItem {
   name: string;
@@ -47,7 +46,6 @@ export function NavBar({
 
   return (
     <>
-      {isLandingPage && <Announcement />}
       <header
         className={cn(
           "sticky top-0 z-50 transition-all duration-300",
@@ -87,7 +85,7 @@ export function NavBar({
                     },
                   )}
                 >
-                  Your SaaS
+                  SaaS Satu
                 </span>
               </WaspRouterLink>
 
@@ -180,7 +178,7 @@ function NavBarMobileMenu({
           <SheetHeader>
             <SheetTitle className="flex items-center">
               <WaspRouterLink to={routes.LandingPageRoute.to}>
-                <span className="sr-only">Your SaaS</span>
+                <span className="sr-only">SaaS Satu</span>
                 <NavLogo isScrolled={false} />
               </WaspRouterLink>
             </SheetTitle>
@@ -252,7 +250,7 @@ function NavLogo({ isScrolled }: { isScrolled: boolean }) {
         "size-7": isScrolled,
       })}
       src={logo}
-      alt="Your SaaS App"
+      alt="SaaS Satu Smart School"
     />
   );
 }

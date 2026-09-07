@@ -7,6 +7,7 @@ import * as z from "zod";
 import { PaymentPlanId, paymentPlans } from "../payment/plans";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { paymentProcessor } from "./paymentProcessor";
+import { ensurePaymentsConfigured, isPaymentsConfigured } from "./config";
 
 export type CheckoutSession = {
   sessionUrl: string | null;
@@ -24,11 +25,9 @@ export const generateCheckoutSession: GenerateCheckoutSession<
   CheckoutSession
 > = async (rawPaymentPlanId, context) => {
   if (!context.user) {
-    throw new HttpError(
-      401,
-      "Only authenticated users are allowed to perform this operation",
-    );
+    throw new HttpError(401, "Silakan login terlebih dahulu.");
   }
+  ensurePaymentsConfigured();
 
   const paymentPlanId = ensureArgsSchemaOrThrowHttpError(
     generateCheckoutSessionSchema,
@@ -60,14 +59,17 @@ export const getCustomerPortalUrl: GetCustomerPortalUrl<
   string | null
 > = async (_args, context) => {
   if (!context.user) {
-    throw new HttpError(
-      401,
-      "Only authenticated users are allowed to perform this operation",
-    );
+    throw new HttpError(401, "Silakan login terlebih dahulu.");
   }
+  ensurePaymentsConfigured();
 
   return paymentProcessor.fetchCustomerPortalUrl({
     userId: context.user.id,
     prismaUserDelegate: context.entities.User,
   });
 };
+
+export const getPaymentConfigurationStatus = async () => ({
+  enabled: isPaymentsConfigured(),
+  provider: "stripe" as const,
+});

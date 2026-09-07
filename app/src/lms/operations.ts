@@ -37,6 +37,9 @@ const getLmsCoursesSchema = z.object({
 
 export const getLmsCourses = async (rawArgs: unknown, context: { user?: User }) => {
   const user = ensureSchoolUser(context);
+  if (!user.isAdmin && !["SUPERADMIN", "SCHOOL_ADMIN", "TEACHER", "STUDENT"].includes(user.role)) {
+    throw new HttpError(403, "Peran akun ini tidak memiliki akses ke LMS sekolah.");
+  }
   const schoolId = requireActiveSchoolId(user);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getLmsCoursesSchema || z.any(),
@@ -461,26 +464,21 @@ export const submitAssignment = async (rawArgs: unknown, context: { user?: User 
   if (!assignment) throw new HttpError(404, "Tugas tidak ditemukan di rombel Anda.");
   if (assignment.deadline < new Date()) throw new HttpError(400, "Tenggat pengumpulan tugas telah berakhir.");
 
-  // Upsert submission
-  const existing = await prisma.lmsSubmission.findFirst({
-    where: { assignmentId: args.assignmentId, studentId: student.id },
-  });
-
-  if (existing) {
-    return prisma.lmsSubmission.update({
-      where: { id: existing.id },
-      data: {
-        submittedAt: new Date(),
-        textContent: args.textContent || null,
-        fileUrl: args.fileUrl || null,
+  return prisma.lmsSubmission.upsert({
+    where: {
+      assignmentId_studentId: {
+        assignmentId: args.assignmentId,
+        studentId: student.id,
       },
-    });
-  }
-
-  return prisma.lmsSubmission.create({
-    data: {
+    },
+    create: {
       assignmentId: args.assignmentId,
       studentId: student.id,
+      textContent: args.textContent || null,
+      fileUrl: args.fileUrl || null,
+    },
+    update: {
+      submittedAt: new Date(),
       textContent: args.textContent || null,
       fileUrl: args.fileUrl || null,
     },
@@ -560,12 +558,30 @@ const addAssessmentQuestionSchema = z.object({
       isCorrect: z.boolean(),
     })
   ),
-  points: z.number().default(10.0),
+  points: z.number().positive().max(1000).default(10.0),
 });
 
 export const addAssessmentQuestion = async (rawArgs: unknown, context: { user?: User }) => {
   const teacher = requireTeacher(context);
   const args = ensureArgsSchemaOrThrowHttpError(addAssessmentQuestionSchema, rawArgs);
+
+  if (args.questionType === "MULTIPLE_CHOICE") {
+    if (args.options.length < 2) {
+      throw new HttpError(400, "Soal pilihan ganda membutuhkan minimal dua opsi.");
+    }
+    const optionIds = new Set(args.options.map((option) => option.id));
+    if (optionIds.size !== args.options.length) {
+      throw new HttpError(400, "ID opsi jawaban harus unik dalam satu soal.");
+    }
+    if (args.options.some((option) => option.id.trim() === "" || option.text.trim() === "")) {
+      throw new HttpError(400, "ID dan teks opsi jawaban wajib diisi.");
+    }
+    if (args.options.filter((option) => option.isCorrect).length !== 1) {
+      throw new HttpError(400, "Soal pilihan ganda harus memiliki tepat satu jawaban benar.");
+    }
+  } else if (args.options.some((option) => option.isCorrect)) {
+    throw new HttpError(400, "Soal esai tidak boleh menyimpan opsi jawaban benar.");
+  }
 
   const assessment = await prisma.lmsAssessment.findFirst({
     where: { id: args.assessmentId },
@@ -617,14 +633,27 @@ export const submitAssessmentAnswers = async (rawArgs: unknown, context: { user?
   });
   if (existingResult) throw new HttpError(409, "Jawaban ujian CBT sudah pernah dikirim.");
 
-  // Automatic Grading for Multiple Choice
+  const questionsById = new Map(assessment.questions.map((question) => [question.id, question]));
+  for (const [questionId, answer] of Object.entries(args.answers)) {
+    const question = questionsById.get(questionId);
+    if (!question) {
+      throw new HttpError(400, "Jawaban memuat soal yang tidak termasuk dalam ujian ini.");
+    }
+    if (question.questionType === "MULTIPLE_CHOICE") {
+      const options = Array.isArray(question.options) ? question.options : [];
+      if (!options.some((option: any) => option?.id === answer)) {
+        throw new HttpError(400, "Pilihan jawaban tidak valid untuk soal ujian.");
+      }
+    }
+  }
+
   let totalScore = 0;
-  for (const q of assessment.questions) {
-    if (q.questionType === "MULTIPLE_CHOICE" && Array.isArray(q.options)) {
-      const studentAnswer = args.answers[q.id];
-      const correctOption = (q.options as any[]).find((opt) => opt.isCorrect === true);
+  for (const question of assessment.questions) {
+    if (question.questionType === "MULTIPLE_CHOICE" && Array.isArray(question.options)) {
+      const studentAnswer = args.answers[question.id];
+      const correctOption = (question.options as any[]).find((option) => option.isCorrect === true);
       if (correctOption && correctOption.id === studentAnswer) {
-        totalScore += q.points;
+        totalScore += question.points;
       }
     }
   }

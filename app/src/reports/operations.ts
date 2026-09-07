@@ -17,6 +17,21 @@ function requireReportStaff(context: { user?: User }) {
   return user;
 }
 
+
+function isUnrestrictedReportStaff(user: ReturnType<typeof requireReportStaff>) {
+  return user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
+}
+
+function getStaffClassRoomScope(user: ReturnType<typeof requireReportStaff>) {
+  if (isUnrestrictedReportStaff(user)) return {};
+  return {
+    OR: [
+      { homeroomTeacherId: user.id },
+      { lmsCourses: { some: { teacherId: user.id } } },
+    ],
+  };
+}
+
 // =========================================================================
 // Official School Reports (PKL Recapitulation & LMS Gradebook)
 // =========================================================================
@@ -42,6 +57,7 @@ export const exportPklAttendanceReport = async (rawArgs: unknown, context: { use
       schoolId: user.schoolId,
       ...(filter?.placementId ? { id: filter.placementId } : {}),
       ...(filter?.classRoomId ? { student: { classRoomId: filter.classRoomId } } : {}),
+      ...(!isUnrestrictedReportStaff(user) ? { teacherSupervisorId: user.id } : {}),
     },
     include: {
       student: {
@@ -110,7 +126,11 @@ export const exportLmsGradesReport = async (rawArgs: unknown, context: { user?: 
   const { courseId } = ensureArgsSchemaOrThrowHttpError(exportLmsGradesSchema, rawArgs);
 
   const course = await prisma.lmsCourse.findFirst({
-    where: { id: courseId, schoolId: user.schoolId },
+    where: {
+      id: courseId,
+      schoolId: user.schoolId,
+      ...(!isUnrestrictedReportStaff(user) ? { teacherId: user.id } : {}),
+    },
     include: {
       school: true,
       teacher: { select: { id: true, name: true, teacherProfile: true } },
@@ -247,7 +267,11 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
 
   const classRoom = filter?.classRoomId
     ? await prisma.classRoom.findFirst({
-        where: { id: filter.classRoomId, schoolId: user.schoolId },
+        where: {
+          id: filter.classRoomId,
+          schoolId: user.schoolId,
+          ...getStaffClassRoomScope(user),
+        },
         include: {
           department: true,
           academicYear: true,
@@ -267,7 +291,10 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
         },
       })
     : await prisma.classRoom.findFirst({
-        where: { schoolId: user.schoolId },
+        where: {
+          schoolId: user.schoolId,
+          ...getStaffClassRoomScope(user),
+        },
         include: {
           department: true,
           academicYear: true,
@@ -356,9 +383,23 @@ export const getActiveStudentCertificateData = async (rawArgs: unknown, context:
     where: { id: user.schoolId },
   });
 
+  const accessibleClassIds = isUnrestrictedReportStaff(user)
+    ? null
+    : (
+        await prisma.classRoom.findMany({
+          where: { schoolId: user.schoolId, ...getStaffClassRoomScope(user) },
+          select: { id: true },
+        })
+      ).map((classRoom) => classRoom.id);
+
   const student = filter?.studentId
     ? await prisma.user.findFirst({
-        where: { id: filter.studentId, schoolId: user.schoolId, role: "STUDENT" },
+        where: {
+          id: filter.studentId,
+          schoolId: user.schoolId,
+          role: "STUDENT",
+          ...(accessibleClassIds ? { classRoomId: { in: accessibleClassIds } } : {}),
+        },
         include: {
           studentProfile: true,
           classRoom: {
@@ -367,7 +408,11 @@ export const getActiveStudentCertificateData = async (rawArgs: unknown, context:
         },
       })
     : await prisma.user.findFirst({
-        where: { schoolId: user.schoolId, role: "STUDENT" },
+        where: {
+          schoolId: user.schoolId,
+          role: "STUDENT",
+          ...(accessibleClassIds ? { classRoomId: { in: accessibleClassIds } } : {}),
+        },
         include: {
           studentProfile: true,
           classRoom: {
@@ -406,14 +451,14 @@ export const getActiveStudentCertificateData = async (rawArgs: unknown, context:
 // =========================================================================
 
 export const getSchoolReportContext = async (_rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireReportStaff(context);
 
   const school = await prisma.school.findUnique({
     where: { id: user.schoolId },
   });
 
   const classRooms = await prisma.classRoom.findMany({
-    where: { schoolId: user.schoolId },
+    where: { schoolId: user.schoolId, ...getStaffClassRoomScope(user) },
     include: {
       department: true,
       _count: { select: { students: true } },
@@ -421,8 +466,13 @@ export const getSchoolReportContext = async (_rawArgs: unknown, context: { user?
     orderBy: { name: "asc" },
   });
 
+  const accessibleClassIds = classRooms.map((classRoom) => classRoom.id);
   const students = await prisma.user.findMany({
-    where: { schoolId: user.schoolId, role: "STUDENT" },
+    where: {
+      schoolId: user.schoolId,
+      role: "STUDENT",
+      ...(!isUnrestrictedReportStaff(user) ? { classRoomId: { in: accessibleClassIds } } : {}),
+    },
     select: {
       id: true,
       name: true,

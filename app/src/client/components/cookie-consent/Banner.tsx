@@ -9,9 +9,11 @@ import { getConfig } from "./Config";
  * as well as its import in src/client/App.tsx .
  */
 export function CookieConsentBanner() {
+  const analyticsId = import.meta.env.REACT_APP_GOOGLE_ANALYTICS_ID?.trim();
   useEffect(() => {
-    CookieConsent.run(getConfig());
-  }, []);
+    if (analyticsId) CookieConsent.run(getConfig());
+  }, [analyticsId]);
 
+  if (!analyticsId) return null;
   return <div id="cookieconsent"></div>;
 }

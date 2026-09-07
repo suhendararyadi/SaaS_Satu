@@ -9,9 +9,15 @@ import { getPaymentProcessorPlanId } from "../paymentProcessorPlans";
 import { createLemonSqueezyCheckoutSession } from "./checkoutUtils";
 import { lemonSqueezyMiddlewareConfigFn, lemonSqueezyWebhook } from "./webhook";
 
-lemonSqueezySetup({
-  apiKey: env.LEMONSQUEEZY_API_KEY,
-});
+function getLemonSqueezyConfig() {
+  const apiKey = env.LEMONSQUEEZY_API_KEY;
+  const storeId = env.LEMONSQUEEZY_STORE_ID;
+  if (!apiKey || !storeId) {
+    throw new Error("Lemon Squeezy belum dikonfigurasi pada deployment ini.");
+  }
+  lemonSqueezySetup({ apiKey });
+  return { storeId };
+}
 
 export const lemonSqueezyPaymentProcessor: PaymentProcessor = {
   id: "lemonsqueezy",
@@ -24,8 +30,9 @@ export const lemonSqueezyPaymentProcessor: PaymentProcessor = {
       throw new Error(
         "User ID needed to create Lemon Squeezy Checkout Session",
       );
+    const { storeId } = getLemonSqueezyConfig();
     const session = await createLemonSqueezyCheckoutSession({
-      storeId: env.LEMONSQUEEZY_STORE_ID,
+      storeId,
       variantId: getPaymentProcessorPlanId(paymentPlan),
       userEmail,
       userId,
@@ -48,6 +55,7 @@ export const lemonSqueezyPaymentProcessor: PaymentProcessor = {
   webhook: lemonSqueezyWebhook,
   webhookMiddlewareConfigFn: lemonSqueezyMiddlewareConfigFn,
   fetchTotalRevenue: async () => {
+    const { storeId } = getLemonSqueezyConfig();
     let totalRevenue = 0;
     let hasNextPage = true;
     let currentPage = 1;
@@ -55,7 +63,7 @@ export const lemonSqueezyPaymentProcessor: PaymentProcessor = {
     while (hasNextPage) {
       const { data: response } = await listOrders({
         filter: {
-          storeId: env.LEMONSQUEEZY_STORE_ID,
+          storeId,
         },
         page: {
           number: currentPage,

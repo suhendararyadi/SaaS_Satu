@@ -2,15 +2,25 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { ensureSchoolUser, requireSchoolAdmin, requireTeacher } from "../school/authGuards";
+import { ensureSchoolUser, requireSchoolAdmin, requireStudent, requirePklAccess, requirePklMonitoring, requireAnySchoolCapability } from "../school/authGuards";
+import { type SchoolScopedUser } from "../school/types";
 import { calculateDistanceMeters, isWithinGeofence } from "./geofence";
+
+
+function getPklPlacementScope(user: SchoolScopedUser) {
+  if (user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN") return {};
+  if (user.role === "STUDENT") return { studentId: user.id };
+  if (user.role === "TEACHER") return { teacherSupervisorId: user.id };
+  if (user.role === "DUDI_MENTOR") return { dudiMentorId: user.id };
+  throw new HttpError(403, "Peran akun ini tidak memiliki akses ke data PKL.");
+}
 
 // ==========================================
 // 1. DUDI / Company Operations
 // ==========================================
 
 export const getCompanies = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireSchoolAdmin(context);
 
   return prisma.company.findMany({
     where: { schoolId: user.schoolId },
@@ -129,7 +139,7 @@ const getPlacementsSchema = z.object({
 }).optional();
 
 export const getPlacements = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requirePklAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getPlacementsSchema || z.any(),
     rawArgs || {}
@@ -140,8 +150,7 @@ export const getPlacements = async (rawArgs: unknown, context: { user?: User }) 
       schoolId: user.schoolId,
       ...(filter?.companyId ? { companyId: filter.companyId } : {}),
       ...(filter?.status ? { status: filter.status } : {}),
-      ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
-      ...(user.role === "TEACHER" && !user.isAdmin ? { teacherSupervisorId: user.id } : {}),
+      ...getPklPlacementScope(user),
     },
     include: {
       student: {
@@ -306,7 +315,10 @@ const recordAttendanceSchema = z.object({
 });
 
 export const recordAttendance = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireStudent(context);
+  if (user.role !== "STUDENT") {
+    throw new HttpError(403, "Presensi PKL hanya dapat dicatat oleh akun peserta didik.");
+  }
   const args = ensureArgsSchemaOrThrowHttpError(recordAttendanceSchema, rawArgs);
 
   // Validate placement belongs to user or admin
@@ -314,7 +326,7 @@ export const recordAttendance = async (rawArgs: unknown, context: { user?: User 
     where: {
       id: args.placementId,
       schoolId: user.schoolId,
-      ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+      studentId: user.id,
     },
     include: { company: true },
   });
@@ -351,6 +363,13 @@ export const recordAttendance = async (rawArgs: unknown, context: { user?: User 
   // Indonesian date string YYYY-MM-DD (Asia/Jakarta)
   const now = new Date();
   const dateOnly = now.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const existingAttendance = await prisma.attendanceLog.findFirst({
+    where: { placementId: placement.id, dateOnly, type: args.type },
+    select: { id: true },
+  });
+  if (existingAttendance) {
+    throw new HttpError(409, `Presensi ${args.type} untuk hari ini sudah tercatat.`);
+  }
 
   return prisma.attendanceLog.create({
     data: {
@@ -374,7 +393,7 @@ const getAttendanceLogsSchema = z.object({
 }).optional();
 
 export const getAttendanceLogs = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requirePklAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getAttendanceLogsSchema || z.any(),
     rawArgs || {}
@@ -385,7 +404,7 @@ export const getAttendanceLogs = async (rawArgs: unknown, context: { user?: User
       placement: {
         schoolId: user.schoolId,
         ...(filter?.placementId ? { id: filter.placementId } : {}),
-        ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+        ...getPklPlacementScope(user),
       },
       ...(filter?.dateOnly ? { dateOnly: filter.dateOnly } : {}),
     },
@@ -414,14 +433,17 @@ const createDailyJournalSchema = z.object({
 });
 
 export const createDailyJournal = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireStudent(context);
+  if (user.role !== "STUDENT") {
+    throw new HttpError(403, "Jurnal PKL hanya dapat dibuat oleh akun peserta didik.");
+  }
   const args = ensureArgsSchemaOrThrowHttpError(createDailyJournalSchema, rawArgs);
 
   const placement = await prisma.placement.findFirst({
     where: {
       id: args.placementId,
       schoolId: user.schoolId,
-      ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+      studentId: user.id,
     },
   });
   if (!placement) throw new HttpError(404, "Penempatan tidak ditemukan.");
@@ -444,7 +466,7 @@ const getDailyJournalsSchema = z.object({
 }).optional();
 
 export const getDailyJournals = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requirePklAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getDailyJournalsSchema || z.any(),
     rawArgs || {}
@@ -455,7 +477,7 @@ export const getDailyJournals = async (rawArgs: unknown, context: { user?: User 
       placement: {
         schoolId: user.schoolId,
         ...(filter?.placementId ? { id: filter.placementId } : {}),
-        ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+        ...getPklPlacementScope(user),
       },
       ...(filter?.status ? { status: filter.status } : {}),
     },
@@ -480,17 +502,22 @@ const reviewDailyJournalSchema = z.object({
 });
 
 export const reviewDailyJournal = async (rawArgs: unknown, context: { user?: User }) => {
-  const reviewer = requireTeacher(context);
+  const reviewer = requireAnySchoolCapability(context, ["teach", "mentor"]);
   const args = ensureArgsSchemaOrThrowHttpError(reviewDailyJournalSchema, rawArgs);
+
+  const reviewerScope =
+    !reviewer.isAdmin && reviewer.role === "TEACHER"
+      ? { teacherSupervisorId: reviewer.id }
+      : !reviewer.isAdmin && reviewer.role === "DUDI_MENTOR"
+        ? { dudiMentorId: reviewer.id }
+        : {};
 
   const journal = await prisma.dailyJournal.findFirst({
     where: {
       id: args.id,
       placement: {
         schoolId: reviewer.schoolId,
-        ...(!reviewer.isAdmin && reviewer.role === "TEACHER"
-          ? { teacherSupervisorId: reviewer.id }
-          : {}),
+        ...reviewerScope,
       },
     },
     select: { id: true },
@@ -516,13 +543,14 @@ export const reviewDailyJournal = async (rawArgs: unknown, context: { user?: Use
 // ==========================================
 
 export const getPklEwsAlerts = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requirePklMonitoring(context);
 
   // Find active placements in this school
   const activePlacements = await prisma.placement.findMany({
     where: {
       schoolId: user.schoolId,
       status: "ACTIVE",
+      ...getPklPlacementScope(user),
     },
     include: {
       student: {

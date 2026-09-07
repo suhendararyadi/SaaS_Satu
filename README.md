@@ -4,9 +4,9 @@
 [![Google Material 3](https://img.shields.io/badge/Design%20System-Google%20Material%203-12512E.svg)](https://m3.material.io)
 [![Anti-Slop](https://img.shields.io/badge/Quality-Anti--Slop%20Verified-blue.svg)](./docs/ANTI_SLOP_GUIDELINES.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Passed-3178C6.svg)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/Tests-60%2F60%20Passing-brightgreen.svg)](#pengujian)
+[![Tests](https://img.shields.io/badge/Unit-67%2F67%20Passing-brightgreen.svg)](#pengujian)
 
-Platform Software-as-a-Service (SaaS) manajemen sekolah modern multi-tenant yang dibangun di atas framework full-stack **[Wasp](https://wasp.sh)**, **React 18**, **Node.js**, **Prisma ORM**, dan **PostgreSQL**. Mengusung sistem desain **Google Material 3 (Material You)** serta menerapkan standar kualitas tinggi **Anti-Slop (R-01 s/d R-38)**.
+Platform Software-as-a-Service (SaaS) manajemen sekolah modern multi-tenant yang dibangun di atas framework full-stack **[Wasp](https://wasp.sh)**, **React 19**, **Node.js 24**, **Prisma ORM**, dan **PostgreSQL**. Mengusung sistem desain **Google Material 3 (Material You)** serta menerapkan standar kualitas tinggi **Anti-Slop (R-01 s/d R-38)**.
 
 ---
 
@@ -56,7 +56,7 @@ Dokumentasi terperinci untuk arsitektur, panduan modul, desain sistem, dan catat
 ## 🚀 Memulai Pengembangan Lokal
 
 ### Prasyarat
-- Node.js (v18 atau v20 LTS)
+- Node.js **24.14.1 atau lebih baru** (sesuai Wasp 0.25)
 - Wasp CLI: `curl -sSL https://get.wasp.sh/installer.sh | sh`
 
 ### Instalasi & Menjalankan Aplikasi
@@ -92,6 +92,16 @@ cd app && wasp test client --run
 # 3. Pengujian otomatis E2E Playwright (CRUD Guru & Siswa)
 node scratch/test_crud_manual.mjs
 ```
+
+---
+
+## 🔐 Integrasi Opsional & Deployment
+
+Deployment produksi menggunakan prinsip **fail-closed**. Payment, analytics, dan file upload tidak dianggap aktif hanya karena environment variable kredensial terisi; masing-masing harus diaktifkan secara eksplisit dengan `PAYMENTS_ENABLED=true`, `ANALYTICS_ENABLED=true`, atau `FILE_UPLOADS_ENABLED=true`.
+
+Domain deployment saat ini: `https://sekolah.suhendararyadi.com`. Backend dijalankan sebagai service systemd di belakang Nginx dan hanya diakses melalui reverse proxy. Migration production dijalankan dengan `prisma migrate deploy`, bukan `migrate dev`.
+
+Quality gate sebelum release: Prisma validate → TypeScript strict → unit test → migration check → production build → E2E tenant isolation → runtime dependency audit.
 
 ---
 

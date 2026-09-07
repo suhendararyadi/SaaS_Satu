@@ -12,13 +12,24 @@ import * as path from "path";
 import { env } from "wasp/server";
 import { MAX_FILE_SIZE_BYTES } from "./validation";
 
-export const s3Client = new S3Client({
-  region: env.AWS_S3_REGION,
-  credentials: {
-    accessKeyId: env.AWS_S3_IAM_ACCESS_KEY,
-    secretAccessKey: env.AWS_S3_IAM_SECRET_KEY,
-  },
-});
+function getS3Client() {
+  if (!env.AWS_S3_REGION || !env.AWS_S3_IAM_ACCESS_KEY || !env.AWS_S3_IAM_SECRET_KEY) {
+    throw new Error("Penyimpanan file belum dikonfigurasi.");
+  }
+  return new S3Client({
+    region: env.AWS_S3_REGION,
+    credentials: {
+      accessKeyId: env.AWS_S3_IAM_ACCESS_KEY,
+      secretAccessKey: env.AWS_S3_IAM_SECRET_KEY,
+    },
+  });
+}
+
+function getBucketName() {
+  if (!env.AWS_S3_FILES_BUCKET) throw new Error("Bucket penyimpanan file belum dikonfigurasi.");
+  return env.AWS_S3_FILES_BUCKET;
+}
+
 
 type S3Upload = {
   fileType: string;
@@ -34,8 +45,8 @@ export const getUploadFileSignedURLFromS3 = async ({
   const s3Key = getS3Key(fileName, userId);
 
   const { url: s3UploadUrl, fields: s3UploadFields } =
-    await createPresignedPost(s3Client, {
-      Bucket: env.AWS_S3_FILES_BUCKET!,
+    await createPresignedPost(getS3Client(), {
+      Bucket: getBucketName(),
       Key: s3Key,
       Conditions: [["content-length-range", 0, MAX_FILE_SIZE_BYTES]],
       Fields: {
@@ -53,27 +64,27 @@ export const getDownloadFileSignedURLFromS3 = async ({
   s3Key: string;
 }) => {
   const command = new GetObjectCommand({
-    Bucket: env.AWS_S3_FILES_BUCKET,
+    Bucket: getBucketName(),
     Key: s3Key,
   });
-  return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  return await getSignedUrl(getS3Client(), command, { expiresIn: 3600 });
 };
 
 export const deleteFileFromS3 = async ({ s3Key }: { s3Key: string }) => {
   const command = new DeleteObjectCommand({
-    Bucket: env.AWS_S3_FILES_BUCKET,
+    Bucket: getBucketName(),
     Key: s3Key,
   });
-  await s3Client.send(command);
+  await getS3Client().send(command);
 };
 
 export const checkFileExistsInS3 = async ({ s3Key }: { s3Key: string }) => {
   const command = new HeadObjectCommand({
-    Bucket: env.AWS_S3_FILES_BUCKET,
+    Bucket: getBucketName(),
     Key: s3Key,
   });
   try {
-    await s3Client.send(command);
+    await getS3Client().send(command);
     return true;
   } catch (error) {
     if (error instanceof S3ServiceException && error.name === "NotFound") {

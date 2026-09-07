@@ -4,6 +4,7 @@ import { CheckoutResultPage } from "./CheckoutResultPage" with { type: "ref" };
 import {
   generateCheckoutSession,
   getCustomerPortalUrl,
+  getPaymentConfigurationStatus,
 } from "./operations" with { type: "ref" };
 import { PricingPage } from "./PricingPage" with { type: "ref" };
 import {
@@ -19,6 +20,7 @@ export const paymentSpec: Spec = [
     page(CheckoutResultPage, { authRequired: true }),
   ),
   query(getCustomerPortalUrl, { entities: ["User"] }),
+  query(getPaymentConfigurationStatus),
   action(generateCheckoutSession, { entities: ["User"] }),
   api("POST", "/payments-webhook", paymentsWebhook, {
     entities: ["User"],

@@ -1,9 +1,12 @@
 import { env } from "wasp/server";
+import { isPlausibleConfigured } from "../config";
 
-const headers = {
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${env.PLAUSIBLE_API_KEY}`,
-};
+function getConfig() {
+  if (!isPlausibleConfigured() || !env.PLAUSIBLE_API_KEY || !env.PLAUSIBLE_SITE_ID || !env.PLAUSIBLE_BASE_URL) {
+    throw new Error("Plausible analytics belum dikonfigurasi");
+  }
+  return { apiKey: env.PLAUSIBLE_API_KEY, siteId: env.PLAUSIBLE_SITE_ID, baseUrl: env.PLAUSIBLE_BASE_URL.replace(/\/$/, ""), headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.PLAUSIBLE_API_KEY}` } };
+}
 
 type PageViewsResult = {
   results: {
@@ -33,12 +36,10 @@ export async function getDailyPageViews() {
 }
 
 async function getTotalPageViews() {
+  const config = getConfig();
   const response = await fetch(
-    `${env.PLAUSIBLE_BASE_URL}/v1/stats/aggregate?site_id=${env.PLAUSIBLE_SITE_ID}&metrics=pageviews`,
-    {
-      method: "GET",
-      headers,
-    },
+    `${config.baseUrl}/v1/stats/aggregate?site_id=${config.siteId}&metrics=pageviews`,
+    { method: "GET", headers: config.headers },
   );
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -83,10 +84,11 @@ async function getPrevDayViewsChangePercent() {
 }
 
 async function getPageviewsForDate(date: string) {
-  const url = `${env.PLAUSIBLE_BASE_URL}/v1/stats/aggregate?site_id=${env.PLAUSIBLE_SITE_ID}&period=day&date=${date}&metrics=pageviews`;
+  const config = getConfig();
+  const url = `${config.baseUrl}/v1/stats/aggregate?site_id=${config.siteId}&period=day&date=${date}&metrics=pageviews`;
   const response = await fetch(url, {
     method: "GET",
-    headers,
+    headers: config.headers,
   });
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -96,10 +98,11 @@ async function getPageviewsForDate(date: string) {
 }
 
 export async function getSources() {
-  const url = `${env.PLAUSIBLE_BASE_URL}/v1/stats/breakdown?site_id=${env.PLAUSIBLE_SITE_ID}&property=visit:source&metrics=visitors`;
+  const config = getConfig();
+  const url = `${config.baseUrl}/v1/stats/breakdown?site_id=${config.siteId}&property=visit:source&metrics=visitors`;
   const response = await fetch(url, {
     method: "GET",
-    headers,
+    headers: config.headers,
   });
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);

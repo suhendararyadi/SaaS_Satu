@@ -2,7 +2,7 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { ensureSchoolUser, requireSchoolAdmin, ensureAuthenticated } from "./authGuards";
+import { ensureSchoolUser, requireSchoolAdmin, ensureAuthenticated, ensureSuperAdmin, requireSchoolDirectoryAccess } from "./authGuards";
 
 // ==========================================
 // 1. School Profile & Onboarding Operations
@@ -62,6 +62,12 @@ const registerSchoolSchema = z.object({
 
 export const registerSchool = async (rawArgs: unknown, context: { user?: User }) => {
   ensureAuthenticated(context);
+  if (context.user.schoolId) {
+    throw new HttpError(409, "Akun ini sudah terhubung ke unit sekolah. Registrasi sekolah baru dari onboarding tidak diizinkan.");
+  }
+  if (context.user.isAdmin || context.user.role === "SUPERADMIN") {
+    throw new HttpError(403, "Super Admin harus membuat sekolah melalui panel organisasi sekolah.");
+  }
   const args = ensureArgsSchemaOrThrowHttpError(registerSchoolSchema, rawArgs);
 
   // Generate unique slug
@@ -78,44 +84,41 @@ export const registerSchool = async (rawArgs: unknown, context: { user?: User })
     counter++;
   }
 
-  const school = await prisma.school.create({
-    data: {
-      name: args.name,
-      level: args.level,
-      slug,
-      npsn: args.npsn || null,
-      address: args.address || null,
-      city: args.city || null,
-      province: args.province || null,
-      phone: args.phone || null,
-      email: args.email || null,
-      tier: "FREE_TRIAL",
-      studentQuota: 100,
-      subscriptionStatus: "active",
-    },
-  });
-
-  // Associate user as School Admin
-  await prisma.user.update({
-    where: { id: context.user.id },
-    data: {
-      schoolId: school.id,
-      role: "SCHOOL_ADMIN",
-    },
-  });
-
-  // Create default Academic Year (current year)
   const currentYear = new Date().getFullYear();
-  await prisma.academicYear.create({
-    data: {
-      schoolId: school.id,
-      yearName: `${currentYear}/${currentYear + 1}`,
-      semester: "GANJIL",
-      isActive: true,
-    },
-  });
+  return prisma.$transaction(async (tx) => {
+    const school = await tx.school.create({
+      data: {
+        name: args.name,
+        level: args.level,
+        slug,
+        npsn: args.npsn || null,
+        address: args.address || null,
+        city: args.city || null,
+        province: args.province || null,
+        phone: args.phone || null,
+        email: args.email || null,
+        tier: "FREE_TRIAL",
+        studentQuota: 100,
+        subscriptionStatus: "active",
+      },
+    });
 
-  return school;
+    await tx.user.update({
+      where: { id: context.user.id },
+      data: { schoolId: school.id, role: "SCHOOL_ADMIN" },
+    });
+
+    await tx.academicYear.create({
+      data: {
+        schoolId: school.id,
+        yearName: `${currentYear}/${currentYear + 1}`,
+        semester: "GANJIL",
+        isActive: true,
+      },
+    });
+
+    return school;
+  });
 };
 
 const updateSchoolInfoSchema = z.object({
@@ -157,7 +160,7 @@ export const updateSchoolInfo = async (rawArgs: unknown, context: { user?: User 
 // ==========================================
 
 export const getDepartments = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireSchoolDirectoryAccess(context);
 
   return prisma.department.findMany({
     where: { schoolId: user.schoolId },
@@ -258,7 +261,7 @@ export const deleteDepartment = async (rawArgs: unknown, context: { user?: User 
 // ==========================================
 
 export const getAcademicYears = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireSchoolDirectoryAccess(context);
 
   return prisma.academicYear.findMany({
     where: { schoolId: user.schoolId },
@@ -295,20 +298,22 @@ export const createAcademicYear = async (rawArgs: unknown, context: { user?: Use
     throw new HttpError(400, `Tahun ajaran ${args.yearName} semester ${args.semester} sudah ada.`);
   }
 
-  if (args.isActive) {
-    await prisma.academicYear.updateMany({
-      where: { schoolId: user.schoolId, isActive: true },
-      data: { isActive: false },
-    });
-  }
+  return prisma.$transaction(async (tx) => {
+    if (args.isActive) {
+      await tx.academicYear.updateMany({
+        where: { schoolId: user.schoolId, isActive: true },
+        data: { isActive: false },
+      });
+    }
 
-  return prisma.academicYear.create({
-    data: {
-      schoolId: user.schoolId,
-      yearName: args.yearName,
-      semester: args.semester,
-      isActive: args.isActive,
-    },
+    return tx.academicYear.create({
+      data: {
+        schoolId: user.schoolId,
+        yearName: args.yearName,
+        semester: args.semester,
+        isActive: args.isActive,
+      },
+    });
   });
 };
 
@@ -327,15 +332,15 @@ export const setActiveAcademicYear = async (rawArgs: unknown, context: { user?: 
     throw new HttpError(404, "Data tahun ajaran tidak ditemukan.");
   }
 
-  // Deactivate all others
-  await prisma.academicYear.updateMany({
-    where: { schoolId: user.schoolId, isActive: true },
-    data: { isActive: false },
-  });
-
-  return prisma.academicYear.update({
-    where: { id },
-    data: { isActive: true },
+  return prisma.$transaction(async (tx) => {
+    await tx.academicYear.updateMany({
+      where: { schoolId: user.schoolId, isActive: true },
+      data: { isActive: false },
+    });
+    return tx.academicYear.update({
+      where: { id },
+      data: { isActive: true },
+    });
   });
 };
 
@@ -350,7 +355,7 @@ const getClassRoomsSchema = z.object({
 }).optional();
 
 export const getClassRooms = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireSchoolDirectoryAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getClassRoomsSchema || z.any(),
     rawArgs || {}
@@ -408,6 +413,18 @@ export const createClassRoom = async (rawArgs: unknown, context: { user?: User }
   });
   if (!year) throw new HttpError(404, "Tahun ajaran tidak ditemukan.");
 
+  if (args.homeroomTeacherId) {
+    const teacher = await prisma.user.findFirst({
+      where: {
+        id: args.homeroomTeacherId,
+        schoolId: user.schoolId,
+        role: { in: ["TEACHER", "SCHOOL_ADMIN"] },
+      },
+      select: { id: true },
+    });
+    if (!teacher) throw new HttpError(404, "Wali kelas tidak ditemukan pada sekolah aktif.");
+  }
+
   // Check unique per academic year
   const existing = await prisma.classRoom.findUnique({
     where: {
@@ -464,6 +481,24 @@ export const updateClassRoom = async (rawArgs: unknown, context: { user?: User }
     if (!dept) throw new HttpError(404, "Jurusan tidak ditemukan.");
   }
 
+  const year = await prisma.academicYear.findFirst({
+    where: { id: args.academicYearId, schoolId: user.schoolId },
+    select: { id: true },
+  });
+  if (!year) throw new HttpError(404, "Tahun ajaran tidak ditemukan.");
+
+  if (args.homeroomTeacherId) {
+    const teacher = await prisma.user.findFirst({
+      where: {
+        id: args.homeroomTeacherId,
+        schoolId: user.schoolId,
+        role: { in: ["TEACHER", "SCHOOL_ADMIN"] },
+      },
+      select: { id: true },
+    });
+    if (!teacher) throw new HttpError(404, "Wali kelas tidak ditemukan pada sekolah aktif.");
+  }
+
   return prisma.classRoom.update({
     where: { id: args.id },
     data: {
@@ -510,7 +545,7 @@ export const deleteClassRoom = async (rawArgs: unknown, context: { user?: User }
 // ==========================================
 
 export const getSchoolTeachers = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireSchoolDirectoryAccess(context);
 
   return prisma.user.findMany({
     where: {
@@ -537,7 +572,7 @@ const getSchoolStudentsSchema = z.object({
 }).optional();
 
 export const getSchoolStudents = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireSchoolDirectoryAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getSchoolStudentsSchema || z.any(),
     rawArgs || {}
@@ -621,27 +656,28 @@ export const createTeacher = async (rawArgs: unknown, context: { user?: User }) 
     username = `${username}_${Date.now().toString().slice(-4)}`;
   }
 
-  const newUser = await prisma.user.create({
-    data: {
-      name: args.name.trim(),
-      email: cleanEmail,
-      username,
-      role: args.role,
-      schoolId: admin.schoolId,
-    },
-  });
+  return prisma.$transaction(async (tx) => {
+    const newUser = await tx.user.create({
+      data: {
+        name: args.name.trim(),
+        email: cleanEmail,
+        username,
+        role: args.role,
+        schoolId: admin.schoolId,
+      },
+    });
 
-  await prisma.teacherProfile.create({
-    data: {
-      userId: newUser.id,
-      nip: cleanNip,
-      title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
-      phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
-      isWaka: args.isWaka ?? false,
-    },
+    await tx.teacherProfile.create({
+      data: {
+        userId: newUser.id,
+        nip: cleanNip,
+        title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
+        phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
+        isWaka: args.isWaka ?? false,
+      },
+    });
+    return newUser;
   });
-
-  return newUser;
 };
 
 const updateTeacherSchema = z.object({
@@ -690,33 +726,34 @@ export const updateTeacher = async (rawArgs: unknown, context: { user?: User }) 
     }
   }
 
-  const updatedUser = await prisma.user.update({
-    where: { id: args.id },
-    data: {
-      name: args.name.trim(),
-      email: cleanEmail,
-      role: args.role,
-    },
-  });
+  return prisma.$transaction(async (tx) => {
+    const updatedUser = await tx.user.update({
+      where: { id: args.id },
+      data: {
+        name: args.name.trim(),
+        email: cleanEmail,
+        role: args.role,
+      },
+    });
 
-  await prisma.teacherProfile.upsert({
-    where: { userId: args.id },
-    create: {
-      userId: args.id,
-      nip: cleanNip,
-      title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
-      phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
-      isWaka: args.isWaka ?? false,
-    },
-    update: {
-      nip: cleanNip,
-      title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
-      phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
-      isWaka: args.isWaka ?? false,
-    },
+    await tx.teacherProfile.upsert({
+      where: { userId: args.id },
+      create: {
+        userId: args.id,
+        nip: cleanNip,
+        title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
+        phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
+        isWaka: args.isWaka ?? false,
+      },
+      update: {
+        nip: cleanNip,
+        title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
+        phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
+        isWaka: args.isWaka ?? false,
+      },
+    });
+    return updatedUser;
   });
-
-  return updatedUser;
 };
 
 const deleteTeacherSchema = z.object({
@@ -753,29 +790,23 @@ export const deleteTeacher = async (rawArgs: unknown, context: { user?: User }) 
     );
   }
 
-  // If teacher is homeroom teacher, release the homeroom teacher assignment
-  if (targetUser.homeroomClasses.length > 0) {
-    await prisma.classRoom.updateMany({
-      where: { homeroomTeacherId: id },
-      data: { homeroomTeacherId: null },
+  return prisma.$transaction(async (tx) => {
+    if (targetUser.homeroomClasses.length > 0) {
+      await tx.classRoom.updateMany({
+        where: { homeroomTeacherId: id, schoolId: admin.schoolId },
+        data: { homeroomTeacherId: null },
+      });
+    }
+    await tx.placement.updateMany({
+      where: { teacherSupervisorId: id, schoolId: admin.schoolId },
+      data: { teacherSupervisorId: null },
     });
-  }
-
-  // If teacher is supervising PKL, unassign
-  await prisma.placement.updateMany({
-    where: { teacherSupervisorId: id },
-    data: { teacherSupervisorId: null },
+    await tx.dutyTeacherReport.deleteMany({
+      where: { dutyTeacherId: id, schoolId: admin.schoolId },
+    });
+    await tx.teacherProfile.deleteMany({ where: { userId: id } });
+    return tx.user.delete({ where: { id } });
   });
-
-  await prisma.dutyTeacherReport.deleteMany({
-    where: { dutyTeacherId: id },
-  });
-
-  await prisma.teacherProfile.deleteMany({
-    where: { userId: id },
-  });
-
-  return prisma.user.delete({ where: { id } });
 };
 
 // ==========================================
@@ -849,28 +880,28 @@ export const createStudent = async (rawArgs: unknown, context: { user?: User }) 
     username = `${username}_${Date.now().toString().slice(-4)}`;
   }
 
-  const newUser = await prisma.user.create({
-    data: {
-      name: args.name.trim(),
-      email: cleanEmail,
-      username,
-      role: "STUDENT",
-      schoolId: admin.schoolId,
-      classRoomId: cleanClassId,
-    },
+  return prisma.$transaction(async (tx) => {
+    const newUser = await tx.user.create({
+      data: {
+        name: args.name.trim(),
+        email: cleanEmail,
+        username,
+        role: "STUDENT",
+        schoolId: admin.schoolId,
+        classRoomId: cleanClassId,
+      },
+    });
+    await tx.studentProfile.create({
+      data: {
+        userId: newUser.id,
+        nis: cleanNis,
+        nisn: args.nisn && args.nisn.trim() !== "" ? args.nisn.trim() : null,
+        gender: args.gender,
+        status: "ACTIVE",
+      },
+    });
+    return newUser;
   });
-
-  await prisma.studentProfile.create({
-    data: {
-      userId: newUser.id,
-      nis: cleanNis,
-      nisn: args.nisn && args.nisn.trim() !== "" ? args.nisn.trim() : null,
-      gender: args.gender || "L",
-      status: "ACTIVE",
-    },
-  });
-
-  return newUser;
 };
 
 const updateStudentSchema = z.object({
@@ -930,33 +961,33 @@ export const updateStudent = async (rawArgs: unknown, context: { user?: User }) 
     }
   }
 
-  const updatedUser = await prisma.user.update({
-    where: { id: args.id },
-    data: {
-      name: args.name.trim(),
-      email: cleanEmail,
-      classRoomId: cleanClassId,
-    },
+  return prisma.$transaction(async (tx) => {
+    const updatedUser = await tx.user.update({
+      where: { id: args.id },
+      data: {
+        name: args.name.trim(),
+        email: cleanEmail,
+        classRoomId: cleanClassId,
+      },
+    });
+    await tx.studentProfile.upsert({
+      where: { userId: args.id },
+      create: {
+        userId: args.id,
+        nis: cleanNis,
+        nisn: args.nisn && args.nisn.trim() !== "" ? args.nisn.trim() : null,
+        gender: args.gender,
+        status: args.status,
+      },
+      update: {
+        nis: cleanNis,
+        nisn: args.nisn && args.nisn.trim() !== "" ? args.nisn.trim() : null,
+        gender: args.gender,
+        status: args.status,
+      },
+    });
+    return updatedUser;
   });
-
-  await prisma.studentProfile.upsert({
-    where: { userId: args.id },
-    create: {
-      userId: args.id,
-      nis: cleanNis,
-      nisn: args.nisn && args.nisn.trim() !== "" ? args.nisn.trim() : null,
-      gender: args.gender || "L",
-      status: args.status || "ACTIVE",
-    },
-    update: {
-      nis: cleanNis,
-      nisn: args.nisn && args.nisn.trim() !== "" ? args.nisn.trim() : null,
-      gender: args.gender || "L",
-      status: args.status || "ACTIVE",
-    },
-  });
-
-  return updatedUser;
 };
 
 const deleteStudentSchema = z.object({
@@ -989,27 +1020,14 @@ export const deleteStudent = async (rawArgs: unknown, context: { user?: User }) 
     );
   }
 
-  await prisma.lmsAttendanceRecord.deleteMany({
-    where: { studentId: id },
+  return prisma.$transaction(async (tx) => {
+    await tx.lmsAttendanceRecord.deleteMany({ where: { studentId: id } });
+    await tx.lmsSubmission.deleteMany({ where: { studentId: id } });
+    await tx.lmsAssessmentResult.deleteMany({ where: { studentId: id } });
+    await tx.placement.deleteMany({ where: { studentId: id, schoolId: admin.schoolId } });
+    await tx.studentProfile.deleteMany({ where: { userId: id } });
+    return tx.user.delete({ where: { id } });
   });
-
-  await prisma.lmsSubmission.deleteMany({
-    where: { studentId: id },
-  });
-
-  await prisma.lmsAssessmentResult.deleteMany({
-    where: { studentId: id },
-  });
-
-  await prisma.placement.deleteMany({
-    where: { studentId: id },
-  });
-
-  await prisma.studentProfile.deleteMany({
-    where: { userId: id },
-  });
-
-  return prisma.user.delete({ where: { id } });
 };
 
 // ==========================================
@@ -1017,10 +1035,7 @@ export const deleteStudent = async (rawArgs: unknown, context: { user?: User }) 
 // ==========================================
 
 export const getAllSchools = async (_args: unknown, context: { user?: User }) => {
-  ensureAuthenticated(context);
-  if (!context.user.isAdmin) {
-    throw new HttpError(403, "Hanya Platform Super Admin yang dapat melihat daftar seluruh sekolah.");
-  }
+  ensureSuperAdmin(context);
 
   return prisma.school.findMany({
     include: {
@@ -1043,10 +1058,7 @@ const switchActiveSchoolSchema = z.object({
 });
 
 export const switchActiveSchool = async (rawArgs: unknown, context: { user?: User }) => {
-  ensureAuthenticated(context);
-  if (!context.user.isAdmin) {
-    throw new HttpError(403, "Hanya Platform Super Admin yang dapat mengganti unit sekolah aktif.");
-  }
+  const superAdmin = ensureSuperAdmin(context);
 
   const args = ensureArgsSchemaOrThrowHttpError(switchActiveSchoolSchema, rawArgs);
 
@@ -1057,13 +1069,9 @@ export const switchActiveSchool = async (rawArgs: unknown, context: { user?: Use
     throw new HttpError(404, "Sekolah tujuan tidak ditemukan.");
   }
 
-  // Update current user's schoolId and role
   const updatedUser = await prisma.user.update({
-    where: { id: context.user.id },
-    data: {
-      schoolId: school.id,
-      role: "SCHOOL_ADMIN",
-    },
+    where: { id: superAdmin.id },
+    data: { schoolId: school.id },
   });
 
   return {
@@ -1088,10 +1096,7 @@ const createSchoolByAdminSchema = z.object({
 });
 
 export const createSchoolByAdmin = async (rawArgs: unknown, context: { user?: User }) => {
-  ensureAuthenticated(context);
-  if (!context.user.isAdmin) {
-    throw new HttpError(403, "Hanya Platform Super Admin yang dapat membuat unit sekolah baru.");
-  }
+  const superAdmin = ensureSuperAdmin(context);
 
   const args = ensureArgsSchemaOrThrowHttpError(createSchoolByAdminSchema, rawArgs);
 
@@ -1109,44 +1114,38 @@ export const createSchoolByAdmin = async (rawArgs: unknown, context: { user?: Us
     counter++;
   }
 
-  const school = await prisma.school.create({
-    data: {
-      name: args.name,
-      level: args.level,
-      slug,
-      npsn: args.npsn || null,
-      address: args.address || null,
-      city: args.city || null,
-      province: args.province || null,
-      phone: args.phone || null,
-      email: args.email || null,
-      tier: args.tier,
-      studentQuota: args.studentQuota,
-      subscriptionStatus: "active",
-    },
-  });
-
-  // Create default Academic Year (current year)
   const currentYear = new Date().getFullYear();
-  await prisma.academicYear.create({
-    data: {
-      schoolId: school.id,
-      yearName: `${currentYear}/${currentYear + 1}`,
-      semester: "GANJIL",
-      isActive: true,
-    },
-  });
-
-  // If requested, switch immediately to this school
-  if (args.switchImmediately) {
-    await prisma.user.update({
-      where: { id: context.user.id },
+  return prisma.$transaction(async (tx) => {
+    const school = await tx.school.create({
       data: {
-        schoolId: school.id,
-        role: "SCHOOL_ADMIN",
+        name: args.name,
+        level: args.level,
+        slug,
+        npsn: args.npsn || null,
+        address: args.address || null,
+        city: args.city || null,
+        province: args.province || null,
+        phone: args.phone || null,
+        email: args.email || null,
+        tier: args.tier,
+        studentQuota: args.studentQuota,
+        subscriptionStatus: "active",
       },
     });
-  }
-
-  return school;
+    await tx.academicYear.create({
+      data: {
+        schoolId: school.id,
+        yearName: `${currentYear}/${currentYear + 1}`,
+        semester: "GANJIL",
+        isActive: true,
+      },
+    });
+    if (args.switchImmediately) {
+      await tx.user.update({
+        where: { id: superAdmin.id },
+        data: { schoolId: school.id },
+      });
+    }
+    return school;
+  });
 };
