@@ -2,14 +2,23 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { ensureSchoolUser, requireTeacher } from "../school/authGuards";
+import { requireTeacher } from "../school/authGuards";
 
 // ==========================================
 // 1. Waka Kurikulum Supervision Operations
 // ==========================================
 
 export const getWakaSupervisionData = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireTeacher(context);
+  if (!user.isAdmin && user.role === "TEACHER") {
+    const profile = await prisma.teacherProfile.findUnique({
+      where: { userId: user.id },
+      select: { isWaka: true },
+    });
+    if (!profile?.isWaka) {
+      throw new HttpError(403, "Dashboard supervisi hanya dapat diakses oleh Wakil Kepala Sekolah.");
+    }
+  }
 
   // Today's date range (Asia/Jakarta)
   const now = new Date();
@@ -78,7 +87,7 @@ export const getWakaSupervisionData = async (_args: unknown, context: { user?: U
 // ==========================================
 
 export const getDutyTeacherReports = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireTeacher(context);
 
   return prisma.dutyTeacherReport.findMany({
     where: { schoolId: user.schoolId },
@@ -117,7 +126,7 @@ export const createDutyTeacherReport = async (rawArgs: unknown, context: { user?
 // ==========================================
 
 export const getHomeroomDashboardData = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireTeacher(context);
 
   // Find class where user is homeroom teacher
   const homeroomClass = await prisma.classRoom.findFirst({

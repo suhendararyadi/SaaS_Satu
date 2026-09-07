@@ -6,6 +6,7 @@ import {
   getLmsCourses,
   getLmsCourseDetail,
   createLmsCourse,
+  bulkCreateLmsCourses,
   deleteLmsCourse,
   createCourseAgenda,
   recordCourseAttendance,
@@ -57,6 +58,7 @@ export const lmsSpec: Spec = [
 
   // Actions
   action(createLmsCourse, { entities: ["LmsCourse"] }),
+  action(bulkCreateLmsCourses, { entities: ["LmsCourse"] }),
   action(deleteLmsCourse, { entities: ["LmsCourse"] }),
   action(createCourseAgenda, {
     entities: ["LmsAgenda", "LmsAgendaPhoto", "LmsCourse"],

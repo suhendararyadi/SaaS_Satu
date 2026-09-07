@@ -176,6 +176,30 @@ const createPlacementSchema = z.object({
 export const createPlacement = async (rawArgs: unknown, context: { user?: User }) => {
   const admin = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(createPlacementSchema, rawArgs);
+  const startDate = new Date(args.startDate);
+  const endDate = new Date(args.endDate);
+
+  if (Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || startDate >= endDate) {
+    throw new HttpError(400, "Tanggal mulai PKL harus lebih awal daripada tanggal selesai.");
+  }
+
+  const student = await prisma.user.findFirst({
+    where: { id: args.studentId, schoolId: admin.schoolId, role: "STUDENT" },
+    select: { id: true },
+  });
+  if (!student) throw new HttpError(404, "Siswa tidak ditemukan di unit sekolah ini.");
+
+  if (args.teacherSupervisorId) {
+    const supervisor = await prisma.user.findFirst({
+      where: {
+        id: args.teacherSupervisorId,
+        schoolId: admin.schoolId,
+        role: { in: ["TEACHER", "SCHOOL_ADMIN"] },
+      },
+      select: { id: true },
+    });
+    if (!supervisor) throw new HttpError(404, "Guru pembimbing tidak ditemukan di unit sekolah ini.");
+  }
 
   // Check student doesn't already have an active placement
   const existing = await prisma.placement.findFirst({
@@ -209,8 +233,8 @@ export const createPlacement = async (rawArgs: unknown, context: { user?: User }
       studentId: args.studentId,
       companyId: args.companyId,
       teacherSupervisorId: args.teacherSupervisorId || null,
-      startDate: new Date(args.startDate),
-      endDate: new Date(args.endDate),
+      startDate,
+      endDate,
       status: "ACTIVE",
     },
     include: {
@@ -233,13 +257,37 @@ export const updatePlacement = async (rawArgs: unknown, context: { user?: User }
   const admin = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(updatePlacementSchema, rawArgs);
 
+  const placement = await prisma.placement.findFirst({
+    where: { id: args.id, schoolId: admin.schoolId },
+    select: { id: true, startDate: true, endDate: true },
+  });
+  if (!placement) throw new HttpError(404, "Data penempatan PKL tidak ditemukan.");
+
+  if (args.teacherSupervisorId) {
+    const supervisor = await prisma.user.findFirst({
+      where: {
+        id: args.teacherSupervisorId,
+        schoolId: admin.schoolId,
+        role: { in: ["TEACHER", "SCHOOL_ADMIN"] },
+      },
+      select: { id: true },
+    });
+    if (!supervisor) throw new HttpError(404, "Guru pembimbing tidak ditemukan di unit sekolah ini.");
+  }
+
+  const startDate = args.startDate ? new Date(args.startDate) : placement.startDate;
+  const endDate = args.endDate ? new Date(args.endDate) : placement.endDate;
+  if (Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || startDate >= endDate) {
+    throw new HttpError(400, "Tanggal mulai PKL harus lebih awal daripada tanggal selesai.");
+  }
+
   return prisma.placement.update({
     where: { id: args.id },
     data: {
       ...(args.teacherSupervisorId !== undefined ? { teacherSupervisorId: args.teacherSupervisorId } : {}),
       ...(args.status ? { status: args.status } : {}),
-      ...(args.startDate ? { startDate: new Date(args.startDate) } : {}),
-      ...(args.endDate ? { endDate: new Date(args.endDate) } : {}),
+      ...(args.startDate ? { startDate } : {}),
+      ...(args.endDate ? { endDate } : {}),
     },
   });
 };
@@ -434,6 +482,22 @@ const reviewDailyJournalSchema = z.object({
 export const reviewDailyJournal = async (rawArgs: unknown, context: { user?: User }) => {
   const reviewer = requireTeacher(context);
   const args = ensureArgsSchemaOrThrowHttpError(reviewDailyJournalSchema, rawArgs);
+
+  const journal = await prisma.dailyJournal.findFirst({
+    where: {
+      id: args.id,
+      placement: {
+        schoolId: reviewer.schoolId,
+        ...(!reviewer.isAdmin && reviewer.role === "TEACHER"
+          ? { teacherSupervisorId: reviewer.id }
+          : {}),
+      },
+    },
+    select: { id: true },
+  });
+  if (!journal) {
+    throw new HttpError(404, "Jurnal PKL tidak ditemukan atau bukan dalam bimbingan Anda.");
+  }
 
   return prisma.dailyJournal.update({
     where: { id: args.id },

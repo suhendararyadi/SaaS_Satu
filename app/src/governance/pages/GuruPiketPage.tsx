@@ -6,18 +6,24 @@ import {
   createDutyTeacherReport,
   getHomeroomDashboardData,
 } from "wasp/client/operations";
+import { Link } from "wasp/client/router";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  Clock,
-  AlertTriangle,
-  Plus,
-  Users,
-  CheckCircle2,
-  FileText,
-  Building2,
-  ShieldCheck,
-  Send,
-} from "lucide-react";
+  M3Card,
+  M3Button,
+  M3Badge,
+  M3TextField,
+  M3CircularProgress,
+  M3Table,
+  M3TableHeader,
+  M3TableBody,
+  M3TableRow,
+  M3TableHead,
+  M3TableCell,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
 
 export function GuruPiketPage({ user }: { user: AuthUser }) {
   const { data: dutyReports, isLoading, refetch } = useQuery(getDutyTeacherReports);
@@ -28,11 +34,23 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+
+  const paginatedReports = (dutyReports || []).slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const totalPages = Math.ceil((dutyReports?.length || 0) / pageSize);
 
   const handleSubmitDutyReport = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setSuccessMsg("");
+    setErrorMsg("");
     try {
       await createDutyTeacherReport({
         lateStudentsCount: Number(lateCount),
@@ -45,7 +63,7 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
       setNotes("");
       await refetch();
     } catch (err: any) {
-      alert(err.message || "Gagal mengirim laporan piket.");
+      setErrorMsg(err.message || "Gagal mengirim laporan piket.");
     } finally {
       setSubmitting(false);
     }
@@ -53,179 +71,272 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
 
   return (
     <SchoolLayout user={user}>
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
-            <Clock className="w-3.5 h-3.5" /> Portal Piket & Tata Kelola
-          </span>
-        </div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Guru Piket & Wali Kelas
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Pencatatan kedisiplinan siswa terlambat, izin dispensasi, dan pemantauan rombel kelas.
-        </p>
-      </div>
+      <div className="space-y-6">
+        {/* M3 Breadcrumbs */}
+        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary transition-colors">
+            Portal Sekolah
+          </Link>
+          <M3Icon name="chevron_right" size={16} />
+          <Link to="/school/governance/piket" className="hover:text-md-primary transition-colors">
+            Tata Kelola
+          </Link>
+          <M3Icon name="chevron_right" size={16} />
+          <span className="text-md-on-surface font-medium">Guru Piket &amp; Wali Kelas</span>
+        </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form Guru Piket */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
-          <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
-            <Clock className="w-4 h-4 text-indigo-600" />
-            Input Laporan Piket Hari Ini
-          </h3>
-
-          {successMsg && (
-            <div className="p-3 bg-emerald-50 text-emerald-700 rounded-lg text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmitDutyReport} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                Jumlah Siswa Terlambat
-              </label>
-              <input
-                type="number"
-                min={0}
-                required
-                value={lateCount}
-                onChange={(e) => setLateCount(Number(e.target.value))}
-                className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                Jumlah Surat Dispensasi
-              </label>
-              <input
-                type="number"
-                min={0}
-                required
-                value={dispensationCount}
-                onChange={(e) => setDispensationCount(Number(e.target.value))}
-                className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                Catatan Kejadian / Dispensasi (Opsional)
-              </label>
-              <textarea
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Catat nama siswa atau kejadian khusus hari ini..."
-                className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              {submitting ? "Menyimpan..." : "Kirim Laporan Piket"}
-            </button>
-          </form>
-        </div>
-
-        {/* History Table */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
-          <h3 className="font-bold text-slate-900 dark:text-white text-base">
-            Riwayat Catatan Guru Piket
-          </h3>
-
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-            </div>
-          ) : dutyReports?.length === 0 ? (
-            <p className="text-sm text-slate-500 py-6 text-center">
-              Belum ada riwayat laporan piket.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {dutyReports?.map((r) => (
-                <div
-                  key={r.id}
-                  className="p-4 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1 text-xs"
-                >
-                  <div className="flex items-center justify-between font-semibold">
-                    <span className="text-slate-900 dark:text-white">
-                      Piket: {r.dutyTeacher.name || r.dutyTeacher.email}
-                    </span>
-                    <span className="text-slate-400 font-mono">
-                      {new Date(r.date).toLocaleDateString("id-ID", { dateStyle: "medium" })}
-                    </span>
-                  </div>
-                  <div className="flex gap-4 pt-1">
-                    <span className="text-red-600 font-bold">
-                      Terlambat: {r.lateStudentsCount} siswa
-                    </span>
-                    <span className="text-amber-600 font-bold">
-                      Dispensasi: {r.dispensationsCount} surat
-                    </span>
-                  </div>
-                  {r.notes && (
-                    <p className="text-slate-600 dark:text-slate-400 pt-1 italic">
-                      "{r.notes}"
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Homeroom Overview Section (Wali Kelas) */}
-      {homeroomClass && (
-        <div className="mt-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div>
-              <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">
-                Kelas Asuhan Saya
-              </span>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                Rombel: {homeroomClass.name} ({homeroomClass.department.name})
-              </h3>
-            </div>
-            <span className="text-xs font-bold text-slate-500">
-              Total {homeroomClass.students.length} Siswa
-            </span>
+        {/* Header */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <M3Badge variant="tertiary">Piket Harian</M3Badge>
           </div>
+          <h1 className="text-headline-medium font-bold text-md-on-surface">
+            Laporan Guru Piket
+          </h1>
+          <p className="text-body-large text-md-on-surface-variant">
+            Catat keterlambatan, izin dispensasi, dan ketertiban harian siswa.
+          </p>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {homeroomClass.students.map((s) => {
-              const activePlacement = s.studentPlacements?.[0];
-              return (
-                <div
-                  key={s.id}
-                  className="p-3 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1 text-xs"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Form Guru Piket */}
+          <M3Card variant="elevated" className="p-5">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-md-md bg-md-primary-container text-md-on-primary-container flex items-center justify-center">
+                  <M3Icon name="schedule" size={18} />
+                </div>
+                <h2 className="text-title-medium font-bold text-md-on-surface">
+                  Catat Laporan Piket
+                </h2>
+              </div>
+
+              {successMsg && (
+                <M3Banner
+                  variant="success"
+                  title="Laporan Terkirim"
+                  supportingText={successMsg}
+                  dismissible
+                  onDismiss={() => setSuccessMsg("")}
+                />
+              )}
+
+              {errorMsg && (
+                <M3Banner
+                  variant="error"
+                  title="Gagal Mengirim Laporan"
+                  supportingText={errorMsg}
+                  dismissible
+                  onDismiss={() => setErrorMsg("")}
+                />
+              )}
+
+              <form onSubmit={handleSubmitDutyReport} className="space-y-4">
+                <M3TextField
+                  label="Jumlah Siswa Terlambat *"
+                  type="number"
+                  placeholder="0"
+                  value={String(lateCount)}
+                  onChange={(e) => setLateCount(Number(e.target.value) || 0)}
+                  required
+                />
+
+                <M3TextField
+                  label="Jumlah Surat Dispensasi *"
+                  type="number"
+                  placeholder="0"
+                  value={String(dispensationCount)}
+                  onChange={(e) => setDispensationCount(Number(e.target.value) || 0)}
+                  required
+                />
+
+                <div>
+                  <label className="block text-label-medium text-md-on-surface-variant mb-1 font-medium">
+                    Catatan Kejadian / Dispensasi (Opsional)
+                  </label>
+                  <textarea
+                    className="w-full rounded-md-md border border-md-outline bg-md-surface px-4 py-3 text-body-medium text-md-on-surface focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-transparent transition-all"
+                    placeholder="Catat nama siswa atau kejadian khusus hari ini..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <M3Button
+                  variant="filled"
+                  icon="send"
+                  loading={submitting}
+                  type="submit"
+                  className="w-full"
                 >
-                  <p className="font-bold text-slate-900 dark:text-white">{s.name}</p>
-                  <p className="text-slate-400">NIS: {s.studentProfile?.nis || "-"}</p>
-                  <div className="pt-1">
-                    {activePlacement ? (
-                      <span className="text-[11px] font-semibold text-emerald-600">
-                        PKL: {activePlacement.company?.name}
+                  Kirim Laporan Piket
+                </M3Button>
+              </form>
+            </div>
+          </M3Card>
+
+          {/* History List */}
+          <div className="lg:col-span-2">
+            <M3Card variant="outlined" className="p-0 overflow-hidden">
+              <div className="p-5 pb-3 flex justify-between items-center border-b border-md-outline/10">
+                <h2 className="text-title-medium font-bold text-md-on-surface">
+                  Riwayat Catatan Guru Piket
+                </h2>
+                <M3Badge variant="outline">
+                  {dutyReports?.length || 0} Laporan
+                </M3Badge>
+              </div>
+
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center min-h-48 gap-2 p-6">
+                  <M3CircularProgress indeterminate />
+                  <p className="text-body-medium text-md-on-surface-variant">Memuat riwayat piket...</p>
+                </div>
+              ) : dutyReports?.length === 0 ? (
+                <div className="p-12 text-center">
+                  <M3Icon name="schedule" size={28} className="text-md-on-surface-variant/50 mx-auto mb-2" />
+                  <h3 className="text-title-medium font-semibold text-md-on-surface">Belum Ada Riwayat</h3>
+                  <p className="text-body-medium text-md-on-surface-variant mt-1">
+                    Belum ada riwayat laporan piket yang dikirim.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <M3Table>
+                    <M3TableHeader>
+                      <M3TableRow>
+                        <M3TableHead>Guru Piket &amp; Tanggal</M3TableHead>
+                        <M3TableHead>Siswa Terlambat</M3TableHead>
+                        <M3TableHead>Dispensasi</M3TableHead>
+                        <M3TableHead>Catatan Khusus</M3TableHead>
+                      </M3TableRow>
+                    </M3TableHeader>
+                    <M3TableBody>
+                      {paginatedReports.map((r) => (
+                        <M3TableRow key={r.id}>
+                          <M3TableCell>
+                            <div className="space-y-0.5">
+                              <span className="font-semibold block text-md-on-surface">
+                                {r.dutyTeacher.name || r.dutyTeacher.email}
+                              </span>
+                              <div className="flex items-center gap-1 text-label-small font-mono text-md-on-surface-variant">
+                                <M3Icon name="calendar_month" size={13} className="shrink-0" />
+                                <span>
+                                  {new Date(r.date).toLocaleDateString("id-ID", { dateStyle: "medium" })}
+                                </span>
+                              </div>
+                            </div>
+                          </M3TableCell>
+                          <M3TableCell>
+                            <M3Badge variant="error">
+                              {r.lateStudentsCount} siswa
+                            </M3Badge>
+                          </M3TableCell>
+                          <M3TableCell>
+                            <M3Badge variant="warning">
+                              {r.dispensationsCount} surat
+                            </M3Badge>
+                          </M3TableCell>
+                          <M3TableCell>
+                            {r.notes ? (
+                              <span className="italic max-w-[240px] line-clamp-2 text-body-small text-md-on-surface-variant">
+                                &ldquo;{r.notes}&rdquo;
+                              </span>
+                            ) : (
+                              <span className="text-body-small text-md-on-surface-variant">-</span>
+                            )}
+                          </M3TableCell>
+                        </M3TableRow>
+                      ))}
+                    </M3TableBody>
+                  </M3Table>
+
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 p-3 border-t border-md-outline/10">
+                      <M3Button
+                        variant="outlined"
+                        size="sm"
+                        disabled={currentPage <= 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      >
+                        Sebelumnya
+                      </M3Button>
+                      <span className="text-body-medium text-md-on-surface-variant px-2">
+                        Halaman {currentPage} dari {totalPages}
                       </span>
-                    ) : (
-                      <span className="text-[11px] text-slate-400">Belum PKL</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                      <M3Button
+                        variant="outlined"
+                        size="sm"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      >
+                        Berikutnya
+                      </M3Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </M3Card>
           </div>
         </div>
-      )}
+
+        {/* Homeroom Overview Section (Wali Kelas) */}
+        {homeroomClass && (
+          <M3Card variant="outlined" className="p-0 overflow-hidden">
+            <div className="p-5 pb-3 border-b border-md-outline/10 flex justify-between items-center flex-wrap gap-2">
+              <div>
+                <span className="text-label-large uppercase font-semibold tracking-wider text-md-primary">
+                  Kelas Asuhan Saya
+                </span>
+                <h2 className="text-title-large font-bold text-md-on-surface mt-0.5">
+                  Rombel: {homeroomClass.name}
+                  {homeroomClass.department ? ` (${homeroomClass.department.name})` : ""}
+                </h2>
+              </div>
+              <M3Badge variant="primary">
+                Total {homeroomClass.students.length} Siswa
+              </M3Badge>
+            </div>
+
+            <M3Table>
+              <M3TableHeader>
+                <M3TableRow>
+                  <M3TableHead>Nama Siswa</M3TableHead>
+                  <M3TableHead>NIS</M3TableHead>
+                  <M3TableHead>Status Penempatan PKL</M3TableHead>
+                </M3TableRow>
+              </M3TableHeader>
+              <M3TableBody>
+                {homeroomClass.students.map((s) => {
+                  const activePlacement = s.studentPlacements?.[0];
+                  return (
+                    <M3TableRow key={s.id}>
+                      <M3TableCell className="font-semibold text-md-on-surface">
+                        {s.name}
+                      </M3TableCell>
+                      <M3TableCell className="font-mono text-md-on-surface-variant">
+                        {s.studentProfile?.nis || "-"}
+                      </M3TableCell>
+                      <M3TableCell>
+                        {activePlacement ? (
+                          <M3Badge variant="success">
+                            PKL: {activePlacement.company?.name}
+                          </M3Badge>
+                        ) : (
+                          <span className="italic text-body-small text-md-on-surface-variant">
+                            Belum PKL
+                          </span>
+                        )}
+                      </M3TableCell>
+                    </M3TableRow>
+                  );
+                })}
+              </M3TableBody>
+            </M3Table>
+          </M3Card>
+        )}
+      </div>
     </SchoolLayout>
   );
 }

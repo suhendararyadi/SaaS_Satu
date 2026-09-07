@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { type AuthUser } from "wasp/auth";
+import { Link } from "react-router";
 import {
   useQuery,
   getAttendanceLogs,
@@ -8,15 +9,22 @@ import {
 } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  Clock,
-  MapPin,
-  Camera,
-  CheckCircle2,
-  AlertTriangle,
-  Navigation,
-  Sparkles,
-  Calendar,
-} from "lucide-react";
+  M3Card,
+  M3Button,
+  M3TextField,
+  M3Badge,
+  M3Table,
+  M3TableHeader,
+  M3TableBody,
+  M3TableRow,
+  M3TableHead,
+  M3TableCell,
+  M3CircularProgress,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
+
 import { calculateDistanceMeters } from "../geofence";
 
 export function AttendancePage({ user }: { user: AuthUser }) {
@@ -38,6 +46,11 @@ export function AttendancePage({ user }: { user: AuthUser }) {
   const [notes, setNotes] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Search & Pagination for Attendance Logs
+  const [searchLog, setSearchLog] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const fetchLocation = () => {
     if (!navigator.geolocation) {
       setGeoError("Browser ini tidak mendukung deteksi lokasi GPS.");
@@ -55,7 +68,9 @@ export function AttendancePage({ user }: { user: AuthUser }) {
         setLoadingLocation(false);
       },
       (err) => {
-        setGeoError(`Akses GPS gagal: ${err.message}. Pastikan izin lokasi aktif.`);
+        setGeoError(
+          `Akses GPS gagal: ${err.message}. Pastikan izin lokasi aktif.`
+        );
         setLoadingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -113,187 +128,315 @@ export function AttendancePage({ user }: { user: AuthUser }) {
     }
   };
 
+  const filteredLogs = logs?.filter((log) => {
+    if (searchLog.trim()) {
+      const q = searchLog.toLowerCase();
+      const matchStudent =
+        log.placement?.student?.name?.toLowerCase().includes(q);
+      const matchType = log.type.toLowerCase().includes(q);
+      const matchStatus = log.status.toLowerCase().includes(q);
+      return matchStudent || matchType || matchStatus;
+    }
+    return true;
+  });
+
+  const totalItems = filteredLogs?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedLogs = (filteredLogs || []).slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   return (
     <SchoolLayout user={user}>
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Presensi GPS Siswa PKL (PWA)
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Pencatatan kehadiran berbasis radius geofencing lokasi kantor mitra DUDI.
-        </p>
-      </div>
+      <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary">
+            Portal Sekolah
+          </Link>
+          <span>/</span>
+          <span>E-PKL</span>
+          <span>/</span>
+          <span className="text-md-on-surface font-medium">Presensi GPS</span>
+        </div>
 
-      {/* PWA Check-In Card */}
-      {activePlacement ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-md">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Lokasi Penempatan PKL
-              </span>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
-                {company?.name}
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                {company?.address}
-              </p>
-            </div>
+        {/* Header */}
+        <div>
+          <h2 className="text-2xl font-medium text-md-on-surface">
+            Presensi Lokasi Siswa PKL
+          </h2>
+          <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
+            Pencatatan kehadiran siswa sesuai radius lokasi mitra DUDI.
+          </p>
+        </div>
 
-            {/* GPS Radius Status Badge */}
-            <div className="flex items-center gap-3">
-              <div
-                className={`p-3 rounded-xl border flex items-center gap-3 ${
-                  isInsideRadius
-                    ? "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
-                    : "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300"
-                }`}
-              >
-                <Navigation className="w-5 h-5 shrink-0" />
-                <div>
-                  <p className="text-xs font-bold">
-                    {distanceMeters !== null
-                      ? `Jarak: ${distanceMeters} meter`
-                      : "Mencari GPS..."}
-                  </p>
-                  <p className="text-[11px] opacity-80">
-                    {isInsideRadius
-                      ? `Di dalam radius (${company?.radiusMeters}m)`
-                      : `Di luar radius (${company?.radiusMeters}m)`}
-                  </p>
+        {/* PWA Check-In Card */}
+        {activePlacement ? (
+          <M3Card variant="elevated" className="p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-md-outline-variant/30">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-md-on-surface-variant">
+                  Lokasi Penempatan PKL
+                </p>
+                <div className="flex items-center gap-2">
+                  <M3Icon name="apartment" size={20} className="text-md-primary" />
+                  <h3 className="text-xl font-medium text-md-on-surface">
+                    {company?.name}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-md-on-surface-variant">
+                  <M3Icon name="location_on" size={16} className="opacity-70 shrink-0" />
+                  <span>{company?.address}</span>
                 </div>
               </div>
 
-              <button
-                onClick={fetchLocation}
-                disabled={loadingLocation}
-                className="px-3 py-2 border rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+              {/* GPS Radius Status Badge */}
+              <div className="flex items-center gap-3">
+                <div
+                  className={`p-3 rounded-[16px] border flex items-center gap-3 ${
+                    isInsideRadius
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200"
+                      : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200"
+                  }`}
+                >
+                  <M3Icon name="near_me" size={20} className="shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold">
+                      {distanceMeters !== null
+                        ? `Jarak: ${distanceMeters} meter`
+                        : "Mencari GPS..."}
+                    </p>
+                    <p className="text-[11px] opacity-80">
+                      {isInsideRadius
+                        ? `Di dalam radius (${company?.radiusMeters}m)`
+                        : `Di luar radius (${company?.radiusMeters}m)`}
+                    </p>
+                  </div>
+                </div>
+
+                <M3Button
+                  variant="tonal"
+                  size="sm"
+                  icon="refresh"
+                  disabled={loadingLocation}
+                  onClick={fetchLocation}
+                >
+                  {loadingLocation ? "Mencari..." : "Segarkan GPS"}
+                </M3Button>
+              </div>
+            </div>
+
+            {geoError && (
+              <M3Banner
+                variant="error"
+                title="Akses Lokasi GPS Gagal"
+                supportingText={geoError}
+                dismissible
+                onDismiss={() => setGeoError("")}
+              />
+            )}
+
+            {successMsg && (
+              <M3Banner
+                variant="success"
+                title="Presensi Berhasil Dicatat"
+                supportingText={successMsg}
+                dismissible
+                onDismiss={() => setSuccessMsg("")}
+              />
+            )}
+
+            {/* Attendance Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <M3Button
+                variant="filled"
+                size="lg"
+                icon="schedule"
+                disabled={submitting}
+                onClick={() => handleAttendance("CHECK_IN")}
               >
-                {loadingLocation ? "Mencari..." : "Segarkan GPS"}
-              </button>
+                {submitting ? "Memproses..." : "PRESENSI MASUK (Check-In)"}
+              </M3Button>
+
+              <M3Button
+                variant="tonal"
+                size="lg"
+                icon="schedule"
+                disabled={submitting}
+                onClick={() => handleAttendance("CHECK_OUT")}
+              >
+                {submitting ? "Memproses..." : "PRESENSI PULANG (Check-Out)"}
+              </M3Button>
             </div>
-          </div>
-
-          {geoError && (
-            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{geoError}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => handleAttendance("CHECK_IN")}
-              disabled={submitting}
-              className="flex-1 py-4 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-base"
-            >
-              <Clock className="w-5 h-5" />
-              {submitting ? "Memproses..." : "PRESENSI MASUK (Check-In)"}
-            </button>
-
-            <button
-              onClick={() => handleAttendance("CHECK_OUT")}
-              disabled={submitting}
-              className="flex-1 py-4 px-6 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-base"
-            >
-              <Clock className="w-5 h-5" />
-              {submitting ? "Memproses..." : "PRESENSI PULANG (Check-Out)"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 text-amber-800 dark:text-amber-300 text-sm">
-          <p className="font-bold">Belum Ada Penempatan Aktif</p>
-          <p className="text-xs mt-1">
-            Untuk melakukan presensi GPS, akun Anda harus sudah di-plotting ke perusahaan mitra DUDI oleh admin sekolah.
-          </p>
-        </div>
-      )}
-
-      {/* Attendance History Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden mt-8">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-            Riwayat Log Presensi
-          </h3>
-          <span className="text-xs text-slate-500">100 Log Terakhir</span>
-        </div>
-
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-          </div>
-        ) : logs?.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-500">
-            Belum ada data presensi yang tercatat.
-          </div>
+          </M3Card>
         ) : (
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs uppercase font-semibold text-slate-500">
-                <th className="px-6 py-3">Waktu (WIB)</th>
-                <th className="px-6 py-3">Siswa</th>
-                <th className="px-6 py-3">Tipe</th>
-                <th className="px-6 py-3">Status Lokasi</th>
-                <th className="px-6 py-3">Jarak</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {logs?.map((log) => {
-                const dateStr = new Date(log.timestamp).toLocaleString("id-ID", {
-                  timeZone: "Asia/Jakarta",
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                });
-
-                return (
-                  <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                    <td className="px-6 py-3 font-mono text-xs text-slate-900 dark:text-white">
-                      {dateStr}
-                    </td>
-                    <td className="px-6 py-3 font-medium text-slate-800 dark:text-slate-200">
-                      {log.placement?.student?.name}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
-                          log.type === "CHECK_IN"
-                            ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                        }`}
-                      >
-                        {log.type === "CHECK_IN" ? "Masuk" : "Pulang"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      <span
-                        className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          log.status === "HADIR"
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
-                            : "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300"
-                        }`}
-                      >
-                        {log.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-xs font-mono text-slate-500">
-                      {log.distanceMeters !== null ? `${log.distanceMeters}m` : "-"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <M3Banner
+            variant="warning"
+            headline="Belum Ada Penempatan PKL Aktif"
+            supportingText="Untuk melakukan presensi GPS, akun Anda harus sudah di-plotting ke perusahaan mitra DUDI oleh koordinator PKL atau admin sekolah."
+            actionLabel="Lihat Plotting Penempatan"
+            actionHref="/school/pkl/placements"
+          />
         )}
+
+        {/* Attendance History Table */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-md-on-surface">
+                Riwayat Log Presensi
+              </h3>
+              <p className="text-xs text-md-on-surface-variant">
+                Catatan riwayat kehadiran terkini siswa di lokasi mitra.
+              </p>
+            </div>
+          </div>
+
+          {/* Search Filter Toolbar */}
+          <M3Card variant="outlined" className="p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 max-w-md">
+                <M3TextField
+                  placeholder="Cari siswa, tipe presensi, atau status..."
+                  value={searchLog}
+                  onChange={(e) => {
+                    setSearchLog(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  leadingIcon="search"
+                  size="sm"
+                />
+              </div>
+              <M3Badge variant="secondary" size="md">
+                {totalItems} Log
+              </M3Badge>
+            </div>
+          </M3Card>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center min-h-[200px]">
+              <M3CircularProgress size={36} />
+            </div>
+          ) : filteredLogs?.length === 0 ? (
+            <M3Card variant="elevated" className="p-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-md-secondary-container text-md-on-secondary-container flex items-center justify-center mx-auto shadow-xs">
+                <M3Icon name="schedule" size={28} />
+              </div>
+              <h4 className="font-medium text-md-on-surface">
+                Belum Ada Presensi
+              </h4>
+              <p className="text-xs text-md-on-surface-variant">
+                Belum ada data presensi yang tercatat untuk periode ini.
+              </p>
+            </M3Card>
+          ) : (
+            <div className="space-y-4">
+              <M3Table>
+                <M3TableHeader>
+                  <M3TableRow>
+                    <M3TableHead>Waktu (WIB)</M3TableHead>
+                    <M3TableHead>Siswa</M3TableHead>
+                    <M3TableHead>Tipe</M3TableHead>
+                    <M3TableHead>Status Lokasi</M3TableHead>
+                    <M3TableHead>Jarak</M3TableHead>
+                  </M3TableRow>
+                </M3TableHeader>
+                <M3TableBody>
+                  {paginatedLogs.map((log) => {
+                    const dateStr = new Date(log.timestamp).toLocaleString(
+                      "id-ID",
+                      {
+                        timeZone: "Asia/Jakarta",
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }
+                    );
+
+                    return (
+                      <M3TableRow key={log.id}>
+                        <M3TableCell>
+                          <span className="font-mono text-xs text-md-on-surface">
+                            {dateStr}
+                          </span>
+                        </M3TableCell>
+                        <M3TableCell>
+                          <span className="font-semibold text-md-on-surface">
+                            {log.placement?.student?.name}
+                          </span>
+                        </M3TableCell>
+                        <M3TableCell>
+                          <M3Badge
+                            variant={
+                              log.type === "CHECK_IN" ? "primary" : "secondary"
+                            }
+                            size="sm"
+                          >
+                            {log.type === "CHECK_IN" ? "Masuk" : "Pulang"}
+                          </M3Badge>
+                        </M3TableCell>
+                        <M3TableCell>
+                          <M3Badge
+                            variant={
+                              log.status === "HADIR" ? "success" : "warning"
+                            }
+                            size="sm"
+                          >
+                            {log.status === "HADIR"
+                              ? "Hadir Valid"
+                              : log.status}
+                          </M3Badge>
+                        </M3TableCell>
+                        <M3TableCell>
+                          <span className="text-xs font-mono text-md-on-surface-variant">
+                            {log.distanceMeters !== null
+                              ? `${log.distanceMeters}m`
+                              : "-"}
+                          </span>
+                        </M3TableCell>
+                      </M3TableRow>
+                    );
+                  })}
+                </M3TableBody>
+              </M3Table>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 pt-2">
+                  <p className="text-xs text-md-on-surface-variant">
+                    Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
+                    {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} log
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <M3Button
+                      variant="tonal"
+                      size="sm"
+                      disabled={currentPage <= 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      icon="chevron_left"
+                    >
+                      Sebelumnya
+                    </M3Button>
+                    <span className="text-xs px-2 text-md-on-surface font-medium">
+                      Hal {currentPage} / {totalPages}
+                    </span>
+                    <M3Button
+                      variant="tonal"
+                      size="sm"
+                      disabled={currentPage >= totalPages}
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      trailingIcon="chevron_right"
+                    >
+                      Selanjutnya
+                    </M3Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </SchoolLayout>
   );

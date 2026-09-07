@@ -1,5 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
+import { Link } from "react-router";
 import {
   useQuery,
   getDailyJournals,
@@ -9,15 +10,18 @@ import {
 } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  ClipboardList,
-  Plus,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Star,
-  MessageSquare,
-  X,
-} from "lucide-react";
+  M3Card,
+  M3Button,
+  M3TextField,
+  M3Select,
+  M3Dialog,
+  M3Badge,
+  M3CircularProgress,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
+
 
 export function JournalsPage({ user }: { user: AuthUser }) {
   const { data: placements } = useQuery(getPlacements);
@@ -30,26 +34,39 @@ export function JournalsPage({ user }: { user: AuthUser }) {
   const [activityDescription, setActivityDescription] = useState("");
   const [obstacleDescription, setObstacleDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [createErrorMsg, setCreateErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Review modal state (for teachers)
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedJournal, setSelectedJournal] = useState<any>(null);
-  const [reviewStatus, setReviewStatus] = useState<"APPROVED" | "REVISION">("APPROVED");
+  const [reviewStatus, setReviewStatus] = useState<string>("APPROVED");
   const [score, setScore] = useState<number>(85);
   const [feedback, setFeedback] = useState("");
+  const [reviewErrorMsg, setReviewErrorMsg] = useState("");
   const [reviewing, setReviewing] = useState(false);
+
+  // Filters & Pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   const handleCreateJournal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activePlacement) return;
+    if (!activityDescription.trim()) {
+      setCreateErrorMsg("Deskripsi kegiatan wajib diisi.");
+      return;
+    }
+    setCreateErrorMsg("");
     setSubmitting(true);
     try {
       await createDailyJournal({
         placementId: activePlacement.id,
-        activityDescription,
-        obstacleDescription: obstacleDescription || null,
-        photoUrl: photoUrl || null,
+        activityDescription: activityDescription.trim(),
+        obstacleDescription: obstacleDescription.trim() || null,
+        photoUrl: photoUrl.trim() || null,
       });
       setModalOpen(false);
       setActivityDescription("");
@@ -57,7 +74,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
       setPhotoUrl("");
       await refetch();
     } catch (err: any) {
-      alert(err.message || "Gagal mengirim jurnal.");
+      setCreateErrorMsg(err.message || "Gagal mengirim jurnal.");
     } finally {
       setSubmitting(false);
     }
@@ -66,301 +83,431 @@ export function JournalsPage({ user }: { user: AuthUser }) {
   const handleReviewJournal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedJournal) return;
+    setReviewErrorMsg("");
     setReviewing(true);
     try {
       await reviewDailyJournal({
         id: selectedJournal.id,
-        status: reviewStatus,
+        status: reviewStatus as "APPROVED" | "REVISION",
         score: Number(score),
-        feedback: feedback || undefined,
+        feedback: feedback.trim() || undefined,
       });
       setReviewModalOpen(false);
       await refetch();
     } catch (err: any) {
-      alert(err.message || "Gagal menyimpan penilaian jurnal.");
+      setReviewErrorMsg(err.message || "Gagal menyimpan penilaian jurnal.");
     } finally {
       setReviewing(false);
     }
   };
 
+  const reviewStatusOptions = [
+    { value: "APPROVED", label: "Setujui (Approved)" },
+    { value: "REVISION", label: "Perlu Revisi (Revision)" },
+  ];
+
+  const filteredJournals = journals?.filter((j) => {
+    if (statusFilter !== "ALL") {
+      if (
+        statusFilter === "PENDING" &&
+        (j.status === "APPROVED" || j.status === "REVISION")
+      )
+        return false;
+      if (statusFilter !== "PENDING" && j.status !== statusFilter) return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchStudent = j.placement?.student?.name
+        ?.toLowerCase()
+        .includes(q);
+      const matchCompany = j.placement?.company?.name
+        ?.toLowerCase()
+        .includes(q);
+      const matchActivity = j.activityDescription?.toLowerCase().includes(q);
+      return matchStudent || matchCompany || matchActivity;
+    }
+    return true;
+  });
+
+  const totalItems = filteredJournals?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedJournals = (filteredJournals || []).slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const statusOptions = [
+    { value: "ALL", label: "Semua Status" },
+    { value: "APPROVED", label: "Disetujui" },
+    { value: "REVISION", label: "Perlu Revisi" },
+    { value: "PENDING", label: "Menunggu Review" },
+  ];
+
   return (
     <SchoolLayout user={user}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Jurnal Kegiatan Harian PKL
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Laporan aktivitas harian siswa di tempat PKL dan verifikasi guru pembimbing.
-          </p>
+      <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary">
+            Portal Sekolah
+          </Link>
+          <span>/</span>
+          <span>E-PKL</span>
+          <span>/</span>
+          <span className="text-md-on-surface font-medium">
+            Jurnal Harian PKL
+          </span>
         </div>
-        {activePlacement && (
-          <button
-            onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Tulis Jurnal Harian
-          </button>
-        )}
-      </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        {/* Header Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-medium text-md-on-surface">
+              Jurnal Harian Siswa PKL
+            </h2>
+            <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
+              Catatan aktivitas harian siswa dan verifikasi guru pembimbing.
+            </p>
+          </div>
+          {activePlacement && (
+            <M3Button
+              variant="filled"
+              size="md"
+              icon="add"
+              onClick={() => {
+                setCreateErrorMsg("");
+                setModalOpen(true);
+              }}
+            >
+              Tulis Jurnal Harian
+            </M3Button>
+          )}
         </div>
-      ) : journals?.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
-          <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-            Belum Ada Jurnal
-          </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Siswa dapat mengisi jurnal harian setiap hari setelah menyelesaikan jam kerja PKL.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {journals?.map((j) => {
-            const dateStr = new Date(j.date).toLocaleDateString("id-ID", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            });
 
-            return (
-              <div
-                key={j.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">
-                      {j.placement?.student?.name}
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      {j.placement?.company?.name} • {dateStr}
-                    </p>
+        {/* Search & Filter Toolbar */}
+        <M3Card variant="outlined" className="p-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex-1 w-full">
+              <M3TextField
+                placeholder="Cari siswa, mitra, atau kegiatan..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                leadingIcon="search"
+                size="sm"
+              />
+            </div>
+
+            <div className="w-full sm:w-48">
+              <M3Select
+                options={statusOptions}
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                size="sm"
+              />
+            </div>
+
+            <M3Badge variant="secondary" size="md">
+              {totalItems} Jurnal
+            </M3Badge>
+          </div>
+        </M3Card>
+
+        {/* Content Section */}
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <M3CircularProgress size={40} />
+          </div>
+        ) : filteredJournals?.length === 0 ? (
+          <M3Banner
+            variant="standard"
+            headline="Belum Ada Jurnal"
+            supportingText="Siswa dapat mengisi jurnal harian setiap hari setelah menyelesaikan jam kerja PKL."
+            actionLabel={activePlacement ? "Tulis Jurnal Sekarang" : undefined}
+            onAction={activePlacement ? () => setModalOpen(true) : undefined}
+            icon="menu_book"
+            className="p-6"
+          />
+        ) : (
+          <div className="space-y-4">
+            {paginatedJournals.map((j) => {
+              const dateStr = new Date(j.date).toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              });
+
+              return (
+                <M3Card key={j.id} variant="outlined" className="p-5 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-md-outline-variant/30">
+                    <div>
+                      <h4 className="font-semibold text-base text-md-on-surface">
+                        {j.placement?.student?.name}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-md-on-surface-variant mt-0.5">
+                        <div className="flex items-center gap-1">
+                          <M3Icon name="apartment" size={14} className="opacity-70" />
+                          <span>{j.placement?.company?.name}</span>
+                        </div>
+                        <span>•</span>
+                        <div className="flex items-center gap-1">
+                          <M3Icon name="calendar_month" size={14} className="opacity-70" />
+                          <span>{dateStr}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {j.status === "APPROVED" && (
+                        <M3Badge variant="success" size="sm">
+                          Disetujui
+                        </M3Badge>
+                      )}
+                      {j.status === "REVISION" && (
+                        <M3Badge variant="warning" size="sm">
+                          Perlu Revisi
+                        </M3Badge>
+                      )}
+                      {j.status !== "APPROVED" && j.status !== "REVISION" && (
+                        <M3Badge variant="outline" size="sm">
+                          Menunggu Review
+                        </M3Badge>
+                      )}
+
+                      <M3Button
+                        variant="tonal"
+                        size="sm"
+                        icon="grade"
+                        onClick={() => {
+                          setSelectedJournal(j);
+                          setScore(j.score || 85);
+                          setFeedback(j.feedback || "");
+                          setReviewStatus(
+                            j.status === "REVISION" ? "REVISION" : "APPROVED"
+                          );
+                          setReviewErrorMsg("");
+                          setReviewModalOpen(true);
+                        }}
+                      >
+                        Nilai / Catatan
+                      </M3Button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        j.status === "APPROVED"
-                          ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
-                          : j.status === "REVISION"
-                          ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                      }`}
-                    >
-                      {j.status === "APPROVED"
-                        ? "Disetujui"
-                        : j.status === "REVISION"
-                        ? "Perlu Revisi"
-                        : "Menunggu Review"}
-                    </span>
-
-                    {/* Teacher can click to review */}
-                    <button
-                      onClick={() => {
-                        setSelectedJournal(j);
-                        setScore(j.score || 85);
-                        setFeedback(j.feedback || "");
-                        setReviewModalOpen(true);
-                      }}
-                      className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 rounded-lg text-xs font-semibold"
-                    >
-                      Beri Nilai / Catatan
-                    </button>
-                  </div>
-                </div>
-
-                {/* Activity & Obstacles */}
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  {/* Activity Description */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold tracking-wider uppercase text-md-on-surface-variant">
                       Deskripsi Kegiatan
-                    </h4>
-                    <p className="text-slate-800 dark:text-slate-200 whitespace-pre-line">
+                    </p>
+                    <p className="text-sm text-md-on-surface whitespace-pre-line leading-relaxed">
                       {j.activityDescription}
                     </p>
                   </div>
 
+                  {/* Obstacle Description */}
                   {j.obstacleDescription && (
-                    <div>
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">
-                        Kendala yang Dihadapi
-                      </h4>
-                      <p className="text-slate-700 dark:text-slate-300 bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg text-xs">
-                        {j.obstacleDescription}
-                      </p>
-                    </div>
+                    <M3Banner
+                      variant="warning"
+                      headline="Kendala yang Dihadapi & Solusi"
+                      supportingText={j.obstacleDescription}
+                    />
                   )}
 
                   {/* Feedback & Score */}
                   {(j.feedback || j.score !== null) && (
-                    <div className="p-3 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex items-start gap-3">
-                      <Star className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                      <div className="text-xs">
-                        <span className="font-bold text-slate-900 dark:text-white">
+                    <div className="p-3.5 rounded-[12px] bg-md-surface-container border border-md-outline-variant/40 flex items-start gap-3">
+                      <M3Icon name="star" size={20} className="text-amber-500 shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-0.5">
+                        <p className="font-bold text-md-on-surface">
                           Nilai: {j.score ?? "-"} / 100
-                        </span>
+                        </p>
                         {j.feedback && (
-                          <p className="text-slate-600 dark:text-slate-400 mt-0.5">
-                            Catatan Guru: "{j.feedback}"
+                          <p className="text-md-on-surface-variant">
+                            Catatan Guru: &ldquo;{j.feedback}&rdquo;
                           </p>
                         )}
                       </div>
                     </div>
                   )}
+                </M3Card>
+              );
+            })}
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 pt-2">
+                <p className="text-xs text-md-on-surface-variant">
+                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
+                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} jurnal
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    icon="chevron_left"
+                  >
+                    Sebelumnya
+                  </M3Button>
+                  <span className="text-xs px-2 text-md-on-surface font-medium">
+                    Hal {currentPage} / {totalPages}
+                  </span>
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    trailingIcon="chevron_right"
+                  >
+                    Selanjutnya
+                  </M3Button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Modal Add Journal (Student) */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                Tulis Jurnal Harian PKL
-              </h3>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateJournal} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Uraian Kegiatan Hari Ini *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={activityDescription}
-                  onChange={(e) => setActivityDescription(e.target.value)}
-                  placeholder="Jelaskan pekerjaan atau proyek yang Anda kerjakan hari ini..."
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Kendala & Solusi (Opsional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={obstacleDescription}
-                  onChange={(e) => setObstacleDescription(e.target.value)}
-                  placeholder="Ada kendala teknis atau kendala kerja? Bagaimana solusinya..."
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {submitting ? "Mengirim..." : "Kirim Jurnal"}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Modal Review Journal (Teacher) */}
-      {reviewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                Penilaian & Feedback Jurnal
-              </h3>
-              <button
-                onClick={() => setReviewModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+        {/* Modal Add Journal (Student) */}
+        <M3Dialog
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Tulis Jurnal Harian PKL"
+          subtitle="Ceritakan aktivitas kerja praktik dan pencapaian Anda hari ini."
+          icon={<M3Icon name="edit_note" size={24} className="text-md-primary" />}
+          actions={
+            <>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={() => setModalOpen(false)}
               >
-                <X className="w-5 h-5" />
-              </button>
+                Batal
+              </M3Button>
+              <M3Button
+                variant="filled"
+                size="sm"
+                onClick={handleCreateJournal}
+                isLoading={submitting}
+              >
+                Kirim Jurnal
+              </M3Button>
+            </>
+          }
+        >
+          <form onSubmit={handleCreateJournal} className="space-y-4">
+            {createErrorMsg && (
+              <M3Banner
+                variant="error"
+                supportingText={createErrorMsg}
+                dismissible
+                onDismiss={() => setCreateErrorMsg("")}
+              />
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-md-on-surface-variant">
+                Uraian Kegiatan Hari Ini *
+              </label>
+              <textarea
+                rows={4}
+                value={activityDescription}
+                onChange={(e) => setActivityDescription(e.target.value)}
+                placeholder="Jelaskan pekerjaan, tugas atau proyek yang Anda selesaikan hari ini..."
+                required
+                className="w-full rounded-[8px] border border-md-outline bg-transparent p-2.5 text-sm text-md-on-surface placeholder:text-md-outline focus:outline-none focus:border-md-primary focus:ring-1 focus:ring-md-primary"
+              />
             </div>
 
-            <form onSubmit={handleReviewJournal} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Status Verifikasi *
-                </label>
-                <select
-                  value={reviewStatus}
-                  onChange={(e) => setReviewStatus(e.target.value as "APPROVED" | "REVISION")}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                >
-                  <option value="APPROVED">Setujui (Approved)</option>
-                  <option value="REVISION">Perlu Revisi</option>
-                </select>
-              </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-md-on-surface-variant">
+                Kendala &amp; Solusi (Opsional)
+              </label>
+              <textarea
+                rows={2}
+                value={obstacleDescription}
+                onChange={(e) => setObstacleDescription(e.target.value)}
+                placeholder="Ada kendala teknis atau masalah di lapangan? Bagaimana Anda mengatasinya..."
+                className="w-full rounded-[8px] border border-md-outline bg-transparent p-2.5 text-sm text-md-on-surface placeholder:text-md-outline focus:outline-none focus:border-md-primary focus:ring-1 focus:ring-md-primary"
+              />
+            </div>
+          </form>
+        </M3Dialog>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Skor Nilai (0 - 100)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={score}
-                  onChange={(e) => setScore(Number(e.target.value))}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                />
-              </div>
+        {/* Modal Review Journal (Teacher) */}
+        <M3Dialog
+          isOpen={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          title="Penilaian &amp; Feedback Jurnal"
+          subtitle="Berikan validasi status, skor penilaian, dan catatan bimbingan."
+          icon={<M3Icon name="grade" size={24} className="text-md-primary" />}
+          actions={
+            <>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={() => setReviewModalOpen(false)}
+              >
+                Batal
+              </M3Button>
+              <M3Button
+                variant="filled"
+                size="sm"
+                onClick={handleReviewJournal}
+                isLoading={reviewing}
+              >
+                Simpan Penilaian
+              </M3Button>
+            </>
+          }
+        >
+          <form onSubmit={handleReviewJournal} className="space-y-4">
+            {reviewErrorMsg && (
+              <M3Banner
+                variant="error"
+                supportingText={reviewErrorMsg}
+                dismissible
+                onDismiss={() => setReviewErrorMsg("")}
+              />
+            )}
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Catatan / Masukan Guru
-                </label>
-                <textarea
-                  rows={3}
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Beri arahan atau catatan perbaikan untuk siswa..."
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                />
-              </div>
+            <M3Select
+              label="Status Verifikasi *"
+              options={reviewStatusOptions}
+              value={reviewStatus}
+              onChange={(e) => setReviewStatus(e.target.value)}
+            />
 
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setReviewModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={reviewing}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {reviewing ? "Menyimpan..." : "Simpan Penilaian"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <M3TextField
+              label="Skor Nilai (0 - 100) *"
+              type="number"
+              placeholder="85"
+              value={String(score)}
+              onChange={(e) => setScore(Number(e.target.value) || 0)}
+              required
+            />
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-md-on-surface-variant">
+                Catatan / Masukan Guru Pembimbing
+              </label>
+              <textarea
+                rows={3}
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder="Beri arahan atau catatan perbaikan untuk siswa..."
+                className="w-full rounded-[8px] border border-md-outline bg-transparent p-2.5 text-sm text-md-on-surface placeholder:text-md-outline focus:outline-none focus:border-md-primary focus:ring-1 focus:ring-md-primary"
+              />
+            </div>
+          </form>
+        </M3Dialog>
+      </div>
     </SchoolLayout>
   );
 }

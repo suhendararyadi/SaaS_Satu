@@ -1,5 +1,5 @@
 /**
- * Robust CSV parser supporting comma and semicolon delimiters (Indonesian Excel exports)
+ * CSV parser supporting comma and semicolon delimiters (Indonesian Excel exports)
  * and quoted multiline or comma-containing fields.
  */
 export function parseCsv(content: string): Array<Record<string, string>> {

@@ -1,0 +1,78 @@
+# Dokumentasi Sistem Informasi Sekolah (SaaS Multi-Tenant)
+
+Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, sebuah platform manajemen sekolah multi-tenant modern yang dibangun di atas framework full-stack [Wasp](https://wasp.sh), React, Node.js, Prisma ORM, dan PostgreSQL dengan sistem desain **Google Material 3 (Material You)** dan standar kualitas ketat **Anti-Slop**.
+
+---
+
+## 📚 Daftar Isi Dokumentasi
+
+1. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
+   - Spesifikasi stack teknologi (Wasp v0.25, React 18, Node.js, Prisma, PostgreSQL).
+   - Arsitektur multi-tenant berbasis `schoolId` dan skema database relasional.
+   - Sistem otentikasi, perizinan (*Auth Guards*), dan hierarki peran pengguna (*User Roles*).
+   - Konfigurasi router, queries, dan actions terdistribusi (`*.wasp.ts`).
+
+2. [**Sistem Desain Google Material 3 (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
+   - Peran token warna dinamis M3 (*Primary, Surface, Container, Outline, Error*).
+   - Skala tipografi standar M3 (*Display, Headline, Title, Body, Label*).
+   - Sistem bentuk M3 Expressive (*Pill buttons, 16px cards, 28px dialogs*).
+   - Katalog komponen M3 bawaan di `app/src/client/components/m3/`.
+
+3. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
+   - Penerapan aturan Anti-Slop (R-01 s/d R-38).
+   - Standar salinan bahasa Indonesia baku edukasi (Kemdikbudristek).
+   - Standar aksesibilitas (kontras warna WCAG AA >= 4.5:1, target sentuh 44px).
+   - Rekap temuan audit pasca pengerjaan dan solusinya.
+
+4. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
+   - **Modul 1: Dasbor & Master Data** (Tahun Ajaran, Rombel Kelas, Jurusan, Pengaturan Sekolah, Super Admin).
+   - **Modul 2: Kepegawaian & Kesiswaan (CRUD Manual & CSV)** (Manajemen Guru & Tendik, Data Siswa, Proteksi Kuota).
+   - **Modul 3: Pembelajaran LMS & Kurikulum Merdeka** (Silabus otomatis Fase A-F, Materi, Tugas, Agenda KBM, Presensi, CBT).
+   - **Modul 4: E-PKL Terpadu** (Mitra DUDI, Plotting Penempatan, Presensi Geofencing, Jurnal Harian, Monitoring EWS).
+   - **Modul 5: Tata Kelola & Supervisi** (Guru Piket, Wali Kelas, Waka Kurikulum).
+   - **Modul 6: Laporan & Cetak Dokumen Kedinasan** (KOP surat resmi berjenjang, Print stylesheet).
+
+5. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
+   - Kronologi lengkap setiap tahapan pengembangan dari awal hingga saat ini.
+   - Detail keputusan teknis dan penyelesaian kendala implementasi.
+   - Hasil pengujian otomatis (TypeScript, Wasp Unit Tests, Playwright E2E).
+
+---
+
+## 🚀 Panduan Memulai Cepat (Quick Start)
+
+### Prasyarat
+- **Node.js**: v18 atau v20 LTS
+- **Wasp CLI**: `curl -sSL https://get.wasp.sh/installer.sh | sh`
+- **Docker**: Opsional (untuk menjalankan database PostgreSQL lokal via Wasp)
+
+### Menjalankan Lingkungan Lokal
+```bash
+# 1. Pindah ke direktori aplikasi
+cd app
+
+# 2. Jalankan database PostgreSQL lokal via Wasp
+wasp start db
+
+# 3. Jalankan migrasi database jika pertama kali
+wasp db migrate-dev
+
+# 4. (Opsional) Isi database dengan data awal sekolah SMKN 9 Garut & SMPN 1 Bandung
+wasp db seed
+
+# 5. Jalankan server aplikasi
+wasp start
+```
+Aplikasi frontend akan aktif di `http://localhost:3000` dan backend server API di `http://localhost:3001`.
+
+### Menjalankan Pengujian
+```bash
+# Menjalankan type check ketat TypeScript
+cd app && npx tsc --noEmit
+
+# Menjalankan client unit test suite komponen M3
+cd app && wasp test client --run
+
+# Menjalankan pengujian E2E otomatis Playwright
+node scratch/test_crud_manual.mjs
+```

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
+import { Link } from "react-router";
 import {
   useQuery,
+  getSchoolInfo,
   getClassRooms,
   getDepartments,
   getAcademicYears,
@@ -10,31 +12,58 @@ import {
   deleteClassRoom,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
-import { Building2, Plus, Trash2, Edit3, X, Users, Filter } from "lucide-react";
+import {
+  M3Card,
+  M3Button,
+  M3TextField,
+  M3Select,
+  M3Dialog,
+  M3Badge,
+  M3CircularProgress,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
+
 
 export function ClassRoomsPage({ user }: { user: AuthUser }) {
+  const { data: school } = useQuery(getSchoolInfo);
   const { data: classes, isLoading, refetch } = useQuery(getClassRooms);
   const { data: departments } = useQuery(getDepartments);
   const { data: academicYears } = useQuery(getAcademicYears);
   const { data: teachers } = useQuery(getSchoolTeachers);
 
+  const schoolLevel = school?.level || "SMA_SMK";
+  const isVocationalOrHighSchool = schoolLevel === "SMA_SMK";
+  const isElementary = schoolLevel === "SD_MI";
+  const isJuniorHigh = schoolLevel === "SMP_MTS";
+
+  const defaultGrade = isElementary ? "1" : isJuniorHigh ? "7" : "10";
+
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
-  const [gradeLevel, setGradeLevel] = useState(10);
+  const [gradeLevel, setGradeLevel] = useState(defaultGrade);
   const [departmentId, setDepartmentId] = useState("");
   const [academicYearId, setAcademicYearId] = useState("");
   const [homeroomTeacherId, setHomeroomTeacherId] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Filters
-  const [selectedGrade, setSelectedGrade] = useState<number | "ALL">("ALL");
-  const [selectedDept, setSelectedDept] = useState<string | "ALL">("ALL");
+  React.useEffect(() => {
+    setGradeLevel(defaultGrade);
+  }, [schoolLevel]);
+
+  // Filters & Search & Pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState("ALL");
+  const [selectedDept, setSelectedDept] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
 
   const openAddModal = () => {
     setName("");
-    setGradeLevel(10);
-    setDepartmentId(departments?.[0]?.id || "");
+    setGradeLevel(defaultGrade);
+    setDepartmentId(isVocationalOrHighSchool ? (departments?.[0]?.id || "") : "");
     const activeYear = academicYears?.find((y) => y.isActive);
     setAcademicYearId(activeYear?.id || academicYears?.[0]?.id || "");
     setHomeroomTeacherId("");
@@ -44,17 +73,21 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!departmentId || !academicYearId) {
-      setErrorMsg("Jurusan dan Tahun Ajaran wajib dipilih.");
+    if (!name.trim()) {
+      setErrorMsg("Nama rombel kelas wajib diisi.");
+      return;
+    }
+    if (!academicYearId) {
+      setErrorMsg("Tahun Ajaran wajib dipilih.");
       return;
     }
     setErrorMsg("");
     setSubmitting(true);
     try {
       await createClassRoom({
-        name,
+        name: name.trim(),
         gradeLevel: Number(gradeLevel),
-        departmentId,
+        departmentId: isVocationalOrHighSchool && departmentId ? departmentId : undefined,
         academicYearId,
         homeroomTeacherId: homeroomTeacherId || null,
       });
@@ -67,8 +100,8 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Hapus rombel kelas "${name}"?`)) return;
+  const handleDelete = async (id: string, className: string) => {
+    if (!window.confirm(`Hapus rombel kelas "${className}"?`)) return;
     try {
       await deleteClassRoom({ id });
       await refetch();
@@ -78,257 +111,374 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   };
 
   const filteredClasses = classes?.filter((c) => {
-    if (selectedGrade !== "ALL" && c.gradeLevel !== selectedGrade) return false;
-    if (selectedDept !== "ALL" && c.departmentId !== selectedDept) return false;
+    if (selectedGrade !== "ALL" && String(c.gradeLevel) !== selectedGrade)
+      return false;
+    if (isVocationalOrHighSchool && selectedDept !== "ALL" && c.departmentId !== selectedDept)
+      return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = c.name.toLowerCase().includes(q);
+      const matchDept =
+        c.department?.name?.toLowerCase().includes(q) ||
+        c.department?.code?.toLowerCase().includes(q);
+      return matchName || matchDept;
+    }
     return true;
   });
 
+  const totalItems = filteredClasses?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedClasses = (filteredClasses || []).slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const departmentOptions = [
+    { value: "ALL", label: "Semua Jurusan" },
+    ...(departments?.map((d) => ({
+      value: d.id,
+      label: `${d.code} - ${d.name}`,
+    })) || []),
+  ];
+
+  const modalDepartmentOptions = [
+    { value: "", label: "Tanpa Jurusan / Umum (Fase E)" },
+    ...(departments?.map((d) => ({
+      value: d.id,
+      label: `${d.code} - ${d.name}`,
+    })) || []),
+  ];
+
+  const gradeOptions = isElementary
+    ? [
+        { value: "ALL", label: "Semua Tingkat" },
+        { value: "1", label: "Kelas 1" },
+        { value: "2", label: "Kelas 2" },
+        { value: "3", label: "Kelas 3" },
+        { value: "4", label: "Kelas 4" },
+        { value: "5", label: "Kelas 5" },
+        { value: "6", label: "Kelas 6" },
+      ]
+    : isJuniorHigh
+    ? [
+        { value: "ALL", label: "Semua Tingkat" },
+        { value: "7", label: "Kelas 7" },
+        { value: "8", label: "Kelas 8" },
+        { value: "9", label: "Kelas 9" },
+      ]
+    : [
+        { value: "ALL", label: "Semua Tingkat" },
+        { value: "10", label: "Kelas 10" },
+        { value: "11", label: "Kelas 11" },
+        { value: "12", label: "Kelas 12" },
+        { value: "13", label: "Kelas 13 (SMK 4 Tahun)" },
+      ];
+
+  const modalGradeOptions = isElementary
+    ? [
+        { value: "1", label: "Kelas 1" },
+        { value: "2", label: "Kelas 2" },
+        { value: "3", label: "Kelas 3" },
+        { value: "4", label: "Kelas 4" },
+        { value: "5", label: "Kelas 5" },
+        { value: "6", label: "Kelas 6" },
+      ]
+    : isJuniorHigh
+    ? [
+        { value: "7", label: "Kelas 7" },
+        { value: "8", label: "Kelas 8" },
+        { value: "9", label: "Kelas 9" },
+      ]
+    : [
+        { value: "10", label: "Kelas 10" },
+        { value: "11", label: "Kelas 11" },
+        { value: "12", label: "Kelas 12" },
+        { value: "13", label: "Kelas 13 (SMK 4 Tahun)" },
+      ];
+
+  const academicYearOptions = [
+    ...(academicYears?.map((y) => ({
+      value: y.id,
+      label: `${y.yearName} (${y.semester})${y.isActive ? " • AKTIF" : ""}`,
+    })) || []),
+  ];
+
+  const teacherOptions = [
+    { value: "", label: "Belum Ditentukan" },
+    ...(teachers?.map((t) => ({
+      value: t.id,
+      label: `${t.name || t.email} ${
+        t.teacherProfile?.title ? `(${t.teacherProfile.title})` : ""
+      }`,
+    })) || []),
+  ];
+
   return (
     <SchoolLayout user={user}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+      <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary">
+            Portal Sekolah
+          </Link>
+          <span>/</span>
+          <span>Data Master</span>
+          <span>/</span>
+          <span className="text-md-on-surface font-medium">
             Rombongan Belajar (Kelas)
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Daftar kelas aktif beserta wali kelas dan jumlah siswa terdaftar.
-          </p>
-        </div>
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Tambah Kelas
-        </button>
-      </div>
-
-      {/* Filter Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-          <Filter className="w-4 h-4" />
-          Filter:
+          </span>
         </div>
 
-        <select
-          value={selectedGrade}
-          onChange={(e) =>
-            setSelectedGrade(e.target.value === "ALL" ? "ALL" : Number(e.target.value))
-          }
-          className="px-3 py-1.5 border rounded-lg text-xs dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-        >
-          <option value="ALL">Semua Tingkat</option>
-          <option value="10">Kelas 10</option>
-          <option value="11">Kelas 11</option>
-          <option value="12">Kelas 12</option>
-        </select>
-
-        <select
-          value={selectedDept}
-          onChange={(e) => setSelectedDept(e.target.value)}
-          className="px-3 py-1.5 border rounded-lg text-xs dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-        >
-          <option value="ALL">Semua Jurusan</option>
-          {departments?.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.code} - {d.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>
-      ) : filteredClasses?.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
-          <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-            Belum Ada Data Kelas
-          </h3>
-          <p className="text-sm text-slate-500 mt-1 mb-4">
-            Tambahkan rombel kelas pertama Anda untuk menampung data siswa.
-          </p>
-          <button
+        {/* Header Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-medium text-md-on-surface">
+              Kelas &amp; Rombel
+            </h2>
+            <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
+              Daftar kelas rombel dan penugasan wali kelas.
+            </p>
+          </div>
+          <M3Button
+            variant="filled"
+            size="md"
+            icon="add"
             onClick={openAddModal}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg"
           >
-            Tambah Kelas Baru
-          </button>
+            Tambah Rombel
+          </M3Button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClasses?.map((c) => (
-            <div
-              key={c.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm hover:border-indigo-400 transition-colors"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 mb-2">
-                    Tingkat {c.gradeLevel} • {c.department.code}
-                  </span>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    {c.name}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => handleDelete(c.id, c.name)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 rounded"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs">
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span>Wali Kelas:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[150px]">
-                    {c.homeroomTeacher?.name || "Belum ditentukan"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span>Jumlah Siswa:</span>
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                    {c._count?.students || 0} Siswa
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Modal Add Class */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                Tambah Rombel Kelas
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        {/* Filter Controls Card */}
+        <M3Card variant="outlined" className="p-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex-1 w-full">
+              <M3TextField
+                placeholder="Cari nama kelas atau jurusan..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                leadingIcon={<M3Icon name="search" size={18} />}
+                size="sm"
+              />
             </div>
 
-            {errorMsg && (
-              <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-                {errorMsg}
+            <div className="w-full sm:w-44">
+              <M3Select
+                options={gradeOptions}
+                value={selectedGrade}
+                onChange={(e) => {
+                  setSelectedGrade(e.target.value);
+                  setCurrentPage(1);
+                }}
+                size="sm"
+              />
+            </div>
+
+            {isVocationalOrHighSchool && (
+              <div className="w-full sm:w-56">
+                <M3Select
+                  options={departmentOptions}
+                  value={selectedDept}
+                  onChange={(e) => {
+                    setSelectedDept(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  size="sm"
+                />
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Nama Rombel Kelas *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Contoh: XII RPL 1"
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Tingkat / Grade *
-                </label>
-                <select
-                  value={gradeLevel}
-                  onChange={(e) => setGradeLevel(Number(e.target.value))}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                >
-                  <option value={10}>Kelas 10</option>
-                  <option value={11}>Kelas 11</option>
-                  <option value={12}>Kelas 12</option>
-                  <option value={13}>Kelas 13 (SMK 4 Tahun)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Jurusan *
-                </label>
-                <select
-                  value={departmentId}
-                  onChange={(e) => setDepartmentId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                  required
-                >
-                  <option value="">-- Pilih Jurusan --</option>
-                  {departments?.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.code} - {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Tahun Ajaran *
-                </label>
-                <select
-                  value={academicYearId}
-                  onChange={(e) => setAcademicYearId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                  required
-                >
-                  <option value="">-- Pilih Tahun Ajaran --</option>
-                  {academicYears?.map((y) => (
-                    <option key={y.id} value={y.id}>
-                      {y.yearName} ({y.semester}) {y.isActive ? "• AKTIF" : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Wali Kelas (Opsional)
-                </label>
-                <select
-                  value={homeroomTeacherId}
-                  onChange={(e) => setHomeroomTeacherId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                >
-                  <option value="">-- Belum Ditentukan --</option>
-                  {teachers?.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name || t.email} {t.teacherProfile?.title ? `(${t.teacherProfile.title})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {submitting ? "Menyimpan..." : "Simpan"}
-                </button>
-              </div>
-            </form>
+            <M3Badge variant="secondary" size="md">
+              {totalItems} Kelas
+            </M3Badge>
           </div>
-        </div>
-      )}
+        </M3Card>
+
+        {/* Content Section */}
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <M3CircularProgress size={40} />
+          </div>
+        ) : filteredClasses?.length === 0 ? (
+          <M3Banner
+            variant="standard"
+            headline="Belum Ada Data Rombel Kelas"
+            supportingText="Tambahkan rombel kelas pertama Anda untuk mengorganisasikan data siswa dan presensi."
+            actionLabel="Tambah Kelas Baru"
+            onAction={openAddModal}
+            icon="meeting_room"
+            className="p-6"
+          />
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedClasses?.map((c) => (
+                <M3Card
+                  key={c.id}
+                  variant="outlined"
+                  className="p-5 flex flex-col justify-between gap-4"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <M3Badge variant="primary" size="sm">
+                          Tingkat {c.gradeLevel}
+                          {c.department ? ` • ${c.department.code}` : ""}
+                        </M3Badge>
+                        <h3 className="text-lg font-semibold text-md-on-surface">
+                          {c.name}
+                        </h3>
+                      </div>
+                      <M3Button
+                        variant="icon"
+                        size="icon-sm"
+                        onClick={() => handleDelete(c.id, c.name)}
+                        title="Hapus Rombel"
+                      >
+                        <M3Icon name="delete" size={18} className="text-md-on-surface-variant hover:text-md-error" />
+                      </M3Button>
+                    </div>
+
+                    <div className="pt-3 border-t border-md-outline-variant/30 space-y-1.5 text-xs text-md-on-surface-variant">
+                      <div className="flex items-center justify-between">
+                        <span>Wali Kelas:</span>
+                        <span className="font-semibold text-md-on-surface">
+                          {c.homeroomTeacher?.name || "Belum ditentukan"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Jumlah Siswa:</span>
+                        <M3Badge variant="secondary" size="sm">
+                          {c._count?.students || 0} Siswa
+                        </M3Badge>
+                      </div>
+                    </div>
+                  </div>
+                </M3Card>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 pt-2">
+                <p className="text-xs text-md-on-surface-variant">
+                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
+                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} rombel
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    icon="chevron_left"
+                  >
+                    Sebelumnya
+                  </M3Button>
+                  <span className="text-xs px-2 text-md-on-surface font-medium">
+                    Hal {currentPage} / {totalPages}
+                  </span>
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    trailingIcon="chevron_right"
+                  >
+                    Selanjutnya
+                  </M3Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dialog Add Class */}
+        <M3Dialog
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Tambah Rombel Kelas"
+          subtitle="Tentukan nama rombel, tingkat, jurusan, dan wali kelas."
+          icon={<M3Icon name="meeting_room" size={24} className="text-md-primary" />}
+          actions={
+            <>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={() => setModalOpen(false)}
+              >
+                Batal
+              </M3Button>
+              <M3Button
+                variant="filled"
+                size="sm"
+                onClick={handleSubmit}
+                isLoading={submitting}
+              >
+                Simpan Kelas
+              </M3Button>
+            </>
+          }
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMsg && (
+              <M3Banner
+                variant="error"
+                supportingText={errorMsg}
+                dismissible
+                onDismiss={() => setErrorMsg("")}
+              />
+            )}
+
+            <M3TextField
+              label="Nama Rombel Kelas *"
+              placeholder={
+                isElementary
+                  ? "Contoh: 1-A / 2-B"
+                  : isJuniorHigh
+                  ? "Contoh: 7-A / 8-B"
+                  : "Contoh: X RPL 1 / X-1 (Fase E)"
+              }
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+
+            <M3Select
+              label="Tingkat / Grade *"
+              options={modalGradeOptions}
+              value={gradeLevel}
+              onChange={(e) => setGradeLevel(e.target.value)}
+            />
+
+            {isVocationalOrHighSchool && (
+              <M3Select
+                label="Konsentrasi Keahlian / Jurusan (Opsional)"
+                options={modalDepartmentOptions}
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+              />
+            )}
+
+            <M3Select
+              label="Tahun Ajaran *"
+              options={academicYearOptions}
+              value={academicYearId}
+              onChange={(e) => setAcademicYearId(e.target.value)}
+            />
+
+            <M3Select
+              label="Wali Kelas (Opsional)"
+              options={teacherOptions}
+              value={homeroomTeacherId}
+              onChange={(e) => setHomeroomTeacherId(e.target.value)}
+            />
+          </form>
+        </M3Dialog>
+      </div>
     </SchoolLayout>
   );
 }

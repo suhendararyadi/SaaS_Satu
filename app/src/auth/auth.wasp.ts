@@ -80,7 +80,7 @@ export const authConfig: Auth = {
     // discord: discordAuthMethod,
   },
   onAuthFailedRedirectTo: "/login",
-  onAuthSucceededRedirectTo: "/demo-app",
+  onAuthSucceededRedirectTo: "/school",
 };
 
 export const authSpec: Spec = [

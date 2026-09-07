@@ -4,6 +4,9 @@ import { ReportsPage } from "./pages/ReportsPage" with { type: "ref" };
 import {
   exportPklAttendanceReport,
   exportLmsGradesReport,
+  getClassRoomAttendanceReport,
+  getActiveStudentCertificateData,
+  getSchoolReportContext,
 } from "./operations" with { type: "ref" };
 
 export const reportsSpec: Spec = [
@@ -38,6 +41,31 @@ export const reportsSpec: Spec = [
       "LmsAttendanceSession",
       "LmsAttendanceRecord",
     ],
+  }),
+  query(getClassRoomAttendanceReport, {
+    entities: [
+      "School",
+      "ClassRoom",
+      "Department",
+      "AcademicYear",
+      "User",
+      "StudentProfile",
+      "TeacherProfile",
+      "LmsAttendanceRecord",
+    ],
+  }),
+  query(getActiveStudentCertificateData, {
+    entities: [
+      "School",
+      "User",
+      "StudentProfile",
+      "ClassRoom",
+      "Department",
+      "AcademicYear",
+    ],
+  }),
+  query(getSchoolReportContext, {
+    entities: ["School", "ClassRoom", "Department", "User", "StudentProfile"],
   }),
 
   // Routes

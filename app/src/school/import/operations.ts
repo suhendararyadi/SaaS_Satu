@@ -97,6 +97,13 @@ export const importStudentsFromCsv = async (
 
 
       if (existingUser) {
+        if (existingUser.schoolId !== admin.schoolId) {
+          throw new HttpError(
+            409,
+            "Alamat email ini sudah digunakan oleh akun di unit sekolah lain. Impor dibatalkan untuk melindungi data lintas sekolah."
+          );
+        }
+
         // Update user
         await prisma.user.update({
           where: { id: existingUser.id },
@@ -216,6 +223,13 @@ export const importTeachersFromCsv = async (
 
 
       if (existingUser) {
+        if (existingUser.schoolId !== admin.schoolId) {
+          throw new HttpError(
+            409,
+            "Alamat email ini sudah digunakan oleh akun di unit sekolah lain. Impor dibatalkan untuk melindungi data lintas sekolah."
+          );
+        }
+
         await prisma.user.update({
           where: { id: existingUser.id },
           data: {

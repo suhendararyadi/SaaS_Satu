@@ -1,5 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
+import { Link } from "react-router";
 import {
   useQuery,
   getDepartments,
@@ -8,7 +9,24 @@ import {
   deleteDepartment,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
-import { GraduationCap, Plus, Trash2, Edit3, X, AlertCircle } from "lucide-react";
+import {
+  M3Card,
+  M3Button,
+  M3TextField,
+  M3Dialog,
+  M3Badge,
+  M3Table,
+  M3TableHeader,
+  M3TableBody,
+  M3TableRow,
+  M3TableHead,
+  M3TableCell,
+  M3CircularProgress,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
+
 
 export function DepartmentsPage({ user }: { user: AuthUser }) {
   const { data: departments, isLoading, refetch } = useQuery(getDepartments);
@@ -18,6 +36,24 @@ export function DepartmentsPage({ user }: { user: AuthUser }) {
   const [name, setName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Search & Pagination state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const filteredDepts = (departments || []).filter((d) => {
+    const q = searchQuery.toLowerCase();
+    return d.code.toLowerCase().includes(q) || d.name.toLowerCase().includes(q);
+  });
+
+  const totalItems = filteredDepts.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedDepts = filteredDepts.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const openAddModal = () => {
     setEditingId(null);
@@ -37,13 +73,21 @@ export function DepartmentsPage({ user }: { user: AuthUser }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!code.trim() || !name.trim()) {
+      setErrorMsg("Kode dan Nama Jurusan wajib diisi.");
+      return;
+    }
     setErrorMsg("");
     setSubmitting(true);
     try {
       if (editingId) {
-        await updateDepartment({ id: editingId, code, name });
+        await updateDepartment({
+          id: editingId,
+          code: code.trim(),
+          name: name.trim(),
+        });
       } else {
-        await createDepartment({ code, name });
+        await createDepartment({ code: code.trim(), name: name.trim() });
       }
       setModalOpen(false);
       await refetch();
@@ -54,8 +98,8 @@ export function DepartmentsPage({ user }: { user: AuthUser }) {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Hapus jurusan "${name}"?`)) return;
+  const handleDelete = async (id: string, deptName: string) => {
+    if (!window.confirm(`Hapus konsentrasi keahlian "${deptName}"?`)) return;
     try {
       await deleteDepartment({ id });
       await refetch();
@@ -66,158 +110,227 @@ export function DepartmentsPage({ user }: { user: AuthUser }) {
 
   return (
     <SchoolLayout user={user}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Konsentrasi Keahlian / Jurusan
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Daftar kompetensi keahlian dan jurusan aktif di sekolah.
-          </p>
+      <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary">
+            Portal Sekolah
+          </Link>
+          <span>/</span>
+          <span>Data Akademik</span>
+          <span>/</span>
+          <span className="text-md-on-surface font-medium">
+            Konsentrasi Keahlian
+          </span>
         </div>
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Tambah Jurusan
-        </button>
-      </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>
-      ) : departments?.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
-          <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-            Belum Ada Data Jurusan
-          </h3>
-          <p className="text-sm text-slate-500 mt-1 mb-4">
-            Tambahkan jurusan baru untuk mulai mengorganisasi rombel kelas dan siswa.
-          </p>
-          <button
+        {/* Header Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-medium text-md-on-surface">
+              Jurusan &amp; Keahlian
+            </h2>
+            <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
+              Daftar program keahlian dan jurusan sekolah.
+            </p>
+          </div>
+          <M3Button
+            variant="filled"
+            size="md"
+            icon="add"
             onClick={openAddModal}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg"
           >
-            Tambah Jurusan Pertama
-          </button>
+            Tambah Jurusan
+          </M3Button>
         </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs uppercase font-semibold text-slate-500">
-                <th className="px-6 py-4">Kode</th>
-                <th className="px-6 py-4">Nama Jurusan</th>
-                <th className="px-6 py-4">Jumlah Kelas</th>
-                <th className="px-6 py-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-              {departments?.map((dept) => (
-                <tr key={dept.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                  <td className="px-6 py-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                    {dept.code}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
-                    {dept.name}
-                  </td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
-                    {dept._count?.classes || 0} Kelas
-                  </td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    <button
-                      onClick={() => openEditModal(dept)}
-                      className="p-1.5 text-slate-500 hover:text-indigo-600 rounded"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(dept.id, dept.name)}
-                      className="p-1.5 text-slate-500 hover:text-red-600 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
-      {/* Modal Add/Edit */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                {editingId ? "Edit Jurusan" : "Tambah Jurusan Baru"}
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        {/* Search Toolbar */}
+        <M3Card variant="outlined" className="p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 max-w-md">
+              <M3TextField
+                placeholder="Cari kode atau nama konsentrasi keahlian..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                leadingIcon="search"
+                size="sm"
+              />
             </div>
+            <M3Badge variant="secondary" size="md">
+              {totalItems} Jurusan
+            </M3Badge>
+          </div>
+        </M3Card>
 
-            {errorMsg && (
-              <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-                {errorMsg}
+        {/* Content Section */}
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <M3CircularProgress size={40} />
+          </div>
+        ) : filteredDepts.length === 0 ? (
+          <M3Banner
+            variant="standard"
+            headline={
+              searchQuery
+                ? "Jurusan Tidak Ditemukan"
+                : "Belum Ada Data Jurusan"
+            }
+            supportingText={
+              searchQuery
+                ? "Tidak ada konsentrasi keahlian yang cocok dengan kata kunci pencarian Anda."
+                : "Tambahkan konsentrasi keahlian pertama Anda untuk mulai mengelompokkan rombel kelas dan siswa."
+            }
+            actionLabel={searchQuery ? "Reset Pencarian" : "Tambah Jurusan Pertama"}
+            onAction={searchQuery ? () => setSearchQuery("") : openAddModal}
+            icon="domain"
+            className="p-6"
+          />
+        ) : (
+          <div className="space-y-4">
+            <M3Table>
+              <M3TableHeader>
+                <M3TableRow>
+                  <M3TableHead>Kode</M3TableHead>
+                  <M3TableHead>Nama Konsentrasi Keahlian</M3TableHead>
+                  <M3TableHead>Rombel Kelas</M3TableHead>
+                  <M3TableHead className="text-right">Aksi</M3TableHead>
+                </M3TableRow>
+              </M3TableHeader>
+              <M3TableBody>
+                {paginatedDepts.map((dept) => (
+                  <M3TableRow key={dept.id}>
+                    <M3TableCell>
+                      <M3Badge variant="primary" size="sm">
+                        {dept.code}
+                      </M3Badge>
+                    </M3TableCell>
+                    <M3TableCell>
+                      <span className="font-semibold text-md-on-surface">
+                        {dept.name}
+                      </span>
+                    </M3TableCell>
+                    <M3TableCell>
+                      <span className="text-xs text-md-on-surface-variant">
+                        {dept._count?.classes || 0} Kelas Terdaftar
+                      </span>
+                    </M3TableCell>
+                    <M3TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <M3Button
+                          variant="icon"
+                          size="icon-sm"
+                          onClick={() => openEditModal(dept)}
+                          title="Ubah Jurusan"
+                        >
+                          <M3Icon name="edit" size={18} className="text-md-on-surface-variant hover:text-md-primary" />
+                        </M3Button>
+                        <M3Button
+                          variant="icon"
+                          size="icon-sm"
+                          onClick={() => handleDelete(dept.id, dept.name)}
+                          title="Hapus Jurusan"
+                        >
+                          <M3Icon name="delete" size={18} className="text-md-on-surface-variant hover:text-md-error" />
+                        </M3Button>
+                      </div>
+                    </M3TableCell>
+                  </M3TableRow>
+                ))}
+              </M3TableBody>
+            </M3Table>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 pt-2">
+                <p className="text-xs text-md-on-surface-variant">
+                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
+                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} jurusan
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    icon="chevron_left"
+                  >
+                    Sebelumnya
+                  </M3Button>
+                  <span className="text-xs px-2 text-md-on-surface font-medium">
+                    Hal {currentPage} / {totalPages}
+                  </span>
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    trailingIcon="chevron_right"
+                  >
+                    Selanjutnya
+                  </M3Button>
+                </div>
               </div>
             )}
-
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Kode Jurusan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="Contoh: RPL, TKJ, DKV"
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Nama Lengkap Jurusan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Contoh: Rekayasa Perangkat Lunak"
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {submitting ? "Menyimpan..." : "Simpan"}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Dialog Add / Edit */}
+        <M3Dialog
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title={editingId ? "Edit Konsentrasi Keahlian" : "Tambah Jurusan Baru"}
+          subtitle="Definisikan kode unik dan nama lengkap konsentrasi keahlian."
+          icon={<M3Icon name="school" size={24} className="text-md-primary" />}
+          actions={
+            <>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={() => setModalOpen(false)}
+              >
+                Batal
+              </M3Button>
+              <M3Button
+                variant="filled"
+                size="sm"
+                onClick={handleSubmit}
+                isLoading={submitting}
+              >
+                Simpan Jurusan
+              </M3Button>
+            </>
+          }
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMsg && (
+              <M3Banner
+                variant="error"
+                supportingText={errorMsg}
+                dismissible
+                onDismiss={() => setErrorMsg("")}
+              />
+            )}
+
+            <M3TextField
+              label="Kode Jurusan *"
+              placeholder="Contoh: RPL, TKJ, DKV"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+            />
+
+            <M3TextField
+              label="Nama Lengkap Jurusan *"
+              placeholder="Contoh: Rekayasa Perangkat Lunak"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </form>
+        </M3Dialog>
+      </div>
     </SchoolLayout>
   );
 }

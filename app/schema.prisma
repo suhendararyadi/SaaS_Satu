@@ -22,6 +22,12 @@ enum SubscriptionTier {
   ENTERPRISE
 }
 
+enum SchoolLevel {
+  SD_MI
+  SMP_MTS
+  SMA_SMK
+}
+
 model User {
   id                            String                @id @default(uuid())
   createdAt                     DateTime              @default(now())
@@ -77,6 +83,7 @@ model School {
   phone               String?
   email               String?
   logoUrl             String?
+  level               SchoolLevel       @default(SMA_SMK)
   
   tier                SubscriptionTier  @default(FREE_TRIAL)
   studentQuota        Int               @default(50)
@@ -121,11 +128,11 @@ model ClassRoom {
   id                  String        @id @default(uuid())
   schoolId            String
   school              School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  departmentId        String
-  department          Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  departmentId        String?
+  department          Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   academicYearId      String
   academicYear        AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  gradeLevel          Int           // 10, 11, 12
+  gradeLevel          Int           // 1..6 (SD), 7..9 (SMP), 10..13 (SMA/SMK)
   name                String        // "XII RPL 1"
   homeroomTeacherId   String?
   homeroomTeacher     User?         @relation("HomeroomClasses", fields: [homeroomTeacherId], references: [id])

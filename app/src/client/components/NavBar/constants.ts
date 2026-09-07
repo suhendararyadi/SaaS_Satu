@@ -16,7 +16,6 @@ export const marketingNavigationItems: NavigationItem[] = [
 
 export const demoNavigationitems: NavigationItem[] = [
   { name: "Portal Sekolah", to: "/school" },
-  { name: "AI Scheduler", to: routes.DemoAppRoute.to },
   { name: "File Upload", to: routes.FileUploadRoute.to },
   ...staticNavigationItems,
 ] as const;

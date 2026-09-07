@@ -1,5 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
+import { Link } from "react-router";
 import {
   useQuery,
   getPlacements,
@@ -11,17 +12,24 @@ import {
 } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  Briefcase,
-  Plus,
-  Users,
-  MapPin,
-  Calendar,
-  UserCheck,
-  CheckCircle,
-  XCircle,
-  X,
-  Filter,
-} from "lucide-react";
+  M3Card,
+  M3Button,
+  M3TextField,
+  M3Select,
+  M3Dialog,
+  M3Badge,
+  M3Table,
+  M3TableHeader,
+  M3TableBody,
+  M3TableRow,
+  M3TableHead,
+  M3TableCell,
+  M3CircularProgress,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
+
 
 export function PlacementsPage({ user }: { user: AuthUser }) {
   const { data: placements, isLoading, refetch } = useQuery(getPlacements);
@@ -41,6 +49,12 @@ export function PlacementsPage({ user }: { user: AuthUser }) {
   );
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Filters & Pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
 
   // Filter students who don't have active placement yet
   const unplacedStudents = students?.filter(
@@ -80,7 +94,10 @@ export function PlacementsPage({ user }: { user: AuthUser }) {
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: "ACTIVE" | "COMPLETED" | "CANCELED") => {
+  const handleStatusChange = async (
+    id: string,
+    newStatus: "ACTIVE" | "COMPLETED" | "CANCELED"
+  ) => {
     try {
       await updatePlacement({ id, status: newStatus });
       await refetch();
@@ -89,268 +106,395 @@ export function PlacementsPage({ user }: { user: AuthUser }) {
     }
   };
 
+  const studentOptions = [
+    { value: "", label: "Pilih Siswa yang Belum Plotting" },
+    ...(unplacedStudents?.map((s) => ({
+      value: s.id,
+      label: `${s.name} (${s.classRoom?.name || "Tanpa Kelas"}) - NIS: ${
+        s.studentProfile?.nis || "-"
+      }`,
+    })) || []),
+  ];
+
+  const companyOptions = [
+    { value: "", label: "Pilih Perusahaan Mitra" },
+    ...(companies?.map((c) => ({
+      value: c.id,
+      label: `${c.name} (Sisa Kuota: ${
+        c.maxQuota - (c.placements?.length || 0)
+      } siswa)`,
+    })) || []),
+  ];
+
+  const teacherOptions = [
+    { value: "", label: "Tanpa Pembimbing (Pilih Nanti)" },
+    ...(teachers?.map((t) => ({
+      value: t.id,
+      label: `${t.name || t.email}${
+        t.teacherProfile?.title ? ` (${t.teacherProfile.title})` : ""
+      }`,
+    })) || []),
+  ];
+
+  const filteredPlacements = placements?.filter((p) => {
+    if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchStudent =
+        p.student?.name?.toLowerCase().includes(q) ||
+        p.student?.studentProfile?.nis?.toLowerCase().includes(q);
+      const matchCompany = p.company?.name?.toLowerCase().includes(q);
+      const matchTeacher = p.teacherSupervisor?.name
+        ?.toLowerCase()
+        .includes(q);
+      return matchStudent || matchCompany || matchTeacher;
+    }
+    return true;
+  });
+
+  const totalItems = filteredPlacements?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedPlacements = (filteredPlacements || []).slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const statusOptions = [
+    { value: "ALL", label: "Semua Status" },
+    { value: "ACTIVE", label: "Aktif" },
+    { value: "COMPLETED", label: "Selesai" },
+    { value: "CANCELED", label: "Batal" },
+  ];
+
   return (
     <SchoolLayout user={user}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Plotting & Penempatan PKL Siswa
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Penugasan siswa ke perusahaan mitra DUDI dan guru pembimbing sekolah.
-          </p>
+      <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary">
+            Portal Sekolah
+          </Link>
+          <span>/</span>
+          <span>E-PKL</span>
+          <span>/</span>
+          <span className="text-md-on-surface font-medium">
+            Plotting &amp; Penempatan
+          </span>
         </div>
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Plotting Siswa Baru
-        </button>
-      </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>
-      ) : placements?.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
-          <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-            Belum Ada Data Penempatan Siswa
-          </h3>
-          <p className="text-sm text-slate-500 mt-1 mb-4">
-            Lakukan penempatan siswa ke perusahaan mitra untuk memulai pemantauan presensi dan jurnal.
-          </p>
-          <button
+        {/* Header Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-medium text-md-on-surface">
+              Penempatan Siswa PKL
+            </h2>
+            <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
+              Penugasan siswa ke perusahaan mitra dan guru pembimbing.
+            </p>
+          </div>
+          <M3Button
+            variant="filled"
+            size="md"
+            icon="add"
             onClick={openAddModal}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg"
           >
-            Plotting Siswa Pertama
-          </button>
+            Plotting Siswa Baru
+          </M3Button>
         </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs uppercase font-semibold text-slate-500">
-                <th className="px-6 py-4">Siswa & Kelas</th>
-                <th className="px-6 py-4">Mitra DUDI</th>
-                <th className="px-6 py-4">Guru Pembimbing</th>
-                <th className="px-6 py-4">Periode PKL</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-              {placements?.map((p) => {
-                const sDate = new Date(p.startDate).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                });
-                const eDate = new Date(p.endDate).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                });
 
-                return (
-                  <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        {p.student?.name}
-                      </div>
-                      <div className="text-xs text-slate-500 font-mono mt-0.5">
-                        {p.student?.classRoom?.name || "Kelas -"} • NIS:{" "}
-                        {p.student?.studentProfile?.nis || "-"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-indigo-600 dark:text-indigo-400">
-                        {p.company?.name}
-                      </div>
-                      <div className="text-xs text-slate-500 truncate max-w-[200px]">
-                        {p.company?.address}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                      {p.teacherSupervisor?.name || (
-                        <span className="text-amber-500 text-xs italic">Belum Ditugaskan</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-xs font-mono text-slate-600 dark:text-slate-400">
-                      {sDate} s.d. {eDate}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          p.status === "ACTIVE"
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
-                            : p.status === "COMPLETED"
-                            ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
-                            : "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300"
-                        }`}
-                      >
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-1">
-                      {p.status === "ACTIVE" && (
-                        <>
-                          <button
-                            onClick={() => handleStatusChange(p.id, "COMPLETED")}
-                            className="px-2.5 py-1 rounded text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-medium"
-                          >
-                            Selesai
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(p.id, "CANCELED")}
-                            className="px-2.5 py-1 rounded text-xs bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/50 font-medium"
-                          >
-                            Batal
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Modal Add Placement */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                Plotting Penempatan PKL Siswa
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        {/* Search & Status Filter Toolbar */}
+        <M3Card variant="outlined" className="p-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex-1 w-full">
+              <M3TextField
+                placeholder="Cari nama siswa, NIS, mitra, atau pembimbing..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                leadingIcon={<M3Icon name="search" size={18} />}
+                size="sm"
+              />
             </div>
 
-            {errorMsg && (
-              <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-                {errorMsg}
+            <div className="w-full sm:w-48">
+              <M3Select
+                options={statusOptions}
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                size="sm"
+              />
+            </div>
+
+            <M3Badge variant="secondary" size="md">
+              {totalItems} Penempatan
+            </M3Badge>
+          </div>
+        </M3Card>
+
+        {/* Content Section */}
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <M3CircularProgress size={40} />
+          </div>
+        ) : filteredPlacements?.length === 0 ? (
+          <M3Banner
+            variant="standard"
+            headline="Belum Ada Data Penempatan Siswa"
+            supportingText="Lakukan penempatan siswa ke perusahaan mitra untuk memulai pemantauan presensi dan jurnal."
+            actionLabel="Plotting Siswa Pertama"
+            onAction={openAddModal}
+            icon="work"
+            className="p-6"
+          />
+        ) : (
+          <div className="space-y-4">
+            <M3Table>
+              <M3TableHeader>
+                <M3TableRow>
+                  <M3TableHead>Siswa &amp; Kelas</M3TableHead>
+                  <M3TableHead>Mitra DUDI</M3TableHead>
+                  <M3TableHead>Guru Pembimbing</M3TableHead>
+                  <M3TableHead>Periode PKL</M3TableHead>
+                  <M3TableHead>Status</M3TableHead>
+                  <M3TableHead className="text-right">Aksi</M3TableHead>
+                </M3TableRow>
+              </M3TableHeader>
+              <M3TableBody>
+                {paginatedPlacements.map((p) => {
+                  const sDate = new Date(p.startDate).toLocaleDateString(
+                    "id-ID",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }
+                  );
+                  const eDate = new Date(p.endDate).toLocaleDateString(
+                    "id-ID",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }
+                  );
+
+                  return (
+                    <M3TableRow key={p.id}>
+                      <M3TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-md-on-surface">
+                            {p.student?.name}
+                          </span>
+                          <span className="text-xs text-md-on-surface-variant font-mono">
+                            {p.student?.classRoom?.name || "Kelas -"} • NIS:{" "}
+                            {p.student?.studentProfile?.nis || "-"}
+                          </span>
+                        </div>
+                      </M3TableCell>
+
+                      <M3TableCell>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1">
+                            <M3Icon name="apartment" size={14} className="text-md-primary shrink-0" />
+                            <span className="font-semibold text-md-primary">
+                              {p.company?.name}
+                            </span>
+                          </div>
+                          <span className="text-xs text-md-on-surface-variant line-clamp-1 max-w-[200px]">
+                            {p.company?.address}
+                          </span>
+                        </div>
+                      </M3TableCell>
+
+                      <M3TableCell>
+                        {p.teacherSupervisor?.name ? (
+                          <div className="flex items-center gap-1 text-sm text-md-on-surface">
+                            <M3Icon name="person" size={14} className="opacity-70 shrink-0" />
+                            <span>{p.teacherSupervisor.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-md-on-surface-variant italic">
+                            Belum Ditugaskan
+                          </span>
+                        )}
+                      </M3TableCell>
+
+                      <M3TableCell>
+                        <div className="flex items-center gap-1.5 text-xs text-md-on-surface-variant font-mono">
+                          <M3Icon name="calendar_today" size={14} className="opacity-70 shrink-0" />
+                          <span>
+                            {sDate} s.d. {eDate}
+                          </span>
+                        </div>
+                      </M3TableCell>
+
+                      <M3TableCell>
+                        {p.status === "ACTIVE" && (
+                          <M3Badge variant="success" size="sm">
+                            Aktif
+                          </M3Badge>
+                        )}
+                        {p.status === "COMPLETED" && (
+                          <M3Badge variant="primary" size="sm">
+                            Selesai
+                          </M3Badge>
+                        )}
+                        {p.status === "CANCELED" && (
+                          <M3Badge variant="error" size="sm">
+                            Batal
+                          </M3Badge>
+                        )}
+                      </M3TableCell>
+
+                      <M3TableCell className="text-right">
+                        {p.status === "ACTIVE" && (
+                          <div className="flex items-center justify-end gap-1">
+                            <M3Button
+                              variant="tonal"
+                              size="sm"
+                              icon="check_circle"
+                              onClick={() =>
+                                handleStatusChange(p.id, "COMPLETED")
+                              }
+                            >
+                              Selesai
+                            </M3Button>
+                            <M3Button
+                              variant="outlined"
+                              size="sm"
+                              icon="cancel"
+                              onClick={() =>
+                                handleStatusChange(p.id, "CANCELED")
+                              }
+                            >
+                              Batal
+                            </M3Button>
+                          </div>
+                        )}
+                      </M3TableCell>
+                    </M3TableRow>
+                  );
+                })}
+              </M3TableBody>
+            </M3Table>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 pt-2">
+                <p className="text-xs text-md-on-surface-variant">
+                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
+                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} penempatan
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    icon="chevron_left"
+                  >
+                    Sebelumnya
+                  </M3Button>
+                  <span className="text-xs px-2 text-md-on-surface font-medium">
+                    Hal {currentPage} / {totalPages}
+                  </span>
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    trailingIcon="chevron_right"
+                  >
+                    Selanjutnya
+                  </M3Button>
+                </div>
               </div>
             )}
-
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Pilih Siswa *
-                </label>
-                <select
-                  required
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                >
-                  <option value="">-- Pilih Siswa yang Belum Plotting --</option>
-                  {unplacedStudents?.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.classRoom?.name || "Tanpa Kelas"}) - NIS:{" "}
-                      {s.studentProfile?.nis || "-"}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {unplacedStudents?.length || 0} siswa belum memiliki tempat penempatan aktif.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Pilih Mitra DUDI / Tempat PKL *
-                </label>
-                <select
-                  required
-                  value={companyId}
-                  onChange={(e) => setCompanyId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                >
-                  <option value="">-- Pilih Perusahaan --</option>
-                  {companies?.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} (Sisa Kuota: {c.maxQuota - (c.placements?.length || 0)} siswa)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                  Guru Pembimbing Sekolah (Opsional)
-                </label>
-                <select
-                  value={teacherSupervisorId}
-                  onChange={(e) => setTeacherSupervisorId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm"
-                >
-                  <option value="">-- Pilih Guru Pembimbing --</option>
-                  {teachers?.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name || t.email} {t.teacherProfile?.title ? `(${t.teacherProfile.title})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                    Tanggal Mulai *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-                    Tanggal Selesai *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {submitting ? "Memproses..." : "Simpan Penempatan"}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Dialog Add Placement */}
+        <M3Dialog
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Plotting Penempatan PKL Siswa"
+          subtitle="Pilih siswa, tempat DUDI mitra, dan periode tanggal pelaksanaan PKL."
+          icon={<M3Icon name="work" size={24} className="text-md-primary" />}
+          actions={
+            <>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={() => setModalOpen(false)}
+              >
+                Batal
+              </M3Button>
+              <M3Button
+                variant="filled"
+                size="sm"
+                onClick={handleSubmit}
+                isLoading={submitting}
+              >
+                Simpan Penempatan
+              </M3Button>
+            </>
+          }
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMsg && (
+              <M3Banner
+                variant="error"
+                supportingText={errorMsg}
+                dismissible
+                onDismiss={() => setErrorMsg("")}
+              />
+            )}
+
+            <M3Select
+              label="Pilih Siswa *"
+              options={studentOptions}
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+            />
+
+            <M3Select
+              label="Pilih Mitra DUDI / Tempat PKL *"
+              options={companyOptions}
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+            />
+
+            <M3Select
+              label="Guru Pembimbing Sekolah (Opsional)"
+              options={teacherOptions}
+              value={teacherSupervisorId}
+              onChange={(e) => setTeacherSupervisorId(e.target.value)}
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <M3TextField
+                label="Tanggal Mulai *"
+                placeholder="YYYY-MM-DD"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+              />
+              <M3TextField
+                label="Tanggal Selesai *"
+                placeholder="YYYY-MM-DD"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                required
+              />
+            </div>
+          </form>
+        </M3Dialog>
+      </div>
     </SchoolLayout>
   );
 }

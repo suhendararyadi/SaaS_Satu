@@ -1,28 +1,73 @@
+import { useState, useMemo } from "react";
 import { type AuthUser } from "wasp/auth";
-import { useQuery } from "wasp/client/operations";
-import { getHomeroomDashboardData } from "wasp/client/operations";
-import { Link } from "react-router";
+import { useQuery, getHomeroomDashboardData } from "wasp/client/operations";
+import { Link } from "wasp/client/router";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  Users,
-  Briefcase,
-  CalendarCheck,
-  ClipboardList,
-  CheckCircle2,
-  Clock,
-  Building2,
-  AlertCircle,
-  ExternalLink,
-} from "lucide-react";
+  M3Card,
+  M3Button,
+  M3Badge,
+  M3TextField,
+  M3Select,
+  M3Table,
+  M3TableHeader,
+  M3TableBody,
+  M3TableRow,
+  M3TableHead,
+  M3TableCell,
+  M3CircularProgress,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
+
 
 export function WaliKelasPage({ user }: { user: AuthUser }) {
   const { data: homeroomClass, isLoading, error } = useQuery(getHomeroomDashboardData);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [pklFilter, setPklFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
+
+  const students = homeroomClass?.students || [];
+  const totalStudents = students.length;
+  const activePklStudents = students.filter(
+    (s: any) => s.studentPlacements && s.studentPlacements.length > 0
+  ).length;
+
+  const filteredStudents = useMemo(() => {
+    return students.filter((s: any) => {
+      const matchSearch =
+        !searchQuery.trim() ||
+        s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.studentProfile?.nis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.studentProfile?.nisn?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const hasPlacement = s.studentPlacements && s.studentPlacements.length > 0;
+      const matchPkl =
+        pklFilter === "ALL" ||
+        (pklFilter === "PLACED" && hasPlacement) ||
+        (pklFilter === "UNPLACED" && !hasPlacement);
+
+      return matchSearch && matchPkl;
+    });
+  }, [students, searchQuery, pklFilter]);
+
+  const paginatedStudents = useMemo(() => {
+    return filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredStudents, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(filteredStudents.length / pageSize);
+
   if (isLoading) {
     return (
       <SchoolLayout user={user}>
-        <div className="flex items-center justify-center p-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+        <div className="flex flex-col items-center justify-center min-h-64 gap-3">
+          <M3CircularProgress indeterminate />
+          <p className="text-body-medium text-md-on-surface-variant">
+            Memuat dashboard wali kelas...
+          </p>
         </div>
       </SchoolLayout>
     );
@@ -31,252 +76,338 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
   if (error || !homeroomClass) {
     return (
       <SchoolLayout user={user}>
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border border-slate-200 dark:border-slate-800 text-center">
-          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Data Wali Kelas Belum Tersedia
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
-            Anda belum ditugaskan sebagai Wali Kelas pada rombongan belajar aktif, atau belum ada data kelas yang terhubung dengan akun Anda.
-          </p>
+        <div className="space-y-6">
+          <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
+            <Link to="/school" className="hover:text-md-primary transition-colors">
+              Portal Sekolah
+            </Link>
+            <M3Icon name="chevron_right" size={16} />
+            <Link to="/school/governance/walikelas" className="hover:text-md-primary transition-colors">
+              Tata Kelola
+            </Link>
+            <M3Icon name="chevron_right" size={16} />
+            <span className="text-md-on-surface font-medium">Wali Kelas</span>
+          </nav>
+
+          <M3Banner
+            variant="warning"
+            headline="Data Wali Kelas Belum Tersedia"
+            supportingText="Akun Anda belum ditugaskan sebagai wali kelas pada rombel aktif."
+            actionLabel="Kembali ke Dashboard"
+            actionHref="/school"
+            className="p-6"
+          />
         </div>
       </SchoolLayout>
     );
   }
 
-  const students = homeroomClass.students || [];
-  const totalStudents = students.length;
-  const activePklStudents = students.filter(
-    (s: any) => s.studentPlacements && s.studentPlacements.length > 0
-  ).length;
-
   return (
     <SchoolLayout user={user}>
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg shadow-emerald-500/10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-3 py-1 bg-white/20 backdrop-blur rounded-full text-xs font-semibold tracking-wide uppercase">
-                Dashboard Wali Kelas
-              </span>
-              <span className="px-3 py-1 bg-emerald-500/40 rounded-full text-xs font-semibold">
-                {homeroomClass.academicYear?.yearName} - {homeroomClass.academicYear?.semester}
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Kelas {homeroomClass.name}
-            </h1>
-            <p className="text-emerald-100 text-sm mt-1">
-              Konsentrasi Keahlian: {homeroomClass.department?.name} ({homeroomClass.department?.code})
-            </p>
-          </div>
+      <div className="space-y-6">
+        {/* M3 Breadcrumbs */}
+        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary transition-colors">
+            Portal Sekolah
+          </Link>
+          <M3Icon name="chevron_right" size={16} />
+          <Link to="/school/governance/walikelas" className="hover:text-md-primary transition-colors">
+            Tata Kelola
+          </Link>
+          <M3Icon name="chevron_right" size={16} />
+          <span className="text-md-on-surface font-medium">Wali Kelas</span>
+        </nav>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to="/school/reports"
-              className="px-4 py-2 bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-sm"
+        {/* Header Banner Component */}
+        <M3Banner
+          variant="hero"
+          className="p-6"
+          headline={
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-white/20 backdrop-blur rounded-md-full text-label-small font-semibold uppercase tracking-wider text-white">
+                  Wali Kelas
+                </span>
+                <span className="px-3 py-1 bg-emerald-500/40 rounded-md-full text-label-small font-semibold text-white">
+                  {homeroomClass.academicYear?.yearName} - {homeroomClass.academicYear?.semester}
+                </span>
+              </div>
+              <h1 className="text-headline-medium font-bold text-white">
+                Kelas {homeroomClass.name}
+              </h1>
+            </div>
+          }
+          supportingText={`Konsentrasi Keahlian: ${homeroomClass.department?.name} (${homeroomClass.department?.code})`}
+          icon="group"
+          actions={
+            <M3Button
+              variant="elevated"
+              href="/school/reports"
+              icon="print"
+              className="bg-white text-emerald-800 hover:bg-emerald-50"
             >
-              <ClipboardList className="w-4 h-4" />
-              Cetak Rekap Nilai & Presensi
-            </Link>
-          </div>
-        </div>
-      </div>
+              Cetak Rekap Nilai &amp; Presensi
+            </M3Button>
+          }
+        />
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Total Siswa Rombel
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <Users className="w-5 h-5" />
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <M3Card variant="elevated" className="p-5">
+            <div className="flex justify-between items-center">
+              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
+                Total Siswa Rombel
+              </span>
+              <div className="w-9 h-9 rounded-md-md bg-md-primary-container text-md-on-primary-container flex items-center justify-center">
+                <M3Icon name="groups" size={18} />
+              </div>
             </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-slate-900 dark:text-white">
-              {totalStudents}
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">Siswa Aktif</span>
-          </div>
-        </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-display-small font-bold text-md-on-surface">{totalStudents}</span>
+              <span className="text-body-small text-md-on-surface-variant">Siswa Aktif</span>
+            </div>
+          </M3Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Siswa Terplot PKL
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <Briefcase className="w-5 h-5" />
+          <M3Card variant="elevated" className="p-5">
+            <div className="flex justify-between items-center">
+              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
+                Siswa Terplot PKL
+              </span>
+              <div className="w-9 h-9 rounded-md-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <M3Icon name="work" size={18} />
+              </div>
             </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-slate-900 dark:text-white">
-              {activePklStudents}
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
-              / {totalStudents} Siswa ({totalStudents > 0 ? Math.round((activePklStudents / totalStudents) * 100) : 0}%)
-            </span>
-          </div>
-        </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-display-small font-bold text-emerald-600 dark:text-emerald-400">
+                {activePklStudents}
+              </span>
+              <span className="text-body-small text-md-on-surface-variant">
+                / {totalStudents} Siswa ({totalStudents > 0 ? Math.round((activePklStudents / totalStudents) * 100) : 0}%)
+              </span>
+            </div>
+          </M3Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Monitoring Presensi & Jurnal
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
-              <CalendarCheck className="w-5 h-5" />
+          <M3Card variant="elevated" className="p-5">
+            <div className="flex justify-between items-center">
+              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
+                Monitoring Presensi &amp; Jurnal
+              </span>
+              <div className="w-9 h-9 rounded-md-md bg-md-tertiary-container text-md-on-tertiary-container flex items-center justify-center">
+                <M3Icon name="event_available" size={18} />
+              </div>
             </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4" /> Sistem EWS Aktif
-            </span>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Peringatan alfa & keterlambatan terpantau
+            <div className="flex items-center gap-2 mt-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="text-title-small font-semibold text-emerald-600 dark:text-emerald-400">
+                Sistem EWS Aktif
+              </span>
+            </div>
+            <p className="text-body-small text-md-on-surface-variant mt-1">
+              Peringatan alfa &amp; keterlambatan terpantau
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Student List Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Daftar Siswa Bimbingan Rombel
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Progres PKL, presensi terkini, dan aktivitas jurnal harian
-            </p>
-          </div>
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
-            {students.length} Siswa Terdaftar
-          </span>
+          </M3Card>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="px-5 py-3.5">Nama & Identitas Siswa</th>
-                <th className="px-5 py-3.5">Penempatan PKL</th>
-                <th className="px-5 py-3.5">Presensi Terkini</th>
-                <th className="px-5 py-3.5">Jurnal Harian</th>
-                <th className="px-5 py-3.5 text-right">Tindakan</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {students.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-slate-500">
-                    Belum ada data siswa di rombel ini.
-                  </td>
-                </tr>
-              ) : (
-                students.map((student: any) => {
-                  const placement = student.studentPlacements?.[0];
-                  const lastAttendance = placement?.attendances?.[0];
-                  const lastJournal = placement?.journals?.[0];
+        {/* Filter Toolbar Card */}
+        <M3Card variant="outlined" className="p-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex flex-1 flex-col sm:flex-row items-center gap-3 w-full">
+              <div className="w-full sm:w-72">
+                <M3TextField
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Cari siswa, NIS, NISN..."
+                  leadingIcon="search"
+                />
+              </div>
+              <div className="w-full sm:w-56">
+                <M3Select
+                  value={pklFilter}
+                  onChange={(e) => {
+                    setPklFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  options={[
+                    { value: "ALL", label: "Semua Status PKL" },
+                    { value: "PLACED", label: "Sudah Ditempatkan" },
+                    { value: "UNPLACED", label: "Belum Ditempatkan" },
+                  ]}
+                />
+              </div>
+            </div>
+            <div className="flex items-center">
+              <M3Badge variant="outline">
+                {filteredStudents.length} Siswa Ditemukan
+              </M3Badge>
+            </div>
+          </div>
+        </M3Card>
 
-                  return (
-                    <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                      <td className="px-5 py-4">
-                        <div className="font-semibold text-slate-900 dark:text-white">
-                          {student.name}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                          <span>NIS: {student.studentProfile?.nis || "-"}</span>
-                          <span>•</span>
-                          <span>NISN: {student.studentProfile?.nisn || "-"}</span>
-                        </div>
-                      </td>
+        {/* Student List Table */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-title-large font-bold text-md-on-surface">
+                Daftar Siswa Bimbingan Rombel
+              </h2>
+              <p className="text-body-small text-md-on-surface-variant">
+                Progres PKL, presensi terkini, dan aktivitas jurnal harian
+              </p>
+            </div>
+            <M3Badge variant="primary">
+              {students.length} Siswa Terdaftar
+            </M3Badge>
+          </div>
 
-                      <td className="px-5 py-4">
-                        {placement ? (
-                          <div>
-                            <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-indigo-500" />
-                              {placement.company.name}
+          {filteredStudents.length === 0 ? (
+            <M3Card variant="outlined" className="p-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-md-surface-container-high text-md-on-surface-variant flex items-center justify-center mx-auto mb-3">
+                <M3Icon name="groups" size={24} />
+              </div>
+              <h3 className="text-title-medium font-semibold text-md-on-surface">
+                {searchQuery || pklFilter !== "ALL" ? "Tidak Ditemukan" : "Belum Ada Siswa"}
+              </h3>
+              <p className="text-body-medium text-md-on-surface-variant mt-1">
+                {searchQuery || pklFilter !== "ALL"
+                  ? "Tidak ada siswa yang sesuai dengan filter pencarian yang diterapkan."
+                  : "Belum ada data siswa di rombongan belajar ini."}
+              </p>
+            </M3Card>
+          ) : (
+            <div className="space-y-4">
+              <M3Card variant="outlined" className="p-0 overflow-hidden">
+                <M3Table>
+                  <M3TableHeader>
+                    <M3TableRow>
+                      <M3TableHead>Nama &amp; Identitas Siswa</M3TableHead>
+                      <M3TableHead>Penempatan PKL</M3TableHead>
+                      <M3TableHead>Presensi Terkini</M3TableHead>
+                      <M3TableHead>Jurnal Harian</M3TableHead>
+                      <M3TableHead className="text-right">Tindakan</M3TableHead>
+                    </M3TableRow>
+                  </M3TableHeader>
+                  <M3TableBody>
+                    {paginatedStudents.map((student: any) => {
+                      const placement = student.studentPlacements?.[0];
+                      const lastAttendance = placement?.attendances?.[0];
+                      const lastJournal = placement?.journals?.[0];
+
+                      return (
+                        <M3TableRow key={student.id}>
+                          <M3TableCell>
+                            <div className="space-y-0.5">
+                              <span className="font-semibold block text-md-on-surface">
+                                {student.name}
+                              </span>
+                              <span className="text-label-small font-mono text-md-on-surface-variant block">
+                                NIS: {student.studentProfile?.nis || "-"} • NISN: {student.studentProfile?.nisn || "-"}
+                              </span>
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                              PIC: {placement.company.picName || "-"} ({placement.company.picPhone || "-"})
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                            Belum Ditempatkan
-                          </span>
-                        )}
-                      </td>
+                          </M3TableCell>
 
-                      <td className="px-5 py-4">
-                        {lastAttendance ? (
-                          <div className="space-y-1">
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                                lastAttendance.status === "HADIR"
-                                  ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400"
-                              }`}
-                            >
-                              {lastAttendance.status} ({lastAttendance.type})
-                            </span>
-                            <div className="text-xs text-slate-400">
-                              {new Date(lastAttendance.timestamp).toLocaleTimeString("id-ID", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">Belum ada catatan</span>
-                        )}
-                      </td>
+                          <M3TableCell>
+                            {placement ? (
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-md-primary font-semibold text-body-medium">
+                                  <M3Icon name="apartment" size={14} className="shrink-0" />
+                                  <span>{placement.company.name}</span>
+                                </div>
+                                <span className="text-body-small text-md-on-surface-variant block">
+                                  PIC: {placement.company.picName || "-"} ({placement.company.picPhone || "-"})
+                                </span>
+                              </div>
+                            ) : (
+                              <M3Badge variant="warning">
+                                Belum Ditempatkan
+                              </M3Badge>
+                            )}
+                          </M3TableCell>
 
-                      <td className="px-5 py-4">
-                        {lastJournal ? (
-                          <div className="max-w-xs">
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                                lastJournal.status === "APPROVED"
-                                  ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400"
-                              }`}
-                            >
-                              {lastJournal.status} {lastJournal.score ? `(Nilai: ${lastJournal.score})` : ""}
-                            </span>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-1">
-                              {lastJournal.activityDescription}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">Belum ada jurnal</span>
-                        )}
-                      </td>
+                          <M3TableCell>
+                            {lastAttendance ? (
+                              <div className="space-y-0.5">
+                                <M3Badge variant={lastAttendance.status === "HADIR" ? "success" : "error"}>
+                                  {lastAttendance.status} ({lastAttendance.type})
+                                </M3Badge>
+                                <span className="text-label-small font-mono text-md-on-surface-variant block">
+                                  {new Date(lastAttendance.timestamp).toLocaleTimeString("id-ID", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="italic text-body-small text-md-on-surface-variant">
+                                Belum ada catatan
+                              </span>
+                            )}
+                          </M3TableCell>
 
-                      <td className="px-5 py-4 text-right">
-                        <Link
-                          to="/school/pkl/monitoring"
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700"
-                        >
-                          Monitoring
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })
+                          <M3TableCell>
+                            {lastJournal ? (
+                              <div className="space-y-0.5 max-w-[260px]">
+                                <M3Badge variant={lastJournal.status === "APPROVED" ? "success" : "warning"}>
+                                  {lastJournal.status}{lastJournal.score ? ` (Nilai: ${lastJournal.score})` : ""}
+                                </M3Badge>
+                                <p className="text-body-small text-md-on-surface-variant truncate">
+                                  {lastJournal.activityDescription}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="italic text-body-small text-md-on-surface-variant">
+                                Belum ada jurnal
+                              </span>
+                            )}
+                          </M3TableCell>
+
+                          <M3TableCell className="text-right">
+                            <Link to="/school/pkl/monitoring">
+                              <M3Button
+                                variant="text"
+                                size="sm"
+                                trailingIcon="open_in_new"
+                              >
+                                Monitoring
+                              </M3Button>
+                            </Link>
+                          </M3TableCell>
+                        </M3TableRow>
+                      );
+                    })}
+                  </M3TableBody>
+                </M3Table>
+              </M3Card>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 pt-2">
+                  <M3Button
+                    variant="outlined"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  >
+                    Sebelumnya
+                  </M3Button>
+                  <span className="text-body-medium text-md-on-surface-variant px-2">
+                    Halaman {currentPage} dari {totalPages}
+                  </span>
+                  <M3Button
+                    variant="outlined"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Berikutnya
+                  </M3Button>
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       </div>
-    </div>
     </SchoolLayout>
   );
 }

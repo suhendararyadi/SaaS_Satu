@@ -1,13 +1,150 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
 import { Link } from "react-router";
-import { useQuery, getSchoolTeachers } from "wasp/client/operations";
+import {
+  useQuery,
+  getSchoolTeachers,
+  createTeacher,
+  updateTeacher,
+  deleteTeacher,
+} from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
-import { UserCheck, Search, FileSpreadsheet, ShieldCheck, Mail, Phone } from "lucide-react";
+import {
+  M3Card,
+  M3Button,
+  M3TextField,
+  M3Select,
+  M3Switch,
+  M3Dialog,
+  M3Badge,
+  M3Table,
+  M3TableHeader,
+  M3TableBody,
+  M3TableRow,
+  M3TableHead,
+  M3TableCell,
+  M3CircularProgress,
+  M3Banner,
+  M3Text,
+  M3Icon,
+} from "../../client/components/m3";
 
 export function TeachersPage({ user }: { user: AuthUser }) {
-  const { data: teachers, isLoading } = useQuery(getSchoolTeachers);
+  const { data: teachers, isLoading, refetch } = useQuery(getSchoolTeachers);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // CRUD Modal States
+  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [nip, setNip] = useState("");
+  const [title, setTitle] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<"TEACHER" | "SCHOOL_ADMIN">("TEACHER");
+  const [isWaka, setIsWaka] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // Delete Modal States
+  const [teacherToDelete, setTeacherToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteErrorMsg, setDeleteErrorMsg] = useState("");
+
+  const handleOpenAddModal = () => {
+    setModalMode("create");
+    setSelectedTeacherId(null);
+    setName("");
+    setNip("");
+    setTitle("");
+    setEmail("");
+    setPhone("");
+    setRole("TEACHER");
+    setIsWaka(false);
+    setErrorMsg("");
+  };
+
+  const handleOpenEditModal = (t: any) => {
+    setModalMode("edit");
+    setSelectedTeacherId(t.id);
+    setName(t.name || "");
+    setNip(t.teacherProfile?.nip || "");
+    setTitle(t.teacherProfile?.title || "");
+    setEmail(t.email || "");
+    setPhone(t.teacherProfile?.phone || "");
+    setRole(t.role === "SCHOOL_ADMIN" ? "SCHOOL_ADMIN" : "TEACHER");
+    setIsWaka(t.teacherProfile?.isWaka || false);
+    setErrorMsg("");
+  };
+
+  const handleCloseModal = () => {
+    setModalMode(null);
+    setSelectedTeacherId(null);
+    setErrorMsg("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setErrorMsg("Nama lengkap guru wajib diisi.");
+      return;
+    }
+    setErrorMsg("");
+    setSubmitting(true);
+
+    try {
+      if (modalMode === "create") {
+        await createTeacher({
+          name: name.trim(),
+          nip: nip.trim() || undefined,
+          title: title.trim() || undefined,
+          email: email.trim() || undefined,
+          phone: phone.trim() || undefined,
+          role,
+          isWaka,
+        });
+        setSuccessMsg(`Guru "${name.trim()}" berhasil ditambahkan.`);
+      } else if (modalMode === "edit" && selectedTeacherId) {
+        await updateTeacher({
+          id: selectedTeacherId,
+          name: name.trim(),
+          nip: nip.trim() || undefined,
+          title: title.trim() || undefined,
+          email: email.trim() || undefined,
+          phone: phone.trim() || undefined,
+          role,
+          isWaka,
+        });
+        setSuccessMsg(`Data guru "${name.trim()}" berhasil diperbarui.`);
+      }
+      handleCloseModal();
+      await refetch();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Gagal menyimpan data guru.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!teacherToDelete) return;
+    setIsDeleting(true);
+    setDeleteErrorMsg("");
+
+    try {
+      await deleteTeacher({ id: teacherToDelete.id });
+      setSuccessMsg(`Guru "${teacherToDelete.name || teacherToDelete.email}" berhasil dihapus.`);
+      setTeacherToDelete(null);
+      await refetch();
+    } catch (err: any) {
+      setDeleteErrorMsg(err.message || "Gagal menghapus data guru.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const filteredTeachers = teachers?.filter((t) => {
     const term = searchTerm.toLowerCase();
@@ -17,130 +154,410 @@ export function TeachersPage({ user }: { user: AuthUser }) {
     return nameMatch || emailMatch || nipMatch;
   });
 
+  const totalItems = filteredTeachers?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedTeachers = (filteredTeachers || []).slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const roleOptions = [
+    { value: "TEACHER", label: "Guru Pengajar (TEACHER)" },
+    { value: "SCHOOL_ADMIN", label: "Admin Sekolah (SCHOOL_ADMIN)" },
+  ];
+
   return (
     <SchoolLayout user={user}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Tenaga Pendidik & Kependidikan (Guru)
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Daftar guru pengajar, waka kurikulum, dan wali kelas di sekolah Anda.
-          </p>
-        </div>
-        <Link
-          to="/school/import"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow transition-colors"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          Import Guru CSV
-        </Link>
-      </div>
-
-      {/* Search Toolbar */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Cari berdasarkan nama, email, atau NIP..."
-          className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>
-      ) : filteredTeachers?.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
-          <UserCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-            Belum Ada Data Guru
-          </h3>
-          <p className="text-sm text-slate-500 mt-1 mb-4">
-            Upload file CSV daftar guru dari Dapodik atau tambah akun guru.
-          </p>
-          <Link
-            to="/school/import"
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg inline-flex items-center gap-2"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Upload CSV Guru
+      <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
+          <Link to="/school" className="hover:text-md-primary">
+            Portal Sekolah
           </Link>
+          <span>/</span>
+          <span>Kepegawaian</span>
+          <span>/</span>
+          <span className="text-md-on-surface font-medium">
+            Tenaga Pendidik &amp; Guru
+          </span>
         </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs uppercase font-semibold text-slate-500">
-                <th className="px-6 py-4">Nama Lengkap & NIP</th>
-                <th className="px-6 py-4">Kontak</th>
-                <th className="px-6 py-4">Penugasan Khusus</th>
-                <th className="px-6 py-4">Peran Akun</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-              {filteredTeachers?.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-slate-900 dark:text-white">
-                      {t.name || t.email}{" "}
-                      {t.teacherProfile?.title && (
-                        <span className="font-normal text-slate-500">
-                          {t.teacherProfile.title}
+
+        {/* Header Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-medium text-md-on-surface">
+              Guru &amp; Tenaga Kependidikan
+            </h2>
+            <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
+              Daftar guru pengajar dan staf kependidikan sekolah.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <M3Button
+              variant="tonal"
+              size="md"
+              href="/school/import"
+              icon="upload_file"
+            >
+              Import CSV
+            </M3Button>
+            <M3Button
+              variant="filled"
+              size="md"
+              onClick={handleOpenAddModal}
+              icon="add"
+            >
+              Tambah Guru
+            </M3Button>
+          </div>
+        </div>
+
+        {/* Success Feedback Banner */}
+        {successMsg && (
+          <M3Banner
+            variant="standard"
+            supportingText={successMsg}
+            dismissible
+            onDismiss={() => setSuccessMsg("")}
+          />
+        )}
+
+        {/* Search Bar Card */}
+        <M3Card variant="outlined" className="p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 max-w-md">
+              <M3TextField
+                placeholder="Cari berdasarkan nama guru, email, atau NIP..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                leadingIcon="search"
+                size="sm"
+              />
+            </div>
+            <M3Badge variant="secondary" size="md">
+              {totalItems} Guru
+            </M3Badge>
+          </div>
+        </M3Card>
+
+        {/* Content Section */}
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <M3CircularProgress size={40} />
+          </div>
+        ) : filteredTeachers?.length === 0 ? (
+          <div className="space-y-4">
+            <M3Banner
+              variant="standard"
+              headline="Belum Ada Data Guru & Tendik"
+              supportingText="Tambahkan data guru secara manual atau upload file CSV dari Dapodik untuk memulai pengelolaan KBM."
+              actionLabel="Tambah Guru Baru"
+              onAction={handleOpenAddModal}
+              icon="school"
+              className="p-6"
+            />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <M3Table>
+              <M3TableHeader>
+                <M3TableRow>
+                  <M3TableHead>Nama Lengkap &amp; NIP</M3TableHead>
+                  <M3TableHead>Kontak</M3TableHead>
+                  <M3TableHead>Penugasan Khusus</M3TableHead>
+                  <M3TableHead>Peran Akun</M3TableHead>
+                  <M3TableHead className="text-right">Aksi</M3TableHead>
+                </M3TableRow>
+              </M3TableHeader>
+              <M3TableBody>
+                {paginatedTeachers.map((t) => (
+                  <M3TableRow key={t.id}>
+                    <M3TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-md-on-surface">
+                          {t.name || t.email}{" "}
+                          {t.teacherProfile?.title && (
+                            <span className="font-normal text-md-on-surface-variant">
+                              {t.teacherProfile.title}
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-500 font-mono mt-0.5">
-                      NIP: {t.teacherProfile?.nip || "-"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 space-y-0.5 text-xs text-slate-600 dark:text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t.email || "-"}</span>
-                    </div>
-                    {t.teacherProfile?.phone && (
-                      <div className="flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{t.teacherProfile.phone}</span>
+                        <span className="text-xs text-md-on-surface-variant font-mono">
+                          NIP: {t.teacherProfile?.nip || "-"}
+                        </span>
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {t.teacherProfile?.isWaka && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
-                          <ShieldCheck className="w-3 h-3" />
-                          Waka Kurikulum
-                        </span>
-                      )}
-                      {t.homeroomClasses?.map((hc) => (
-                        <span
-                          key={hc.id}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
+                    </M3TableCell>
+
+                    <M3TableCell>
+                      <div className="flex flex-col gap-0.5 text-xs text-md-on-surface-variant">
+                        <div className="flex items-center gap-1.5">
+                          <M3Icon name="mail" size={14} className="opacity-70" />
+                          <span>{t.email || "-"}</span>
+                        </div>
+                        {t.teacherProfile?.phone && (
+                          <div className="flex items-center gap-1.5">
+                            <M3Icon name="call" size={14} className="opacity-70" />
+                            <span>{t.teacherProfile.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </M3TableCell>
+
+                    <M3TableCell>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {t.teacherProfile?.isWaka && (
+                          <M3Badge
+                            variant="tertiary"
+                            size="sm"
+                            icon={<M3Icon name="verified_user" size={12} className="mr-1" />}
+                          >
+                            Waka Kurikulum
+                          </M3Badge>
+                        )}
+                        {t.homeroomClasses?.map((hc) => (
+                          <M3Badge key={hc.id} variant="primary" size="sm">
+                            Wali {hc.name}
+                          </M3Badge>
+                        ))}
+                        {!t.teacherProfile?.isWaka &&
+                          (!t.homeroomClasses || t.homeroomClasses.length === 0) && (
+                            <M3Badge variant="outline" size="sm">
+                              Guru Mapel
+                            </M3Badge>
+                          )}
+                      </div>
+                    </M3TableCell>
+
+                    <M3TableCell>
+                      <M3Badge variant="secondary" size="sm">
+                        {t.role}
+                      </M3Badge>
+                    </M3TableCell>
+
+                    <M3TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <M3Button
+                          variant="tonal"
+                          size="sm"
+                          icon="edit"
+                          onClick={() => handleOpenEditModal(t)}
                         >
-                          Wali {hc.name}
-                        </span>
-                      ))}
-                      {!t.teacherProfile?.isWaka && (!t.homeroomClasses || t.homeroomClasses.length === 0) && (
-                        <span className="text-xs text-slate-400">Guru Mapel</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                      {t.role}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                          Edit
+                        </M3Button>
+                        <M3Button
+                          variant="text"
+                          size="sm"
+                          icon="delete"
+                          className="!text-md-error hover:!bg-md-error-container/20"
+                          onClick={() => {
+                            setTeacherToDelete(t);
+                            setDeleteErrorMsg("");
+                          }}
+                        >
+                          Hapus
+                        </M3Button>
+                      </div>
+                    </M3TableCell>
+                  </M3TableRow>
+                ))}
+              </M3TableBody>
+            </M3Table>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 pt-2">
+                <p className="text-xs text-md-on-surface-variant">
+                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
+                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} guru
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    icon="chevron_left"
+                  >
+                    Sebelumnya
+                  </M3Button>
+                  <span className="text-xs px-2 text-md-on-surface font-medium">
+                    Hal {currentPage} / {totalPages}
+                  </span>
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    trailingIcon="chevron_right"
+                  >
+                    Selanjutnya
+                  </M3Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dialog Modal Tambah / Edit Guru */}
+        <M3Dialog
+          isOpen={modalMode !== null}
+          onClose={handleCloseModal}
+          title={modalMode === "create" ? "Tambah Guru Baru" : "Edit Data Guru"}
+          subtitle={
+            modalMode === "create"
+              ? "Lengkapi identitas guru, peran akun, dan penugasan."
+              : "Perbarui data profil dan hak akses guru di sekolah."
+          }
+          icon={<M3Icon name="school" size={24} className="text-md-primary" />}
+          actions={
+            <>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={handleCloseModal}
+                disabled={submitting}
+              >
+                Batal
+              </M3Button>
+              <M3Button
+                variant="filled"
+                size="sm"
+                onClick={handleSubmit}
+                isLoading={submitting}
+              >
+                {modalMode === "create" ? "Simpan Guru" : "Simpan Perubahan"}
+              </M3Button>
+            </>
+          }
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMsg && (
+              <M3Banner
+                variant="error"
+                supportingText={errorMsg}
+                dismissible
+                onDismiss={() => setErrorMsg("")}
+              />
+            )}
+
+            <M3TextField
+              label="Nama Lengkap *"
+              placeholder="Contoh: Budi Santoso"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <M3TextField
+                label="Gelar Akademik"
+                placeholder="Contoh: S.Pd., M.Kom."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <M3TextField
+                label="NIP (Nomor Induk Pegawai)"
+                placeholder="Contoh: 198501152010011002"
+                value={nip}
+                onChange={(e) => setNip(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <M3TextField
+                label="Email"
+                type="email"
+                placeholder="Contoh: guru@sekolah.sch.id"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <M3TextField
+                label="Nomor Telepon / WhatsApp"
+                placeholder="Contoh: 081234567890"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+
+            <M3Select
+              label="Peran Akun *"
+              options={roleOptions}
+              value={role}
+              onChange={(e) => setRole(e.target.value as any)}
+            />
+
+            <div className="pt-2 border-t border-md-outline-variant/40">
+              <M3Switch
+                checked={isWaka}
+                onChange={setIsWaka}
+                label="Tugaskan sebagai Waka Kurikulum"
+              />
+              <p className="text-xs text-md-on-surface-variant mt-1 ml-11">
+                Waka Kurikulum memiliki akses memantau agenda mengajar seluruh guru.
+              </p>
+            </div>
+          </form>
+        </M3Dialog>
+
+        {/* Dialog Modal Konfirmasi Hapus Guru */}
+        <M3Dialog
+          isOpen={teacherToDelete !== null}
+          onClose={() => {
+            if (!isDeleting) {
+              setTeacherToDelete(null);
+              setDeleteErrorMsg("");
+            }
+          }}
+          title="Hapus Data Guru"
+          subtitle="Konfirmasi penghapusan data tenaga pendidik."
+          icon={<M3Icon name="warning" size={24} className="text-md-error" />}
+          actions={
+            <>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={() => {
+                  setTeacherToDelete(null);
+                  setDeleteErrorMsg("");
+                }}
+                disabled={isDeleting}
+              >
+                Batal
+              </M3Button>
+              <M3Button
+                variant="filled"
+                size="sm"
+                onClick={handleDeleteConfirm}
+                isLoading={isDeleting}
+                className="!bg-md-error !text-md-on-error"
+              >
+                Hapus Guru
+              </M3Button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            {deleteErrorMsg && (
+              <M3Banner
+                variant="error"
+                supportingText={deleteErrorMsg}
+                dismissible
+                onDismiss={() => setDeleteErrorMsg("")}
+              />
+            )}
+            <p className="text-sm text-md-on-surface">
+              Apakah Anda yakin ingin menghapus guru{" "}
+              <strong>{teacherToDelete?.name || teacherToDelete?.email}</strong>?
+            </p>
+            <p className="text-xs text-md-on-surface-variant">
+              Tindakan ini tidak dapat dibatalkan. Guru yang masih aktif mengampu mata pelajaran di LMS harus dialihkan terlebih dahulu.
+            </p>
+          </div>
+        </M3Dialog>
+      </div>
     </SchoolLayout>
   );
 }

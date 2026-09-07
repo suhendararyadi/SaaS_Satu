@@ -27,12 +27,17 @@ export function App() {
     ? marketingNavigationItems
     : demoNavigationitems;
 
+  const isSchoolPortal = useMemo(() => {
+    return location.pathname.startsWith("/school");
+  }, [location]);
+
   const shouldDisplayAppNavBar = useMemo(() => {
     return (
+      !isSchoolPortal &&
       location.pathname !== routes.LoginRoute.build() &&
       location.pathname !== routes.SignupRoute.build()
     );
-  }, [location]);
+  }, [location, isSchoolPortal]);
 
   const isAdminDashboard = useMemo(() => {
     return location.pathname.startsWith(routes.AdminRoute.to);
@@ -49,23 +54,21 @@ export function App() {
   }, [location]);
 
   return (
-    <>
-      <div className="bg-background text-foreground min-h-screen">
-        {isAdminDashboard ? (
-          <Outlet />
-        ) : (
-          <>
-            {shouldDisplayAppNavBar && (
-              <NavBar navigationItems={navigationItems} />
-            )}
-            <div className="max-w-(--breakpoint-2xl) mx-auto">
-              <Outlet />
-            </div>
-          </>
-        )}
-      </div>
+    <div className="bg-md-background text-md-on-background min-h-screen font-sans antialiased selection:bg-md-primary-container selection:text-md-on-primary-container">
+      {isAdminDashboard || isSchoolPortal ? (
+        <Outlet />
+      ) : (
+        <>
+          {shouldDisplayAppNavBar && (
+            <NavBar navigationItems={navigationItems} />
+          )}
+          <div className="max-w-(--breakpoint-2xl) mx-auto">
+            <Outlet />
+          </div>
+        </>
+      )}
       <Toaster position="bottom-right" />
       <CookieConsentBanner />
-    </>
+    </div>
   );
 }
