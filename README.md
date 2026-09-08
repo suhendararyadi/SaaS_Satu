@@ -47,6 +47,7 @@ Dokumentasi terperinci untuk arsitektur, panduan modul, desain sistem, dan catat
 
 - 🏛️ [**Arsitektur & Desain Sistem (`docs/ARCHITECTURE.md`)**](./docs/ARCHITECTURE.md)
 - 🎨 [**Sistem Desain Google Material 3 (`docs/DESIGN_SYSTEM_M3.md`)**](./docs/DESIGN_SYSTEM_M3.md)
+- ✨ [**Rencana Redesign UI/UX v2 — Playful Academic (`docs/UI_UX_REDESIGN_PLAN_V2.md`)**](./docs/UI_UX_REDESIGN_PLAN_V2.md)
 - 🛡️ [**Pedoman Kualitas Anti-Slop (`docs/ANTI_SLOP_GUIDELINES.md`)**](./docs/ANTI_SLOP_GUIDELINES.md)
 - 📱 [**Panduan Alur & Modul Antarmuka (`docs/MODULES_GUIDE.md`)**](./docs/MODULES_GUIDE.md)
 - 📝 [**Catatan Kronologis Perkembangan (`docs/DEVELOPMENT_LOG.md`)**](./docs/DEVELOPMENT_LOG.md)

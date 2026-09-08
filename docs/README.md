@@ -7,7 +7,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
 ## 📚 Daftar Isi Dokumentasi
 
 1. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
-   - Spesifikasi stack teknologi (Wasp v0.25, React 18, Node.js, Prisma, PostgreSQL).
+   - Spesifikasi stack teknologi (Wasp v0.25, React 19, Node.js 24, Prisma, PostgreSQL).
    - Arsitektur multi-tenant berbasis `schoolId` dan skema database relasional.
    - Sistem otentikasi, perizinan (*Auth Guards*), dan hierarki peran pengguna (*User Roles*).
    - Konfigurasi router, queries, dan actions terdistribusi (`*.wasp.ts`).
@@ -18,13 +18,19 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Sistem bentuk M3 Expressive (*Pill buttons, 16px cards, 28px dialogs*).
    - Katalog komponen M3 bawaan di `app/src/client/components/m3/`.
 
-3. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
+3. [**Rencana Redesign UI/UX v2 — Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
+   - Source of truth untuk redesign antarmuka SaaS Satu v2.
+   - Arah visual pendidikan tingkat menengah: modern, playful, fun, tetapi tetap profesional.
+   - Design tokens v2, role-based UX, app shell, dashboard, responsive/mobile, accessibility, dan roadmap sprint.
+   - Quality gate dan aturan agar redesign tidak melemahkan tenant isolation atau data honesty.
+
+4. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
    - Penerapan aturan Anti-Slop (R-01 s/d R-38).
    - Standar salinan bahasa Indonesia baku edukasi (Kemdikbudristek).
    - Standar aksesibilitas (kontras warna WCAG AA >= 4.5:1, target sentuh 44px).
    - Rekap temuan audit pasca pengerjaan dan solusinya.
 
-4. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
+5. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
    - **Modul 1: Dasbor & Master Data** (Tahun Ajaran, Rombel Kelas, Jurusan, Pengaturan Sekolah, Super Admin).
    - **Modul 2: Kepegawaian & Kesiswaan (CRUD Manual & CSV)** (Manajemen Guru & Tendik, Data Siswa, Proteksi Kuota).
    - **Modul 3: Pembelajaran LMS & Kurikulum Merdeka** (Silabus otomatis Fase A-F, Materi, Tugas, Agenda KBM, Presensi, CBT).
@@ -32,7 +38,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - **Modul 5: Tata Kelola & Supervisi** (Guru Piket, Wali Kelas, Waka Kurikulum).
    - **Modul 6: Laporan & Cetak Dokumen Kedinasan** (KOP surat resmi berjenjang, Print stylesheet).
 
-5. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
+6. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
    - Kronologi lengkap setiap tahapan pengembangan dari awal hingga saat ini.
    - Detail keputusan teknis dan penyelesaian kendala implementasi.
    - Hasil pengujian otomatis (TypeScript, Wasp Unit Tests, Playwright E2E).
@@ -42,7 +48,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
 ## 🚀 Panduan Memulai Cepat (Quick Start)
 
 ### Prasyarat
-- **Node.js**: v18 atau v20 LTS
+- **Node.js**: v24.14.1 atau lebih baru (sesuai baseline Wasp 0.25 proyek)
 - **Wasp CLI**: `curl -sSL https://get.wasp.sh/installer.sh | sh`
 - **Docker**: Opsional (untuk menjalankan database PostgreSQL lokal via Wasp)
 

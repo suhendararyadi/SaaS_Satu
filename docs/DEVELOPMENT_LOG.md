@@ -94,3 +94,29 @@ wasp test client --run
   - `crud_student_created_success.png`
   - `crud_student_modal_edit.png`
   - `crud_student_modal_delete.png`
+
+---
+
+## 8 September 2026 — Penetapan UI/UX Redesign Plan v2
+
+Ditetapkan arah redesign antarmuka **SaaS Satu Smart School v2** dengan design direction **Playful Academic** untuk lingkungan pendidikan tingkat menengah (SMP/SMA/SMK).
+
+Keputusan utama:
+
+- Material 3 / Material 3 Expressive tetap menjadi fondasi;
+- karakter visual: educational, youthful, friendly, playful, modern, dan trustworthy;
+- formula visual: 70% clean educational, 20% playful/expressive, 10% delightful interaction;
+- role-based UX untuk Super Admin, Admin Sekolah, Guru, Siswa, dan DUDI Mentor;
+- arah warna v2: Academic Indigo, Learning Teal, Creative Amber, dan Playful Coral;
+- typography target: Inter;
+- dashboard menggunakan pola **Bento Education** dengan fokus action-first dan data honesty;
+- mobile siswa direncanakan menggunakan bottom navigation;
+- redesign dilakukan melalui design tokens → core components → app shell/navigation → dashboard → modul;
+- security hardening, server-side authorization, tenant isolation, dan prinsip fail-closed integrasi tidak boleh dilemahkan oleh redesign;
+- setiap sprint wajib melewati TypeScript, relevant tests, responsive/accessibility check, E2E sesuai dampak, dan visual review sebelum deploy.
+
+Dokumen source of truth untuk pekerjaan redesign berikutnya:
+
+[`UI_UX_REDESIGN_PLAN_V2.md`](./UI_UX_REDESIGN_PLAN_V2.md)
+
+Dokumen `DESIGN_SYSTEM_M3.md` tetap dipertahankan sebagai baseline implementasi UI v1 sampai migrasi design token v2 benar-benar dilakukan.
