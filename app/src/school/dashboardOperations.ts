@@ -262,7 +262,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
       prisma.user.count({ where: { schoolId: user.schoolId, role: "TEACHER" } }),
       prisma.classRoom.count({ where: { schoolId: user.schoolId } }),
       prisma.lmsCourse.count({ where: { schoolId: user.schoolId } }),
-      prisma.company.count({ where: { schoolId: user.schoolId, status: "ACTIVE" } }),
+      prisma.company.count({ where: { schoolId: user.schoolId } }),
       prisma.placement.count({ where: { schoolId: user.schoolId, status: "ACTIVE" } }),
     ]),
     prisma.user.count({ where: { schoolId: user.schoolId, role: "STUDENT", classRoomId: null } }),
