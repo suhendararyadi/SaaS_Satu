@@ -120,3 +120,28 @@ Dokumen source of truth untuk pekerjaan redesign berikutnya:
 [`UI_UX_REDESIGN_PLAN_V2.md`](./UI_UX_REDESIGN_PLAN_V2.md)
 
 Dokumen `DESIGN_SYSTEM_M3.md` tetap dipertahankan sebagai baseline implementasi UI v1 sampai migrasi design token v2 benar-benar dilakukan.
+
+---
+
+## 8 September 2026: Phase 0 UX Audit dan Dashboard Wireframes v2
+
+Phase 0 redesign UI/UX selesai pada level dokumentasi dan belum mengubah runtime aplikasi.
+
+Hasil utama:
+
+- audit `SchoolLayout`, `SchoolDashboardPage`, navigation drawer, top app bar, design tokens, routes, serta pola halaman utama;
+- ditemukan gap utama bahwa dashboard v1 memakai komposisi administratif yang hampir sama untuk semua role;
+- ditetapkan dashboard composition terpisah untuk Siswa, Guru, dan Admin Sekolah;
+- ditetapkan mobile primary navigation berbeda dari desktop drawer;
+- navigation guru akan mempertimbangkan assignment, bukan role saja;
+- ditetapkan kebutuhan dashboard DTO server-side agar frontend tidak meminta mega-DTO atau membuat metric contoh;
+- dibuat low-fidelity wireframe desktop dan mobile untuk tiga dashboard utama;
+- state loading, empty, error, missing relationship, dan account menu ikut didefinisikan;
+- authorization dan tenant isolation tetap server-side dan tidak boleh digantikan oleh navigation visibility.
+
+Dokumen hasil:
+
+- [`UX_AUDIT_PHASE0_V2.md`](./UX_AUDIT_PHASE0_V2.md)
+- [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md)
+
+Langkah berikutnya: **Sprint UI-01, semantic design tokens dan app-shell contract**, belum implementasi massal halaman.

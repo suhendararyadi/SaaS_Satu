@@ -18,11 +18,12 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Sistem bentuk M3 Expressive (*Pill buttons, 16px cards, 28px dialogs*).
    - Katalog komponen M3 bawaan di `app/src/client/components/m3/`.
 
-3. [**Rencana Redesign UI/UX v2 — Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
+3. [**Rencana Redesign UI/UX v2: Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
    - Source of truth untuk redesign antarmuka SaaS Satu v2.
    - Arah visual pendidikan tingkat menengah: modern, playful, fun, tetapi tetap profesional.
    - Design tokens v2, role-based UX, app shell, dashboard, responsive/mobile, accessibility, dan roadmap sprint.
    - Quality gate dan aturan agar redesign tidak melemahkan tenant isolation atau data honesty.
+   - Phase 0: [`UX_AUDIT_PHASE0_V2.md`](./UX_AUDIT_PHASE0_V2.md) dan [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md).
 
 4. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
    - Penerapan aturan Anti-Slop (R-01 s/d R-38).

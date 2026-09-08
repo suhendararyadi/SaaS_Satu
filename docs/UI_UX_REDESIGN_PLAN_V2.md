@@ -7,6 +7,15 @@
 > **Fondasi:** Material 3 / Material 3 Expressive  
 > **Source of truth untuk redesign UI/UX v2:** dokumen ini
 
+### Phase 0 artifacts
+
+Phase 0 audit dan structural wireframe telah diselesaikan pada 8 September 2026:
+
+- [`UX_AUDIT_PHASE0_V2.md`](./UX_AUDIT_PHASE0_V2.md): audit information architecture, role UX, navigation, responsive state, dan data honesty.
+- [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md): wireframe desktop/mobile untuk Dashboard Siswa, Guru, dan Admin Sekolah beserta dashboard DTO contract.
+
+Keputusan Phase 0 menjadi acuan tambahan untuk Sprint UI-01 dan seterusnya.
+
 ---
 
 ## 1. Tujuan Dokumen
@@ -1104,8 +1113,6 @@ Keputusan berikut akan ditetapkan saat Sprint UI-01 / wireframe:
 - final typography implementation dan font loading strategy;
 - exact dark-mode semantic token mapping;
 - illustration asset family;
-- final dashboard card composition;
-- mobile navigation detail untuk guru/admin;
 - visual density mode untuk tabel administrasi;
 - final motion token names;
 - visual regression tooling yang dipakai di CI.
