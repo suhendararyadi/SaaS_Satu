@@ -44,18 +44,18 @@ export function CsvImportPage({ user }: { user: AuthUser }) {
 
   const studentSample = isElementary
     ? `nama,nis,nisn,gender,kelas,email
-Ahmad Fauzi,1024001,0071234567,L,1-A,ahmad@siswa.id
-Siti Rahma,1024002,0071234568,P,1-A,siti@siswa.id
-Budi Pratama,1024003,0071234569,L,2-B,budi@siswa.id`
+Siswa Contoh 01,1000001,0000000001,L,1-A,siswa01@example.sch.id
+Siswa Contoh 02,1000002,0000000002,P,1-A,siswa02@example.sch.id
+Siswa Contoh 03,1000003,0000000003,L,2-B,siswa03@example.sch.id`
     : isJuniorHigh
     ? `nama,nis,nisn,gender,kelas,email
-Ahmad Fauzi,1024001,0071234567,L,7-A,ahmad@siswa.id
-Siti Rahma,1024002,0071234568,P,7-A,siti@siswa.id
-Budi Pratama,1024003,0071234569,L,8-B,budi@siswa.id`
+Siswa Contoh 01,1000001,0000000001,L,7-A,siswa01@example.sch.id
+Siswa Contoh 02,1000002,0000000002,P,7-A,siswa02@example.sch.id
+Siswa Contoh 03,1000003,0000000003,L,8-B,siswa03@example.sch.id`
     : `nama,nis,nisn,gender,kelas,email
-Ahmad Fauzi,1024001,0071234567,L,XII RPL 1,ahmad@siswa.id
-Siti Rahma,1024002,0071234568,P,XII RPL 1,siti@siswa.id
-Budi Pratama,1024003,0071234569,L,XII TKJ 2,budi@siswa.id`;
+Siswa Contoh 01,1000001,0000000001,L,12 RPL 1,siswa01@example.sch.id
+Siswa Contoh 02,1000002,0000000002,P,12 RPL 1,siswa02@example.sch.id
+Siswa Contoh 03,1000003,0000000003,L,12 RPL 2,siswa03@example.sch.id`;
 
   const templates: Record<
     ImportType,
@@ -72,18 +72,18 @@ Budi Pratama,1024003,0071234569,L,XII TKJ 2,budi@siswa.id`;
       filename: "template_guru.csv",
       desc: "Format CSV untuk pendaftaran akun guru dan tendik. Mendukung penugasan Waka.",
       sample: `nama,nip,gelar,hp,email,is_waka
-Dra. Hj. Nurjanah,196805121994032001,M.Pd.,08122334455,nurjanah@guru.sch.id,ya
-Rahmat Hidayat,198502102009021003,S.Kom.,08133445566,rahmat@guru.sch.id,tidak
-Endah Triastuti,199011152015032002,S.Pd.,08155667788,endah@guru.sch.id,tidak`,
+Guru Contoh 01,190000000000000001,S.Pd.,080000000001,guru01@example.sch.id,ya
+Guru Contoh 02,190000000000000002,S.Kom.,080000000002,guru02@example.sch.id,tidak
+Guru Contoh 03,190000000000000003,S.Pd.,080000000003,guru03@example.sch.id,tidak`,
     },
     COMPANIES: {
       title: "Mitra DUDI / Tempat PKL",
       filename: "template_dudi.csv",
       desc: "Format CSV untuk master tempat PKL, lengkap dengan titik koordinat latitude/longitude dan radius presensi GPS.",
       sample: `nama_perusahaan,sektor,alamat,pic_nama,pic_hp,latitude,longitude,radius_meter,kuota
-PT Telkom Indonesia,Teknologi Informasi,Jl. Japati No. 1 Bandung,Budi Santoso,08123456789,-6.9008,107.6186,100,5
-CV Techno Kreatif,Software House,Jl. Cimanuk No. 45 Garut,Deni Firmansyah,08198765432,-7.2145,107.9012,150,4
-Bank BJB Cabang Garut,Perbankan,Jl. Ahmad Yani No. 10 Garut,Dewi Lestari,08132165498,-7.2189,107.9045,80,3`,
+PT Contoh Teknologi,Teknologi Informasi,Alamat contoh 1,Kontak Contoh 01,080000000011,-6.9000,107.6000,100,5
+CV Contoh Kreatif,Software,Alamat contoh 2,Kontak Contoh 02,080000000012,-7.2100,107.9000,150,4
+Industri Contoh Manufaktur,Manufaktur,Alamat contoh 3,Kontak Contoh 03,080000000013,-7.2200,107.9100,100,3`,
     },
   };
 

@@ -37,14 +37,18 @@ import {
   createSchoolByAdmin,
 } from "./operations" with { type: "ref" };
 import {
+  getStudentDashboardData,
+  getTeacherDashboardData,
+  getSchoolAdminDashboardData,
+  getMentorDashboardData,
+} from "./dashboardOperations" with { type: "ref" };
+import {
   importStudentsFromCsv,
   importTeachersFromCsv,
   importCompaniesFromCsv,
 } from "./import/operations" with { type: "ref" };
 
-
 export const schoolSpec: Spec = [
-  // Queries
   query(getSchoolInfo, { entities: ["School", "User"] }),
   query(getDepartments, { entities: ["Department"] }),
   query(getAcademicYears, { entities: ["AcademicYear"] }),
@@ -52,8 +56,19 @@ export const schoolSpec: Spec = [
   query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "ClassRoom"] }),
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
   query(getAllSchools, { entities: ["School", "User", "Department", "ClassRoom", "Company", "Placement"] }),
+  query(getStudentDashboardData, {
+    entities: ["User", "ClassRoom", "LmsCourse", "LmsAssignment", "LmsSubmission", "LmsAssessment", "LmsAssessmentResult", "Placement", "Company", "AttendanceLog", "DailyJournal"],
+  }),
+  query(getTeacherDashboardData, {
+    entities: ["User", "TeacherProfile", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
+  }),
+  query(getSchoolAdminDashboardData, {
+    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "Company", "Placement"],
+  }),
+  query(getMentorDashboardData, {
+    entities: ["User", "Placement", "Company", "DailyJournal"],
+  }),
 
-  // Actions
   action(registerSchool, { entities: ["School", "User", "AcademicYear"] }),
   action(updateSchoolInfo, { entities: ["School"] }),
   action(createDepartment, { entities: ["Department"] }),
@@ -76,7 +91,6 @@ export const schoolSpec: Spec = [
   action(switchActiveSchool, { entities: ["School", "User"] }),
   action(createSchoolByAdmin, { entities: ["School", "AcademicYear", "User"] }),
 
-  // Routes
   route("SchoolDashboardRoute", "/school", page(SchoolDashboardPage, { authRequired: true })),
   route("DepartmentsRoute", "/school/departments", page(DepartmentsPage, { authRequired: true })),
   route("AcademicYearsRoute", "/school/academic-years", page(AcademicYearsPage, { authRequired: true })),
@@ -87,4 +101,3 @@ export const schoolSpec: Spec = [
   route("AllSchoolsRoute", "/school/admin/schools", page(AllSchoolsPage, { authRequired: true })),
   route("SchoolSettingsRoute", "/school/settings", page(SchoolSettingsPage, { authRequired: true })),
 ];
-

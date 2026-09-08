@@ -34,6 +34,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   // CRUD Modal States
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
@@ -170,18 +171,6 @@ export function TeachersPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Kepegawaian</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Tenaga Pendidik &amp; Guru
-          </span>
-        </div>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -193,6 +182,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               Daftar guru pengajar dan staf kependidikan sekolah.
             </p>
           </div>
+          {canManage && (
           <div className="flex items-center gap-2">
             <M3Button
               variant="tonal"
@@ -211,6 +201,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               Tambah Guru
             </M3Button>
           </div>
+          )}
         </div>
 
         {/* Success Feedback Banner */}
@@ -255,8 +246,8 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               variant="standard"
               headline="Belum Ada Data Guru & Tendik"
               supportingText="Tambahkan data guru secara manual atau upload file CSV dari Dapodik untuk memulai pengelolaan KBM."
-              actionLabel="Tambah Guru Baru"
-              onAction={handleOpenAddModal}
+              actionLabel={canManage ? "Tambah Guru Baru" : undefined}
+              onAction={canManage ? handleOpenAddModal : undefined}
               icon="school"
               className="p-6"
             />
@@ -270,7 +261,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                   <M3TableHead>Kontak</M3TableHead>
                   <M3TableHead>Penugasan Khusus</M3TableHead>
                   <M3TableHead>Peran Akun</M3TableHead>
-                  <M3TableHead className="text-right">Aksi</M3TableHead>
+                  {canManage && <M3TableHead className="text-right">Aksi</M3TableHead>}
                 </M3TableRow>
               </M3TableHeader>
               <M3TableBody>
@@ -338,6 +329,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                       </M3Badge>
                     </M3TableCell>
 
+                    {canManage && (
                     <M3TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <M3Button
@@ -362,6 +354,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                         </M3Button>
                       </div>
                     </M3TableCell>
+                    )}
                   </M3TableRow>
                 ))}
               </M3TableBody>

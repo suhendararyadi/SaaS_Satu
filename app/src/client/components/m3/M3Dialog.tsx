@@ -1,8 +1,4 @@
-import React, {
-  type ReactNode,
-  useEffect,
-  useRef,
-} from "react";
+import React, { type ReactNode, useEffect, useId, useRef } from "react";
 import { M3Icon } from "./M3Icon";
 
 export interface M3DialogProps {
@@ -17,92 +13,31 @@ export interface M3DialogProps {
   maxWidth?: "sm" | "md" | "lg" | "xl";
 }
 
-export function M3Dialog({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  description,
-  icon,
-  children,
-  actions,
-  maxWidth = "md",
-}: M3DialogProps) {
+export function M3Dialog({ isOpen, onClose, title, subtitle, description, icon, children, actions, maxWidth = "md" }: M3DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
-
+  const titleId = useId();
+  const descriptionId = useId();
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      window.addEventListener("keydown", handleKeyDown);
-    }
-
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    requestAnimationFrame(() => dialogRef.current?.focus());
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
+      previous?.focus?.();
     };
   }, [isOpen, onClose]);
-
   if (!isOpen) return null;
-
-  const maxWidthStyles = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-2xl",
-  };
-
+  const widths = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", xl: "max-w-2xl" };
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        className={`w-full ${maxWidthStyles[maxWidth]} rounded-[28px] bg-md-surface-container-high text-md-on-surface p-6 shadow-elevation-3 border border-md-outline-variant/30 flex flex-col gap-4 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto`}
-      >
-        {(title || icon) && (
-          <div className="flex flex-col gap-2">
-            {icon && (
-              <div className="text-md-secondary mb-1">
-                {typeof icon === "string" ? (
-                  <M3Icon name={icon} size={28} />
-                ) : (
-                  icon
-                )}
-              </div>
-            )}
-            {title && (
-              <h2 className="text-[22px] font-medium leading-7 text-md-on-surface">
-                {title}
-              </h2>
-            )}
-            {(subtitle || description) && (
-              <div className="text-sm text-md-on-surface-variant">
-                {subtitle || description}
-              </div>
-            )}
-          </div>
-        )}
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} aria-describedby={(subtitle || description) ? descriptionId : undefined} className={`flex max-h-[90vh] w-full flex-col gap-4 overflow-y-auto rounded-[24px] border border-md-outline-variant/60 bg-md-surface p-5 text-md-on-surface shadow-[0_18px_50px_rgba(15,23,42,.24)] sm:p-6 ${widths[maxWidth]}`}>
+        {(title || icon) && <div className="flex items-start gap-3.5">{icon && <div className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-md-primary-container text-md-on-primary-container">{typeof icon === "string" ? <M3Icon name={icon} size={22} /> : icon}</div>}<div className="min-w-0 flex-1">{title && <h2 id={titleId} className="text-xl font-extrabold leading-7 text-md-on-surface">{title}</h2>}{(subtitle || description) && <div id={descriptionId} className="mt-1 text-sm leading-6 text-md-on-surface-variant">{subtitle || description}</div>}</div></div>}
         {children && <div className="text-sm text-md-on-surface">{children}</div>}
-
-        {actions && (
-          <div className="flex items-center justify-end gap-2 pt-2 mt-2">
-            {actions}
-          </div>
-        )}
+        {actions && <div className="mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-md-outline-variant/50 pt-4">{actions}</div>}
       </div>
     </div>
   );

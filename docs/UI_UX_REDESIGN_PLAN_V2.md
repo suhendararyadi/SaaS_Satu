@@ -1,6 +1,6 @@
 # SaaS Satu Smart School — UI/UX Redesign Plan v2
 
-> **Status:** Approved planning baseline — belum diimplementasikan ke runtime  
+> **Status:** Implemented and quality-gated, production rollout prepared
 > **Tanggal penetapan:** 8 September 2026  
 > **Design direction:** **Playful Academic**  
 > **Target utama:** SMP, SMA, dan SMK  
@@ -24,7 +24,7 @@ Dokumen ini menyimpan secara permanen arah, prinsip, keputusan visual, arsitektu
 
 Tujuannya adalah agar seluruh developer, agent, designer, dan reviewer berikutnya mempunyai acuan yang sama dan tidak melakukan redesign secara ad-hoc per halaman.
 
-Dokumen ini **belum berarti seluruh desain sudah diimplementasikan**. Sampai redesign v2 selesai, `docs/DESIGN_SYSTEM_M3.md` tetap menggambarkan banyak detail implementasi UI v1 yang sedang berjalan. Jika terjadi konflik keputusan untuk pekerjaan redesign baru, **dokumen ini yang menjadi acuan v2**.
+Redesign v2 telah diimplementasikan berdasarkan arah dalam dokumen ini. Detail implementasi, quality gate, dan rollout dicatat di [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md). Jika terjadi konflik keputusan untuk pekerjaan UI baru, dokumen rencana ini tetap menjadi acuan arah desain v2, sedangkan implementation report menjadi acuan kondisi implementasi aktual.
 
 ---
 

@@ -24,6 +24,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Design tokens v2, role-based UX, app shell, dashboard, responsive/mobile, accessibility, dan roadmap sprint.
    - Quality gate dan aturan agar redesign tidak melemahkan tenant isolation atau data honesty.
    - Phase 0: [`UX_AUDIT_PHASE0_V2.md`](./UX_AUDIT_PHASE0_V2.md) dan [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md).
+   - Implementasi aktual dan quality gate: [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md).
 
 4. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
    - Penerapan aturan Anti-Slop (R-01 s/d R-38).
@@ -42,7 +43,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
 6. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
    - Kronologi lengkap setiap tahapan pengembangan dari awal hingga saat ini.
    - Detail keputusan teknis dan penyelesaian kendala implementasi.
-   - Hasil pengujian otomatis (TypeScript, Wasp Unit Tests, Playwright E2E).
+   - Hasil pengujian otomatis per tahap, termasuk TypeScript, Wasp Unit Tests, dan riwayat E2E terdahulu bila tersedia.
 
 ---
 

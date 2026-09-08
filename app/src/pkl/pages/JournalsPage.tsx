@@ -28,6 +28,8 @@ export function JournalsPage({ user }: { user: AuthUser }) {
   const { data: journals, isLoading, refetch } = useQuery(getDailyJournals);
 
   const activePlacement = placements?.find((p) => p.status === "ACTIVE");
+  const canCreateJournal = user.role === "STUDENT" && !!activePlacement;
+  const canReview = !!user.isAdmin || ["SUPERADMIN", "SCHOOL_ADMIN", "TEACHER", "DUDI_MENTOR"].includes(user.role);
 
   // Add journal modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,7 +43,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedJournal, setSelectedJournal] = useState<any>(null);
   const [reviewStatus, setReviewStatus] = useState<string>("APPROVED");
-  const [score, setScore] = useState<number>(85);
+  const [score, setScore] = useState("");
   const [feedback, setFeedback] = useState("");
   const [reviewErrorMsg, setReviewErrorMsg] = useState("");
   const [reviewing, setReviewing] = useState(false);
@@ -89,7 +91,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
       await reviewDailyJournal({
         id: selectedJournal.id,
         status: reviewStatus as "APPROVED" | "REVISION",
-        score: Number(score),
+        score: score.trim() ? Number(score) : undefined,
         feedback: feedback.trim() || undefined,
       });
       setReviewModalOpen(false);
@@ -147,18 +149,6 @@ export function JournalsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>E-PKL</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Jurnal Harian PKL
-          </span>
-        </div>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -170,7 +160,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
               Catatan aktivitas harian siswa dan verifikasi guru pembimbing.
             </p>
           </div>
-          {activePlacement && (
+          {canCreateJournal && (
             <M3Button
               variant="filled"
               size="md"
@@ -229,8 +219,8 @@ export function JournalsPage({ user }: { user: AuthUser }) {
             variant="standard"
             headline="Belum Ada Jurnal"
             supportingText="Siswa dapat mengisi jurnal harian setiap hari setelah menyelesaikan jam kerja PKL."
-            actionLabel={activePlacement ? "Tulis Jurnal Sekarang" : undefined}
-            onAction={activePlacement ? () => setModalOpen(true) : undefined}
+            actionLabel={canCreateJournal ? "Tulis Jurnal Sekarang" : undefined}
+            onAction={canCreateJournal ? () => setModalOpen(true) : undefined}
             icon="menu_book"
             className="p-6"
           />
@@ -281,13 +271,14 @@ export function JournalsPage({ user }: { user: AuthUser }) {
                         </M3Badge>
                       )}
 
+                      {canReview && (
                       <M3Button
                         variant="tonal"
                         size="sm"
                         icon="grade"
                         onClick={() => {
                           setSelectedJournal(j);
-                          setScore(j.score || 85);
+                          setScore(j.score !== null && j.score !== undefined ? String(j.score) : "");
                           setFeedback(j.feedback || "");
                           setReviewStatus(
                             j.status === "REVISION" ? "REVISION" : "APPROVED"
@@ -298,6 +289,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
                       >
                         Nilai / Catatan
                       </M3Button>
+                      )}
                     </div>
                   </div>
 
@@ -376,7 +368,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
 
         {/* Modal Add Journal (Student) */}
         <M3Dialog
-          isOpen={modalOpen}
+          isOpen={canCreateJournal && modalOpen}
           onClose={() => setModalOpen(false)}
           title="Tulis Jurnal Harian PKL"
           subtitle="Ceritakan aktivitas kerja praktik dan pencapaian Anda hari ini."
@@ -442,7 +434,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
 
         {/* Modal Review Journal (Teacher) */}
         <M3Dialog
-          isOpen={reviewModalOpen}
+          isOpen={canReview && reviewModalOpen}
           onClose={() => setReviewModalOpen(false)}
           title="Penilaian &amp; Feedback Jurnal"
           subtitle="Berikan validasi status, skor penilaian, dan catatan bimbingan."
@@ -485,12 +477,11 @@ export function JournalsPage({ user }: { user: AuthUser }) {
             />
 
             <M3TextField
-              label="Skor Nilai (0 - 100) *"
+              label="Skor nilai (opsional)"
               type="number"
-              placeholder="85"
-              value={String(score)}
-              onChange={(e) => setScore(Number(e.target.value) || 0)}
-              required
+              placeholder="0 - 100"
+              value={score}
+              onChange={(e) => setScore(e.target.value)}
             />
 
             <div className="space-y-1">

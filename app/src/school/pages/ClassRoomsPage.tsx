@@ -39,6 +39,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const isJuniorHigh = schoolLevel === "SMP_MTS";
 
   const defaultGrade = isElementary ? "1" : isJuniorHigh ? "7" : "10";
+  const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -217,18 +218,6 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Data Master</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Rombongan Belajar (Kelas)
-          </span>
-        </div>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -240,6 +229,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
               Daftar kelas rombel dan penugasan wali kelas.
             </p>
           </div>
+          {canManage && (
           <M3Button
             variant="filled"
             size="md"
@@ -248,6 +238,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
           >
             Tambah Rombel
           </M3Button>
+          )}
         </div>
 
         {/* Filter Controls Card */}
@@ -308,8 +299,8 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
             variant="standard"
             headline="Belum Ada Data Rombel Kelas"
             supportingText="Tambahkan rombel kelas pertama Anda untuk mengorganisasikan data siswa dan presensi."
-            actionLabel="Tambah Kelas Baru"
-            onAction={openAddModal}
+            actionLabel={canManage ? "Tambah Kelas Baru" : undefined}
+            onAction={canManage ? openAddModal : undefined}
             icon="meeting_room"
             className="p-6"
           />
@@ -333,6 +324,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
                           {c.name}
                         </h3>
                       </div>
+                      {canManage && (
                       <M3Button
                         variant="icon"
                         size="icon-sm"
@@ -341,6 +333,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
                       >
                         <M3Icon name="delete" size={18} className="text-md-on-surface-variant hover:text-md-error" />
                       </M3Button>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-md-outline-variant/30 space-y-1.5 text-xs text-md-on-surface-variant">

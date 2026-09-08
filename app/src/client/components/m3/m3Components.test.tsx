@@ -46,7 +46,8 @@ describe("Google Material 3 (M3) Components", () => {
 
     it("renders tonal and danger variants", () => {
       const { rerender } = render(<M3Button variant="tonal">Batal</M3Button>);
-      expect(screen.getByRole("button").className).toContain("bg-md-secondary-container");
+      expect(screen.getByRole("button").className).toContain("bg-md-primary-container");
+      expect(screen.getByRole("button").className).toContain("text-md-on-primary-container");
 
       rerender(<M3Button variant="danger">Hapus</M3Button>);
       expect(screen.getByRole("button").className).toContain("bg-md-error");
@@ -90,20 +91,23 @@ describe("Google Material 3 (M3) Components", () => {
           </M3CardActions>
         </M3Card>
       );
-      expect(container.firstChild).toHaveClass("shadow-elevation-1");
+      expect(container.firstChild).toHaveClass("bg-md-surface");
+      expect(container.firstChild).toHaveClass("border-md-outline-variant/45");
 
       rerender(<M3Card variant="tonal">Tonal Card</M3Card>);
-      expect(container.firstChild).toHaveClass("bg-md-surface-container-high");
+      expect(container.firstChild).toHaveClass("bg-md-primary-container/42");
+      expect(container.firstChild).toHaveClass("border-md-primary/10");
 
       rerender(<M3Card variant="outlined">Outlined Card</M3Card>);
-      expect(container.firstChild).toHaveClass("border-md-outline-variant");
+      expect(container.firstChild).toHaveClass("border-md-outline-variant/70");
     });
   });
 
   describe("M3Badge", () => {
     it("renders badges with semantic color roles", () => {
       const { rerender } = render(<M3Badge variant="primary">Aktif</M3Badge>);
-      expect(screen.getByText("Aktif")).toHaveClass("bg-md-primary");
+      expect(screen.getByText("Aktif")).toHaveClass("bg-md-primary-container");
+      expect(screen.getByText("Aktif")).toHaveClass("text-md-on-primary-container");
 
       rerender(<M3Badge variant="error">Bahaya</M3Badge>);
       expect(screen.getByText("Bahaya")).toHaveClass("bg-md-error");

@@ -266,9 +266,10 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
   const canManageCourse =
     user.isAdmin ||
-    user.role === "TEACHER" ||
     user.role === "SCHOOL_ADMIN" ||
-    user.role === "SUPERADMIN";
+    user.role === "SUPERADMIN" ||
+    (user.role === "TEACHER" && course.teacher.id === user.id);
+  const isStudent = user.role === "STUDENT" && !user.isAdmin;
 
   const tabs = [
     {
@@ -306,18 +307,6 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <Link to="/school/lms/courses" className="hover:text-md-primary transition-colors">
-            Ruang Mapel LMS
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <span className="text-md-on-surface font-medium">{course.subjectName}</span>
-        </nav>
 
         {/* Course Info Header */}
         <div className="space-y-2">
@@ -632,19 +621,21 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
                               Tambah Soal
                             </M3Button>
                           )}
-                          <M3Button
-                            variant="filled"
-                            size="sm"
-                            onClick={() => {
-                              setTakingExam(cbt);
-                              setExamAnswers({});
-                              setExamScore(null);
-                              setTakeExamModalOpen(true);
-                            }}
-                          >
-                            Kerjakan Simulasi
-                          </M3Button>
-                        </div>
+                          {isStudent && (
+                            <M3Button
+                              variant="filled"
+                              size="sm"
+                              onClick={() => {
+                                setTakingExam(cbt);
+                                setExamAnswers({});
+                                setExamScore(null);
+                                setTakeExamModalOpen(true);
+                              }}
+                            >
+                              Kerjakan Ujian
+                            </M3Button>
+                          )}
+                      </div>
                       </div>
 
                       {cbt.results.length > 0 && (
@@ -667,7 +658,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Add Material */}
         <M3Dialog
-          isOpen={materialModalOpen}
+          isOpen={canManageCourse && materialModalOpen}
           onClose={() => setMaterialModalOpen(false)}
           title="Tambah Materi Pembelajaran"
           description="Tambahkan tautan atau ringkasan materi pelajaran."
@@ -718,7 +709,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Add Assignment */}
         <M3Dialog
-          isOpen={assignmentModalOpen}
+          isOpen={canManageCourse && assignmentModalOpen}
           onClose={() => setAssignmentModalOpen(false)}
           title="Buat Tugas Baru"
           description="Petunjuk pengerjaan dan batas waktu pengumpulan tugas."
@@ -771,7 +762,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Add Agenda */}
         <M3Dialog
-          isOpen={agendaModalOpen}
+          isOpen={canManageCourse && agendaModalOpen}
           onClose={() => setAgendaModalOpen(false)}
           title="Catat Agenda KBM"
           description="Catatan jam mengajar dan materi pertemuan hari ini."
@@ -824,7 +815,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Attendance */}
         <M3Dialog
-          isOpen={attendanceModalOpen}
+          isOpen={canManageCourse && attendanceModalOpen}
           onClose={() => setAttendanceModalOpen(false)}
           title={`Presensi Pertemuan ke-${sessionNum}`}
           description="Tandai kehadiran masing-masing siswa di kelas."
@@ -884,7 +875,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Add CBT Exam */}
         <M3Dialog
-          isOpen={cbtModalOpen}
+          isOpen={canManageCourse && cbtModalOpen}
           onClose={() => setCbtModalOpen(false)}
           title="Jadwalkan Ujian CBT"
           description="Buat paket ujian online untuk kelas ini."
@@ -924,7 +915,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Add CBT Question */}
         <M3Dialog
-          isOpen={questionModalOpen}
+          isOpen={canManageCourse && questionModalOpen}
           onClose={() => setQuestionModalOpen(false)}
           title="Tambah Butir Soal CBT"
           description="Tuliskan pertanyaan pilihan ganda dan kunci jawaban."
@@ -997,7 +988,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Take CBT Exam Simulation */}
         <M3Dialog
-          isOpen={takeExamModalOpen && !!takingExam}
+          isOpen={isStudent && takeExamModalOpen && !!takingExam}
           onClose={() => setTakeExamModalOpen(false)}
           title={takingExam?.title || "Simulasi Ujian CBT"}
           description="Pengerjaan tes daring interaktif siswa."

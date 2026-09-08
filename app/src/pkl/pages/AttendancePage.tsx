@@ -32,7 +32,8 @@ export function AttendancePage({ user }: { user: AuthUser }) {
   const { data: logs, isLoading, refetch } = useQuery(getAttendanceLogs);
 
   // Active placement for current student (or first active placement if admin viewing)
-  const activePlacement = placements?.find((p) => p.status === "ACTIVE");
+  const isStudent = user.role === "STUDENT" && !user.isAdmin;
+  const activePlacement = isStudent ? placements?.find((p) => p.status === "ACTIVE") : undefined;
 
   // Geolocation state
   const [currentCoords, setCurrentCoords] = useState<{
@@ -78,8 +79,8 @@ export function AttendancePage({ user }: { user: AuthUser }) {
   };
 
   useEffect(() => {
-    fetchLocation();
-  }, []);
+    if (isStudent) fetchLocation();
+  }, [isStudent]);
 
   // Distance calculation if company has coords and user coords are ready
   let distanceMeters: number | null = null;
@@ -151,16 +152,6 @@ export function AttendancePage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>E-PKL</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">Presensi GPS</span>
-        </div>
 
         {/* Header */}
         <div>
@@ -173,7 +164,7 @@ export function AttendancePage({ user }: { user: AuthUser }) {
         </div>
 
         {/* PWA Check-In Card */}
-        {activePlacement ? (
+        {isStudent && activePlacement ? (
           <M3Card variant="elevated" className="p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-md-outline-variant/30">
               <div className="space-y-1">
@@ -271,15 +262,14 @@ export function AttendancePage({ user }: { user: AuthUser }) {
               </M3Button>
             </div>
           </M3Card>
-        ) : (
+        ) : isStudent ? (
           <M3Banner
             variant="warning"
             headline="Belum Ada Penempatan PKL Aktif"
             supportingText="Untuk melakukan presensi GPS, akun Anda harus sudah di-plotting ke perusahaan mitra DUDI oleh koordinator PKL atau admin sekolah."
-            actionLabel="Lihat Plotting Penempatan"
-            actionHref="/school/pkl/placements"
           />
-        )}
+
+        ) : null}
 
         {/* Attendance History Table */}
         <div className="space-y-4 pt-2">

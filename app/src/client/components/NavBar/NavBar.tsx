@@ -1,213 +1,58 @@
-import { LogIn, Menu } from "lucide-react";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import { Link as ReactRouterLink } from "react-router";
 import { useAuth } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "../../../client/components/ui/sheet";
-import { throttleWithTrailingInvocation } from "../../../shared/utils";
-import { UserDropdown } from "../../../user/UserDropdown";
-import { UserMenuItems } from "../../../user/UserMenuItems";
-import { useIsLandingPage } from "../../hooks/useIsLandingPage";
-import logo from "../../static/logo.svg";
-import { cn } from "../../utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
+import { M3AccountMenu, M3Icon } from "../m3";
 import { DarkModeSwitcher } from "../DarkModeSwitcher";
 
-export interface NavigationItem {
-  name: string;
-  to: string;
-}
+export interface NavigationItem { name: string; to: string }
 
-export function NavBar({
-  navigationItems,
-}: {
-  navigationItems: NavigationItem[];
-}) {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const isLandingPage = useIsLandingPage();
-
-  useEffect(() => {
-    const throttledHandler = throttleWithTrailingInvocation(() => {
-      setIsScrolled(window.scrollY > 0);
-    }, 50);
-
-    window.addEventListener("scroll", throttledHandler);
-
-    return () => {
-      window.removeEventListener("scroll", throttledHandler);
-      throttledHandler.cancel();
-    };
-  }, []);
-
+export function NavBar({ navigationItems }: { navigationItems: NavigationItem[] }) {
   return (
-    <>
-      <header
-        className={cn(
-          "sticky top-0 z-50 transition-all duration-300",
-          isScrolled && "top-4",
-        )}
-      >
-        <div
-          className={cn("transition-all duration-300", {
-            "bg-background/90 border-border mx-4 rounded-full border pr-2 shadow-lg backdrop-blur-lg md:mx-20 lg:pr-0":
-              isScrolled,
-            "bg-background/80 border-border mx-0 border-b backdrop-blur-lg":
-              !isScrolled,
-          })}
-        >
-          <nav
-            className={cn(
-              "flex items-center justify-between transition-all duration-300",
-              {
-                "p-3 lg:px-6": isScrolled,
-                "p-6 lg:px-8": !isScrolled,
-              },
-            )}
-            aria-label="Global"
-          >
-            <div className="flex items-center gap-6">
-              <WaspRouterLink
-                to={routes.LandingPageRoute.to}
-                className="text-foreground hover:text-primary flex items-center transition-colors duration-300 ease-in-out"
-              >
-                <NavLogo isScrolled={isScrolled} />
-                <span
-                  className={cn(
-                    "text-foreground font-semibold leading-6 transition-all duration-300",
-                    {
-                      "ml-2 text-sm": !isScrolled,
-                      "ml-2 text-xs": isScrolled,
-                    },
-                  )}
-                >
-                  SaaS Satu
-                </span>
-              </WaspRouterLink>
-
-              <ul className="ml-4 hidden items-center gap-6 lg:flex">
-                {renderNavigationItems(navigationItems)}
-              </ul>
-            </div>
-            <NavBarMobileMenu
-              isScrolled={isScrolled}
-              navigationItems={navigationItems}
-            />
-            <NavBarDesktopUserDropdown isScrolled={isScrolled} />
-          </nav>
+    <header className="sticky top-0 z-50 border-b border-md-outline-variant/60 bg-md-surface/96">
+      <nav className="mx-auto flex min-h-[68px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8" aria-label="Navigasi utama">
+        <div className="flex min-w-0 items-center gap-7">
+          <WaspRouterLink to={routes.LandingPageRoute.to} className="flex min-h-11 items-center gap-2.5 rounded-[12px] text-md-on-surface focus-visible:ring-2 focus-visible:ring-md-primary">
+            <span className="flex size-10 items-center justify-center rounded-[14px] bg-md-primary text-md-on-primary" aria-hidden="true"><M3Icon name="school" size={22} filled /></span>
+            <span className="flex flex-col"><span className="text-sm font-extrabold leading-4">SaaS Satu</span><span className="hidden text-[10px] font-medium text-md-on-surface-variant sm:block">Smart School</span></span>
+          </WaspRouterLink>
+          <ul className="hidden items-center gap-1 lg:flex">{renderNavigationItems(navigationItems)}</ul>
         </div>
-      </header>
-    </>
+        <DesktopActions />
+        <MobileMenu navigationItems={navigationItems} />
+      </nav>
+    </header>
   );
 }
 
-function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
-  const { data: user, isLoading: isUserLoading } = useAuth();
-
+function DesktopActions() {
+  const { data: user, isLoading } = useAuth();
   return (
-    <div className="hidden items-center justify-end gap-3 lg:flex lg:flex-1">
-      <ul className="flex items-center justify-center gap-2 sm:gap-4">
-        <DarkModeSwitcher />
-      </ul>
-      {isUserLoading ? null : !user ? (
-        <WaspRouterLink
-          to={routes.LoginRoute.to}
-          className={cn(
-            "ml-3 font-semibold leading-6 transition-all duration-300",
-            {
-              "text-sm": !isScrolled,
-              "text-xs": isScrolled,
-            },
-          )}
-        >
-          <div className="text-foreground hover:text-primary flex items-center transition-colors duration-300 ease-in-out">
-            Log in{" "}
-            <LogIn
-              size={isScrolled ? "1rem" : "1.1rem"}
-              className={cn("transition-all duration-300", {
-                "ml-1 mt-[0.1rem]": !isScrolled,
-                "ml-1": isScrolled,
-              })}
-            />
-          </div>
-        </WaspRouterLink>
-      ) : (
-        <div className="ml-3">
-          <UserDropdown user={user} />
-        </div>
-      )}
+    <div className="hidden items-center gap-2 lg:flex">
+      <DarkModeSwitcher />
+      {!isLoading && !user && <WaspRouterLink to={routes.LoginRoute.to} className="flex min-h-11 items-center gap-2 rounded-[12px] bg-md-primary px-4 text-sm font-bold text-md-on-primary transition-colors hover:bg-md-primary/90"><M3Icon name="login" size={18} />Masuk</WaspRouterLink>}
+      {!isLoading && user && <M3AccountMenu user={user} />}
     </div>
   );
 }
 
-function NavBarMobileMenu({
-  isScrolled,
-  navigationItems,
-}: {
-  isScrolled: boolean;
-  navigationItems: NavigationItem[];
-}) {
-  const { data: user, isLoading: isUserLoading } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+function MobileMenu({ navigationItems }: { navigationItems: NavigationItem[] }) {
+  const { data: user, isLoading } = useAuth();
+  const [open, setOpen] = useState(false);
   return (
-    <div className="flex lg:hidden">
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "text-muted-foreground hover:text-muted hover:bg-accent inline-flex items-center justify-center rounded-md transition-colors",
-            )}
-          >
-            <span className="sr-only">Open main menu</span>
-            <Menu
-              className={cn("transition-all duration-300", {
-                "size-8 p-1": !isScrolled,
-                "size-6 p-0.5": isScrolled,
-              })}
-              aria-hidden="true"
-            />
-          </button>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center">
-              <WaspRouterLink to={routes.LandingPageRoute.to}>
-                <span className="sr-only">SaaS Satu</span>
-                <NavLogo isScrolled={false} />
-              </WaspRouterLink>
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 flow-root">
-            <div className="divide-border -my-6 divide-y">
-              <ul className="space-y-2 py-6">
-                {renderNavigationItems(navigationItems, setMobileMenuOpen)}
-              </ul>
-              <div className="py-6">
-                {isUserLoading ? null : !user ? (
-                  <WaspRouterLink to={routes.LoginRoute.to}>
-                    <div className="text-foreground hover:text-primary flex items-center justify-end transition-colors duration-300 ease-in-out">
-                      Log in <LogIn size="1.1rem" className="ml-1" />
-                    </div>
-                  </WaspRouterLink>
-                ) : (
-                  <ul className="space-y-2">
-                    <UserMenuItems
-                      user={user}
-                      onItemClick={() => setMobileMenuOpen(false)}
-                    />
-                  </ul>
-                )}
-              </div>
-              <div className="py-6">
-                <DarkModeSwitcher />
-              </div>
+    <div className="lg:hidden">
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild><button type="button" className="flex size-11 items-center justify-center rounded-[14px] text-md-on-surface-variant hover:bg-md-surface-container-high" aria-label="Buka menu"><M3Icon name="menu" size={23} /></button></SheetTrigger>
+        <SheetContent side="right" className="w-[min(88vw,340px)] border-md-outline-variant bg-md-surface p-5 text-md-on-surface">
+          <SheetHeader><SheetTitle className="flex items-center gap-2.5 text-left"><span className="flex size-10 items-center justify-center rounded-[14px] bg-md-primary text-md-on-primary"><M3Icon name="school" size={22} /></span><span>SaaS Satu</span></SheetTitle></SheetHeader>
+          <div className="mt-6 space-y-6">
+            <ul className="space-y-1">{renderNavigationItems(navigationItems, setOpen)}</ul>
+            <div className="border-t border-md-outline-variant/60 pt-4">
+              {!isLoading && !user && <WaspRouterLink to={routes.LoginRoute.to} onClick={() => setOpen(false)} className="flex min-h-11 items-center gap-3 rounded-[12px] bg-md-primary px-4 text-sm font-bold text-md-on-primary"><M3Icon name="login" size={19} />Masuk ke portal</WaspRouterLink>}
+              {!isLoading && user && <div className="space-y-2"><WaspRouterLink to={routes.SchoolDashboardRoute.to} onClick={() => setOpen(false)} className="flex min-h-11 items-center gap-3 rounded-[12px] bg-md-primary-container px-4 text-sm font-bold text-md-on-primary-container"><M3Icon name="dashboard" size={19} />Buka portal sekolah</WaspRouterLink><WaspRouterLink to={routes.AccountRoute.to} onClick={() => setOpen(false)} className="flex min-h-11 items-center gap-3 rounded-[12px] px-4 text-sm font-bold text-md-on-surface"><M3Icon name="person" size={19} />Akun saya</WaspRouterLink></div>}
             </div>
+            <div className="border-t border-md-outline-variant/60 pt-4"><DarkModeSwitcher /></div>
           </div>
         </SheetContent>
       </Sheet>
@@ -215,42 +60,6 @@ function NavBarMobileMenu({
   );
 }
 
-function renderNavigationItems(
-  navigationItems: NavigationItem[],
-  setMobileMenuOpen?: Dispatch<SetStateAction<boolean>>,
-) {
-  const menuStyles = cn({
-    "block rounded-lg px-3 py-2 text-sm font-medium leading-7 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors":
-      !!setMobileMenuOpen,
-    "text-sm font-normal leading-6 text-foreground duration-300 ease-in-out hover:text-primary transition-colors":
-      !setMobileMenuOpen,
-  });
-
-  return navigationItems.map((item) => {
-    return (
-      <li key={item.name}>
-        <ReactRouterLink
-          to={item.to}
-          className={menuStyles}
-          onClick={setMobileMenuOpen && (() => setMobileMenuOpen(false))}
-          target={item.to.startsWith("http") ? "_blank" : undefined}
-        >
-          {item.name}
-        </ReactRouterLink>
-      </li>
-    );
-  });
-}
-
-function NavLogo({ isScrolled }: { isScrolled: boolean }) {
-  return (
-    <img
-      className={cn("rounded-md transition-all duration-500", {
-        "size-8": !isScrolled,
-        "size-7": isScrolled,
-      })}
-      src={logo}
-      alt="SaaS Satu Smart School"
-    />
-  );
+function renderNavigationItems(navigationItems: NavigationItem[], setOpen?: Dispatch<SetStateAction<boolean>>) {
+  return navigationItems.map((item) => <li key={item.name}><ReactRouterLink to={item.to} onClick={setOpen ? () => setOpen(false) : undefined} className="flex min-h-11 items-center rounded-[12px] px-3 text-sm font-semibold text-md-on-surface-variant transition-colors hover:bg-md-surface-container-low hover:text-md-on-surface">{item.name}</ReactRouterLink></li>);
 }

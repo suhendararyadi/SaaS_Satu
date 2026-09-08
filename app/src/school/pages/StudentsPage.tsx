@@ -34,6 +34,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   const { data: students, isLoading, refetch } = useQuery(getSchoolStudents, {
     classRoomId: selectedClass === "ALL" ? undefined : selectedClass,
@@ -200,18 +201,6 @@ export function StudentsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Kesiswaan</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Peserta Didik (Siswa)
-          </span>
-        </div>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -223,6 +212,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
               Daftar siswa aktif, rombel kelas, dan status penempatan PKL.
             </p>
           </div>
+          {canManage && (
           <div className="flex items-center gap-2">
             <M3Button
               variant="tonal"
@@ -241,6 +231,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
               Tambah Siswa
             </M3Button>
           </div>
+          )}
         </div>
 
         {/* Success Feedback Banner */}
@@ -298,8 +289,8 @@ export function StudentsPage({ user }: { user: AuthUser }) {
               variant="standard"
               headline="Belum Ada Data Siswa"
               supportingText="Tambahkan data peserta didik secara manual atau upload file CSV dari Dapodik untuk memulai pendataan."
-              actionLabel="Tambah Siswa Baru"
-              onAction={handleOpenAddModal}
+              actionLabel={canManage ? "Tambah Siswa Baru" : undefined}
+              onAction={canManage ? handleOpenAddModal : undefined}
               icon="group"
               className="p-6"
             />
@@ -313,7 +304,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
                   <M3TableHead>L/P</M3TableHead>
                   <M3TableHead>Rombel Kelas</M3TableHead>
                   <M3TableHead>Status Penempatan PKL</M3TableHead>
-                  <M3TableHead className="text-right">Aksi</M3TableHead>
+                  {canManage && <M3TableHead className="text-right">Aksi</M3TableHead>}
                 </M3TableRow>
               </M3TableHeader>
               <M3TableBody>
@@ -378,6 +369,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
                         )}
                       </M3TableCell>
 
+                      {canManage && (
                       <M3TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <M3Button
@@ -402,6 +394,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
                           </M3Button>
                         </div>
                       </M3TableCell>
+                        )}
                     </M3TableRow>
                   );
                 })}

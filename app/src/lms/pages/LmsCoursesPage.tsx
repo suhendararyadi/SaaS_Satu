@@ -35,14 +35,15 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 6;
+  const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   const { data: courses, isLoading, refetch } = useQuery(getLmsCourses, {
     classRoomId: selectedClass || undefined,
   });
-  const { data: classes } = useQuery(getClassRooms);
-  const { data: teachers } = useQuery(getSchoolTeachers);
-  const { data: academicYears } = useQuery(getAcademicYears);
-  const { data: schoolInfo } = useQuery(getSchoolInfo);
+  const { data: classes } = useQuery(getClassRooms, undefined, { enabled: canManage });
+  const { data: teachers } = useQuery(getSchoolTeachers, undefined, { enabled: canManage });
+  const { data: academicYears } = useQuery(getAcademicYears, undefined, { enabled: canManage });
+  const { data: schoolInfo } = useQuery(getSchoolInfo, undefined, { enabled: canManage });
 
   // Single Course Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -261,18 +262,6 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <span className="mx-1 text-md-on-surface-variant">/</span>
-          <Link to="/school/lms/courses" className="hover:text-md-primary transition-colors">
-            LMS E-Learning
-          </Link>
-          <span className="mx-1 text-md-on-surface-variant">/</span>
-          <span className="text-md-on-surface font-medium">Ruang Kelas &amp; Mapel</span>
-        </nav>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -284,6 +273,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
               Kelola materi pembelajaran, tugas, agenda KBM, dan ujian CBT.
             </p>
           </div>
+          {canManage && (
           <div className="flex items-center gap-3 flex-wrap">
             <M3Button
               variant="tonal"
@@ -300,6 +290,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
               Buka Ruang Mapel Baru
             </M3Button>
           </div>
+          )}
         </div>
 
         {/* Feedback Banner */}
@@ -327,6 +318,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
               />
             </div>
 
+            {canManage && (
             <div className="w-full sm:w-64">
               <M3Select
                 options={classFilterOptions}
@@ -337,6 +329,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
                 }}
               />
             </div>
+            )}
 
             <div className="flex items-center">
               <M3Badge variant="outline">
@@ -359,8 +352,8 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
             variant="standard"
             headline="Belum Ada Ruang Mata Pelajaran"
             supportingText="Buka ruang mapel pertama untuk memulai pembelajaran daring dan pencatatan agenda KBM."
-            actionLabel="Buat Mapel Baru"
-            onAction={openAddModal}
+            actionLabel={canManage ? "Buat Mapel Baru" : undefined}
+            onAction={canManage ? openAddModal : undefined}
             icon="book"
             className="p-6"
           />
@@ -466,7 +459,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Add Course */}
         <M3Dialog
-          isOpen={modalOpen}
+          isOpen={canManage && modalOpen}
           onClose={() => setModalOpen(false)}
           title="Buka Ruang Mata Pelajaran Baru"
           description="Atur mapel, kelas tujuan, dan guru pengampu pembelajaran daring."
@@ -537,7 +530,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
 
         {/* Modal Terapkan Paket Mapel Kurikulum Merdeka */}
         <M3Dialog
-          isOpen={merdekaModalOpen}
+          isOpen={canManage && merdekaModalOpen}
           onClose={() => setMerdekaModalOpen(false)}
           title="Paket Mapel Kurikulum Merdeka"
           maxWidth="xl"

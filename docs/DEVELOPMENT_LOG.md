@@ -145,3 +145,42 @@ Dokumen hasil:
 - [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md)
 
 Langkah berikutnya: **Sprint UI-01, semantic design tokens dan app-shell contract**, belum implementasi massal halaman.
+
+---
+
+## 8 September 2026: Implementasi UI/UX Redesign v2
+
+Redesign **Playful Academic v2** telah diimplementasikan di branch `redesign/ui-v2` dengan fokus role-first UX, semantic design tokens, mobile bottom navigation, data honesty, dan penyelarasan kontrol UI terhadap authorization server-side.
+
+Hasil utama:
+
+- semantic token Academic Indigo, Learning Teal, Creative Amber, dan Playful Coral;
+- role-aware app shell dan assignment-aware navigation guru;
+- dashboard terpisah untuk Siswa, Guru, Admin Sekolah/Super Admin, dan Pembimbing DUDI;
+- dashboard DTO server-side scoped berdasarkan `schoolId` dan relationship;
+- CRUD administratif disembunyikan dari role yang hanya memiliki read access;
+- LMS manager UI mengikuti guru pengampu sebenarnya dan CBT submit hanya tersedia untuk siswa;
+- PKL jurnal/presensi diselaraskan dengan role dan relationship;
+- default nilai jurnal buatan `85` dihapus;
+- halaman settings template yang nonfungsional diganti honest empty state;
+- landing dan auth diperbarui dengan copy Bahasa Indonesia dan tanpa fake metrics/testimonials;
+- template CSV memakai data yang eksplisit sebagai contoh.
+
+Quality gate source:
+
+- `wasp compile`: PASS, 0 TypeScript error;
+- `wasp test client --run`: **67/67 tests PASS** pada 4 test files;
+- Wasp production build: PASS;
+- Vite SSR/client build: PASS;
+- generated server bundle + Prisma Client 5.19.1: PASS;
+- client domain scan: domain produksi ditemukan, port lama 8443/8444 tidak ditemukan;
+- Anti-Slop hard-gate scan: tidak ada em dash UI, filler Lorem ipsum, fake metric marker, decorative emoji baru, atau whitespace error;
+- contrast check token utama: seluruh pasangan yang diuji PASS WCAG AA untuk normal text;
+- database schema/migrations: **tidak berubah**.
+
+Known nonblocking debt:
+
+- runtime audit setelah prune masih melaporkan 2 moderate vulnerabilities, 0 high/critical;
+- warning alias Prisma browser dan Analytics Dashboard chunk >500 KB masih perlu optimasi terpisah.
+
+Implementation report: [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md).
