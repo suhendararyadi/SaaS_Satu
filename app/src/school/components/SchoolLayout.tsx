@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, type ReactNode } from "react";
+import React, { useEffect, useState, type ReactNode } from "react";
 import { type AuthUser } from "wasp/auth";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -219,7 +219,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
   const teacherHasPkl = !!teacherDashboard?.pkl;
   const studentHasPkl = !!studentDashboard?.pkl;
 
-  const drawerSections: M3DrawerSection[] = useMemo(() => {
+  const drawerSections: M3DrawerSection[] = (() => {
     const sections: M3DrawerSection[] = [{ title: "UTAMA", items: [{ label: "Beranda", href: "/school", icon: "home" }] }];
     if (isSchoolAdmin) {
       sections.push({ title: "AKADEMIK", items: [
@@ -265,9 +265,9 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     }
     if (isPlatformAdmin) sections.push({ title: "SUPER ADMIN", items: [{ label: "Organisasi Sekolah", href: "/school/admin/schools", icon: "corporate_fare" }] });
     return sections;
-  }, [isSchoolAdmin, isTeacher, isStudent, isDudiMentor, isPlatformAdmin, isVocationalOrHighSchool, teacherHasPkl, studentHasPkl, teacherDashboard]);
+  })();
 
-  const bottomItems: M3BottomNavigationItem[] = useMemo(() => {
+  const bottomItems: M3BottomNavigationItem[] = (() => {
     if (isStudent) return [
       { label: "Beranda", href: "/school", icon: "home" },
       { label: "Kelas", href: "/school/lms/courses", icon: "menu_book" },
@@ -288,7 +288,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
     ];
     return [{ label: "Beranda", href: "/school", icon: "home" }, { label: "Jurnal", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Saya", href: "/account", icon: "person" }];
-  }, [isStudent, isTeacher, isSchoolAdmin, studentHasPkl, teacherHasPkl, isVocationalOrHighSchool]);
+  })();
 
   const drawerHeader = (
     <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}>
