@@ -1,6 +1,6 @@
 # SaaS Satu Smart School - UI/UX Redesign v2 Implementation Report
 
-> **Status:** Implemented and quality-gated, ready for production rollout
+> **Status:** Implemented, quality-gated, and deployed to production
 > **Tanggal:** 8 September 2026
 > **Design direction:** Playful Academic
 > **Target utama:** SMP, SMA, dan SMK
@@ -213,19 +213,42 @@ Tidak diklaim audit bersih.
 - bundle Analytics Dashboard sekitar 519 KB dan melewati warning threshold 500 KB;
 - area produksi lain seperti SMTP nyata, payment, upload, atau analytics tetap mengikuti kesiapan konfigurasi masing-masing dan bukan bagian dari redesign UI v2.
 
-## Rollout strategy
+## Production rollout
 
-Rollout menggunakan immutable release:
+Production rollout selesai pada 8 September 2026.
 
-1. source dan dokumentasi di-commit;
-2. backup database aplikasi diverifikasi sebelum cutover;
-3. release app dan static dibuat di direktori baru;
-4. symlink app/static diganti secara atomik;
-5. `saas-satu.service` direstart;
-6. HTTPS, static, backend, auth, dan operation smoke test diverifikasi;
-7. jika verifikasi gagal, symlink dikembalikan ke release hardening sebelumnya dan service direstart.
+- runtime commit: `5c500c4a293d29b91a5c24a58f099cb050dee46b`;
+- app release: `/home/ubuntu/deployments/SaaS_Satu/releases/5c500c4-ui-v2`;
+- static release: `/var/www/saas-satu/releases/5c500c4-ui-v2`;
+- previous rollback app/static: `830008e-hardening`;
+- database backup: `saas_satu_staging-20260908T022443Z.sql.gz`, gzip integrity PASS, mode 600;
+- database migration: tidak diperlukan.
 
-Karena tidak ada migration database, rollback source/static tidak memerlukan rollback schema.
+Post-cutover verification:
+
+- `saas-satu.service`: active;
+- Nginx: active;
+- backend localhost port 3101: HTTP 200;
+- `/`: HTTP 200;
+- `/login`: HTTP 200;
+- `/school`: HTTP 200;
+- `/auth/me` unauthenticated: HTTP 200;
+- empat dashboard operation v2 terdaftar dan mengembalikan HTTP 401 untuk request unauthenticated;
+- CORS same-origin sesuai `https://sekolah.suhendararyadi.com`;
+- HSTS, nosniff, dan referrer-policy tetap aktif;
+- process working directory menunjuk release `5c500c4-ui-v2`;
+- live SSR memuat copy landing v2 dan asset CSS/JS release baru.
+
+### Rollback procedure
+
+Jika diperlukan, rollback tetap sederhana karena schema database tidak berubah:
+
+1. arahkan app current kembali ke `/home/ubuntu/deployments/SaaS_Satu/releases/830008e-hardening`;
+2. arahkan web current kembali ke `/var/www/saas-satu/releases/830008e-hardening`;
+3. restart backend melalui supervisor systemd;
+4. ulang smoke test HTTPS dan backend.
+
+Rollback source/static tidak memerlukan rollback schema.
 
 ## Source of truth
 

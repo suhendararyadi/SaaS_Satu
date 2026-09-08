@@ -184,3 +184,26 @@ Known nonblocking debt:
 - warning alias Prisma browser dan Analytics Dashboard chunk >500 KB masih perlu optimasi terpisah.
 
 Implementation report: [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md).
+
+---
+
+## 8 September 2026: Production Rollout UI/UX v2
+
+Redesign v2 dipromosikan ke `https://sekolah.suhendararyadi.com` menggunakan immutable release.
+
+Release record:
+
+- runtime commit: `5c500c4a293d29b91a5c24a58f099cb050dee46b`;
+- release: `5c500c4-ui-v2`;
+- backup database sebelum cutover: `saas_satu_staging-20260908T022443Z.sql.gz`, gzip PASS, mode 600;
+- schema/migration database tidak berubah;
+- pre-cutover runtime smoke di port 3102: PASS;
+- cutover app/static symlink: PASS;
+- backend baru berjalan dari release v2 pada port 3101;
+- public `/`, `/login`, `/school`: HTTP 200;
+- `/auth/me`: HTTP 200;
+- endpoint dashboard siswa, guru, admin, dan mentor terdaftar dan fail-closed untuk request unauthenticated (HTTP 401);
+- CORS same-origin dan security headers tetap aktif;
+- live static memuat asset v2 dengan Academic Indigo dan Inter.
+
+Rollback target tetap tersedia: `830008e-hardening`.

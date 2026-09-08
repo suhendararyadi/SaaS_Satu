@@ -1,6 +1,6 @@
 # SaaS Satu Smart School — UI/UX Redesign Plan v2
 
-> **Status:** Implemented and quality-gated, production rollout prepared
+> **Status:** Implemented and deployed to production
 > **Tanggal penetapan:** 8 September 2026  
 > **Design direction:** **Playful Academic**  
 > **Target utama:** SMP, SMA, dan SMK  
