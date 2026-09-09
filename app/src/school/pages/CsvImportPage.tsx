@@ -147,19 +147,6 @@ Industri Contoh Manufaktur,Manufaktur,Alamat contoh 3,Kontak Contoh 03,080000000
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Data Master</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Import Data Massal (CSV)
-          </span>
-        </div>
-
         {/* Header */}
         <div>
           <h2 className="text-2xl font-medium text-md-on-surface">
@@ -277,19 +264,19 @@ Industri Contoh Manufaktur,Manufaktur,Alamat contoh 3,Kontak Contoh 03,080000000
                 />
                 <M3Card variant="outlined" className="p-5 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-[12px] bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
-                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase">
+                  <div className="p-3 rounded-[12px] bg-md-secondary-container/55 border border-md-secondary/20">
+                    <p className="text-[11px] font-semibold text-md-on-secondary-container uppercase">
                       Berhasil Disimpan
                     </p>
-                    <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-200 mt-1">
+                    <p className="text-2xl font-bold text-md-on-surface mt-1">
                       {result.successCount} Baris
                     </p>
                   </div>
-                  <div className="p-3 rounded-[12px] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
-                    <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase">
+                  <div className="p-3 rounded-[12px] bg-md-tertiary-container/55 border border-md-tertiary/20">
+                    <p className="text-[11px] font-semibold text-md-on-tertiary-container uppercase">
                       Dilewati / Gagal
                     </p>
-                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-200 mt-1">
+                    <p className="text-2xl font-bold text-md-on-surface mt-1">
                       {result.failedCount} Baris
                     </p>
                   </div>
@@ -328,15 +315,15 @@ Industri Contoh Manufaktur,Manufaktur,Alamat contoh 3,Kontak Contoh 03,080000000
 
               <div className="pt-3 border-t border-md-outline-variant/30 space-y-2 text-xs text-md-on-surface-variant">
                 <div className="flex items-center gap-2">
-                  <M3Icon name="check" size={16} className="text-emerald-600 shrink-0" />
+                  <M3Icon name="check" size={16} className="text-md-secondary shrink-0" />
                   <span>Pemisah koma (,) atau titik-koma (;) didukung.</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <M3Icon name="check" size={16} className="text-emerald-600 shrink-0" />
+                  <M3Icon name="check" size={16} className="text-md-secondary shrink-0" />
                   <span>Data yang telah ada akan diperbarui otomatis.</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <M3Icon name="check" size={16} className="text-emerald-600 shrink-0" />
+                  <M3Icon name="check" size={16} className="text-md-secondary shrink-0" />
                   <span>Akun login siswa/guru langsung siap digunakan.</span>
                 </div>
               </div>

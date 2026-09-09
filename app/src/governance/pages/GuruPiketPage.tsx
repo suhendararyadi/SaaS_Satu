@@ -72,19 +72,6 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <Link to="/school/governance/piket" className="hover:text-md-primary transition-colors">
-            Tata Kelola
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <span className="text-md-on-surface font-medium">Guru Piket &amp; Wali Kelas</span>
-        </nav>
-
         {/* Header */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">

@@ -315,7 +315,7 @@ export function JournalsPage({ user }: { user: AuthUser }) {
                   {/* Feedback & Score */}
                   {(j.feedback || j.score !== null) && (
                     <div className="p-3.5 rounded-[12px] bg-md-surface-container border border-md-outline-variant/40 flex items-start gap-3">
-                      <M3Icon name="star" size={20} className="text-amber-500 shrink-0 mt-0.5" />
+                      <M3Icon name="star" size={20} className="text-md-tertiary shrink-0 mt-0.5" />
                       <div className="text-xs space-y-0.5">
                         <p className="font-bold text-md-on-surface">
                           Nilai: {j.score ?? "-"} / 100

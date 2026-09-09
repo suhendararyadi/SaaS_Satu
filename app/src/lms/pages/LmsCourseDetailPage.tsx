@@ -553,10 +553,10 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
                             key={r.id}
                             className={`px-3 py-1 rounded-md-full text-label-small font-bold ${
                               r.status === "HADIR"
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                ? "bg-md-secondary/10 text-md-secondary"
                                 : r.status === "ALPA"
-                                ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                ? "bg-md-error-container/55 text-md-error"
+                                : "bg-md-tertiary-container/55 text-md-tertiary"
                             }`}
                           >
                             {r.student.name}: {r.status}
@@ -844,10 +844,10 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
                         className={`px-3 py-1 rounded-md-full text-label-small font-bold transition-all ${
                           (studentStatusMap[s.id] || "HADIR") === st
                             ? st === "HADIR"
-                              ? "bg-emerald-600 text-white shadow-elevation-1"
+                              ? "bg-md-secondary text-md-on-secondary shadow-none"
                               : st === "ALPA"
-                              ? "bg-red-600 text-white shadow-elevation-1"
-                              : "bg-amber-600 text-white shadow-elevation-1"
+                              ? "bg-md-error text-md-on-error shadow-none"
+                              : "bg-md-tertiary text-md-on-tertiary shadow-none"
                             : "bg-md-surface text-md-on-surface-variant hover:bg-md-surface-container-high"
                         }`}
                       >
@@ -995,13 +995,13 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
         >
           <div className="space-y-4 pt-2">
             {examScore !== null ? (
-              <div className="p-8 text-center bg-emerald-500/10 rounded-md-xl">
-                <M3Icon name="check_circle" size={48} className="text-emerald-500 mx-auto mb-2 block" />
+              <div className="p-8 text-center bg-md-secondary/10 rounded-md-xl">
+                <M3Icon name="check_circle" size={48} className="text-md-secondary mx-auto mb-2 block" />
                 <h3 className="text-headline-small font-bold text-md-on-surface">Ujian Selesai!</h3>
                 <p className="text-body-medium text-md-on-surface-variant mt-1">
                   Skor Nilai Otomatis Anda:
                 </p>
-                <div className="text-display-medium font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
+                <div className="text-display-medium font-extrabold text-md-secondary mt-2">
                   {examScore}
                 </div>
                 <div className="mt-6">
@@ -1039,7 +1039,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
                                   }
                                   className={`w-full text-left p-3 rounded-md-md text-body-medium transition-all flex items-center gap-3 border ${
                                     isSelected
-                                      ? "bg-md-primary-container text-md-on-primary-container border-md-primary font-medium shadow-elevation-1"
+                                      ? "bg-md-primary-container text-md-on-primary-container border-md-primary font-medium"
                                       : "bg-md-surface text-md-on-surface border-md-outline/30 hover:bg-md-surface-container"
                                   }`}
                                 >

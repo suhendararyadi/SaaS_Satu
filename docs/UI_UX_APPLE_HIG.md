@@ -194,3 +194,19 @@ Before production promotion:
 ## Status produksi
 
 School OS dipromosikan ke production pada 9 September 2026 dari source commit `818d1c7a89dc64b81b5cfdc78a52cd1211136146` melalui static release `818d1c7-school-os-hig`. Backend tetap menggunakan release `678181a-dashboard-fix`; tidak ada perubahan schema database.
+
+## Refinement final — sidebar dots dan dashboard macOS
+
+Setelah review visual production, School OS dikunci dengan refinement berikut:
+
+- sidebar desktop tidak lagi memakai ikon per menu; navigasi menggunakan dot marker kecil seperti mockup `dashboard.html`;
+- hero/header besar di dashboard dihapus; nama sekolah dan tahun ajaran aktif tampil ringkas di toolbar;
+- dashboard memakai stat strip compact, grouped panels, thin separators, dan real-data-only metrics;
+- Admin menampilkan siswa, guru, rombel, ruang LMS, mitra DUDI, dan PKL aktif sesuai data tenant;
+- dashboard Student, Teacher, dan DUDI Mentor memakai pola statistik dan grouped list yang sama;
+- breadcrumb redundan di halaman sekolah/PKL/governance/reports dihapus karena toolbar sudah menjadi sumber konteks navigasi;
+- hard-coded rainbow utility colors dinormalisasi ke semantic School OS colors;
+- data contoh yang tampak seperti data nyata pada form laporan dihapus dari default state dan hanya boleh hadir sebagai placeholder contoh;
+- `getSchoolInfo` menambahkan `activeAcademicYear` sebagai data read-only untuk toolbar. Perubahan ini tidak mengubah schema, authorization, tenant scoping, atau business rules.
+
+Prinsip final: **toolbar memberi konteks, content area memberi pekerjaan dan data; bukan mengulang identitas halaman dalam hero besar.**

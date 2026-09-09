@@ -1,6 +1,28 @@
 import React, { type ReactNode } from "react";
-import { M3Icon } from "./M3Icon";
 
-export interface M3PageHeaderProps { title: string; description?: string; eyebrow?: string; icon?: string; iconTone?: "primary"|"secondary"|"tertiary"|"blue"|"purple"|"orange"|"green"; actions?: ReactNode; meta?: ReactNode; className?: string; }
-const toneStyles={primary:"bg-md-primary-container text-md-primary",secondary:"bg-md-secondary-container text-md-on-secondary-container",tertiary:"bg-md-tertiary-container text-md-on-tertiary-container",blue:"bg-md-primary-container text-md-primary",purple:"bg-purple-500/12 text-purple-700 dark:text-purple-300",orange:"bg-orange-500/12 text-orange-700 dark:text-orange-300",green:"bg-green-500/12 text-green-700 dark:text-green-300"};
-export function M3PageHeader({title,description,eyebrow,icon,iconTone="primary",actions,meta,className=""}:M3PageHeaderProps){return <section className={`v2-page-header ${className}`} aria-labelledby="page-title"><div className="flex min-w-0 items-start gap-3">{icon&&<div className={`v2-module-icon ${toneStyles[iconTone]}`} aria-hidden="true"><M3Icon name={icon} size={19}/></div>}<div className="min-w-0">{eyebrow&&<p className="v2-eyebrow mb-1">{eyebrow}</p>}<h1 id="page-title" className="text-[24px] font-bold leading-[1.18] tracking-[-0.025em] text-md-on-surface sm:text-[26px] lg:text-[22px]">{title}</h1>{description&&<p className="mt-1.5 max-w-3xl text-[14px] leading-5 text-md-on-surface-variant lg:text-[13px]">{description}</p>}{meta&&<div className="mt-2.5 flex flex-wrap items-center gap-1.5">{meta}</div>}</div></div>{actions&&<div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div>}</section>}
+export interface M3PageHeaderProps {
+  title: string;
+  description?: string;
+  eyebrow?: string;
+  icon?: string;
+  iconTone?: "primary" | "secondary" | "tertiary" | "blue" | "purple" | "orange" | "green";
+  actions?: ReactNode;
+  meta?: ReactNode;
+  className?: string;
+}
+
+export function M3PageHeader({ title, description, eyebrow, actions, meta, className = "" }: M3PageHeaderProps) {
+  return (
+    <section className={`flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between ${className}`} aria-labelledby="page-title">
+      <div className="min-w-0">
+        {eyebrow && <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">{eyebrow}</p>}
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 id="page-title" className="text-[20px] font-semibold leading-[1.25] tracking-[-0.018em] text-md-on-surface sm:text-[21px]">{title}</h1>
+          {meta && <div className="flex flex-wrap items-center gap-1.5">{meta}</div>}
+        </div>
+        {description && <p className="mt-1 max-w-3xl text-[13px] leading-5 text-md-on-surface-variant">{description}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div>}
+    </section>
+  );
+}

@@ -358,7 +358,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
             className="p-6"
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedCourses.map((c) => (
               <Link
                 key={c.id}
@@ -367,8 +367,8 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
                 className="block group h-full"
               >
                 <M3Card
-                  variant="elevated"
-                  className="p-5 h-full flex flex-col justify-between group-hover:border-md-primary/40 transition-all shadow-elevation-1 hover:shadow-elevation-2"
+                  variant="outlined"
+                  className="p-5 h-full flex flex-col justify-between group-hover:border-md-primary/35 transition-colors"
                 >
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
@@ -627,12 +627,12 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
                           <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                               subject.category === "KEJURUAN"
-                                ? "bg-amber-100 text-amber-800"
+                                ? "bg-md-tertiary-container/55 text-md-on-tertiary-container"
                                 : subject.category === "MUATAN_LOKAL"
-                                ? "bg-purple-100 text-purple-800"
+                                ? "bg-md-primary-container/55 text-md-on-primary-container"
                                 : subject.category === "PILIHAN"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-emerald-100 text-emerald-800"
+                                ? "bg-md-primary-container/55 text-md-on-primary-container"
+                                : "bg-md-secondary-container/55 text-md-on-secondary-container"
                             }`}
                           >
                             {subject.category.replace("_", " ")}

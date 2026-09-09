@@ -13,6 +13,7 @@ import {
   M3Banner,
   M3Text,
   M3Icon,
+  M3StatCard,
 } from "../../client/components/m3";
 
 
@@ -57,92 +58,19 @@ export function MonitoringEwsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <Link to="/school/pkl/placements" className="hover:text-md-primary transition-colors">
-            E-PKL
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <span className="text-md-on-surface font-medium">Early Warning System (EWS)</span>
-        </nav>
-
-        {/* Header */}
         <div>
-          <h1 className="text-headline-medium font-bold text-md-on-surface">
-            Monitoring &amp; Deteksi Dini PKL
-          </h1>
-          <p className="text-body-large text-md-on-surface-variant mt-1">
-            Pantau kendala presensi, ketidakhadiran, dan jurnal harian siswa PKL.
-          </p>
+          <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">Monitoring &amp; deteksi dini PKL</h2>
+          <p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">Pantau kendala presensi dan jurnal siswa PKL berdasarkan data aktual.</p>
         </div>
 
-        {/* Critical High Alert Banner */}
         {highAlerts.length > 0 && (
-          <M3Banner
-            variant="error"
-            headline={`${highAlerts.length} Kasus Siswa Memerlukan Perhatian Cepat`}
-            supportingText="Terdeteksi indikasi anomali kehadiran atau jurnal tertunda lebih dari 3 hari. Segera koordinasikan dengan pembimbing atau hubungi siswa bersangkutan."
-            actionLabel="Tinjau Kasus Kritis"
-            onAction={() => setSeverityFilter("HIGH")}
-          />
+          <M3Banner variant="error" headline={`${highAlerts.length} kasus memerlukan perhatian cepat`} supportingText="Terdeteksi anomali kehadiran atau jurnal tertunda. Tinjau kasus kritis dan koordinasikan dengan pembimbing terkait." actionLabel="Tinjau kasus kritis" onAction={() => setSeverityFilter("HIGH")} />
         )}
 
-        {/* Summary KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <M3Card variant="elevated" className="p-5">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                Total Peringatan
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-md-primary-container text-md-on-primary-container flex items-center justify-center">
-                <M3Icon name="notifications" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-md-on-surface mt-2">
-              {alerts?.length || 0}
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Siswa membutuhkan perhatian
-            </p>
-          </M3Card>
-
-          <M3Card variant="filled" className="p-5 bg-red-500/10 border border-red-500/20">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-red-600 dark:text-red-400">
-                Prioritas Tinggi (Kritis)
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
-                <M3Icon name="warning" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-red-600 dark:text-red-400 mt-2">
-              {highAlerts.length}
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Jurnal tertunda &gt; 3 hari / tanpa presensi
-            </p>
-          </M3Card>
-
-          <M3Card variant="filled" className="p-5 bg-amber-500/10 border border-amber-500/20">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-amber-600 dark:text-amber-400">
-                Perhatian Sedang
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <M3Icon name="info" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-amber-600 dark:text-amber-400 mt-2">
-              {mediumAlerts.length}
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Presensi di luar radius geofence DUDI
-            </p>
-          </M3Card>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <M3StatCard label="Total peringatan" value={alerts?.length || 0} tone="blue" />
+          <M3StatCard label="Prioritas tinggi" value={highAlerts.length} tone="orange" />
+          <M3StatCard label="Perhatian sedang" value={mediumAlerts.length} tone="amber" />
         </div>
 
         {/* Search & Severity Filter Toolbar */}

@@ -19,6 +19,7 @@ import {
   M3Banner,
   M3Text,
   M3Icon,
+  M3StatCard,
 } from "../../client/components/m3";
 
 
@@ -77,18 +78,6 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
     return (
       <SchoolLayout user={user}>
         <div className="space-y-6">
-          <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-            <Link to="/school" className="hover:text-md-primary transition-colors">
-              Portal Sekolah
-            </Link>
-            <M3Icon name="chevron_right" size={16} />
-            <Link to="/school/governance/walikelas" className="hover:text-md-primary transition-colors">
-              Tata Kelola
-            </Link>
-            <M3Icon name="chevron_right" size={16} />
-            <span className="text-md-on-surface font-medium">Wali Kelas</span>
-          </nav>
-
           <M3Banner
             variant="warning"
             headline="Data Wali Kelas Belum Tersedia"
@@ -105,107 +94,18 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <Link to="/school/governance/walikelas" className="hover:text-md-primary transition-colors">
-            Tata Kelola
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <span className="text-md-on-surface font-medium">Wali Kelas</span>
-        </nav>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">Kelas {homeroomClass.name}</h2>
+            <p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{homeroomClass.department?.name || "Rombongan belajar"} · {homeroomClass.academicYear?.yearName} · {homeroomClass.academicYear?.semester}</p>
+          </div>
+          <M3Button variant="text" href="/school/reports" size="sm">Cetak rekap</M3Button>
+        </div>
 
-        {/* Header Banner Component */}
-        <M3Banner
-          variant="hero"
-          className="p-6"
-          headline={
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-3 py-1 bg-white/20 backdrop-blur rounded-md-full text-label-small font-semibold uppercase tracking-wider text-white">
-                  Wali Kelas
-                </span>
-                <span className="px-3 py-1 bg-emerald-500/40 rounded-md-full text-label-small font-semibold text-white">
-                  {homeroomClass.academicYear?.yearName} - {homeroomClass.academicYear?.semester}
-                </span>
-              </div>
-              <h1 className="text-headline-medium font-bold text-white">
-                Kelas {homeroomClass.name}
-              </h1>
-            </div>
-          }
-          supportingText={`Konsentrasi Keahlian: ${homeroomClass.department?.name} (${homeroomClass.department?.code})`}
-          icon="group"
-          actions={
-            <M3Button
-              variant="elevated"
-              href="/school/reports"
-              icon="print"
-              className="bg-white text-emerald-800 hover:bg-emerald-50"
-            >
-              Cetak Rekap Nilai &amp; Presensi
-            </M3Button>
-          }
-        />
-
-        {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <M3Card variant="elevated" className="p-5">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                Total Siswa Rombel
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-md-primary-container text-md-on-primary-container flex items-center justify-center">
-                <M3Icon name="groups" size={18} />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-display-small font-bold text-md-on-surface">{totalStudents}</span>
-              <span className="text-body-small text-md-on-surface-variant">Siswa Aktif</span>
-            </div>
-          </M3Card>
-
-          <M3Card variant="elevated" className="p-5">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                Siswa Terplot PKL
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <M3Icon name="work" size={18} />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-display-small font-bold text-emerald-600 dark:text-emerald-400">
-                {activePklStudents}
-              </span>
-              <span className="text-body-small text-md-on-surface-variant">
-                / {totalStudents} Siswa ({totalStudents > 0 ? Math.round((activePklStudents / totalStudents) * 100) : 0}%)
-              </span>
-            </div>
-          </M3Card>
-
-          <M3Card variant="elevated" className="p-5">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                Monitoring Presensi &amp; Jurnal
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-md-tertiary-container text-md-on-tertiary-container flex items-center justify-center">
-                <M3Icon name="event_available" size={18} />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="text-title-small font-semibold text-emerald-600 dark:text-emerald-400">
-                Sistem EWS Aktif
-              </span>
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Peringatan alfa &amp; keterlambatan terpantau
-            </p>
-          </M3Card>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <M3StatCard label="Siswa aktif" value={totalStudents} tone="blue" />
+          <M3StatCard label="Sudah terplot PKL" value={activePklStudents} tone="green" />
+          <M3StatCard label="Belum terplot PKL" value={Math.max(0, totalStudents - activePklStudents)} tone="orange" />
         </div>
 
         {/* Filter Toolbar Card */}

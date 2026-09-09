@@ -14,6 +14,12 @@ export const getSchoolInfo = async (_args: unknown, context: { user?: User }) =>
   const school = await prisma.school.findUnique({
     where: { id: user.schoolId },
     include: {
+      academicYears: {
+        where: { isActive: true },
+        orderBy: [{ yearName: "desc" }, { semester: "asc" }],
+        take: 1,
+        select: { id: true, yearName: true, semester: true, isActive: true },
+      },
       _count: {
         select: {
           users: true,
@@ -42,8 +48,10 @@ export const getSchoolInfo = async (_args: unknown, context: { user?: User }) =>
     }),
   ]);
 
+  const { academicYears, ...schoolData } = school;
   return {
-    ...school,
+    ...schoolData,
+    activeAcademicYear: academicYears[0] ?? null,
     teacherCount,
     studentCount,
   };

@@ -98,19 +98,6 @@ export function AcademicYearsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Data Master</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Tahun Ajaran &amp; Semester
-          </span>
-        </div>
-
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -201,7 +188,7 @@ export function AcademicYearsPage({ user }: { user: AuthUser }) {
                       <div className="flex items-center gap-2.5">
                         <span
                           className={`w-2.5 h-2.5 rounded-full ${
-                            y.isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+                            y.isActive ? "bg-md-secondary" : "bg-slate-300 dark:bg-slate-600"
                           }`}
                         />
                         <span className="font-semibold text-md-on-surface">

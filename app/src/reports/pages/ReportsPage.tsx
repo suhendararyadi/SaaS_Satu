@@ -56,12 +56,10 @@ export function ReportsPage({ user }: { user: AuthUser }) {
 
   // Parameters: Surat Keterangan Aktif
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
-  const [letterNumber, setLetterNumber] = useState<string>("421.2/015/SMPN1/2026");
-  const [letterPurpose, setLetterPurpose] = useState<string>(
-    "Pengurusan Kelengkapan Beasiswa PIP (Program Indonesia Pintar) Tahun 2026"
-  );
-  const [headmasterName, setHeadmasterName] = useState<string>("Dr. H. Ahmad Sudrajat, M.Pd.");
-  const [headmasterNip, setHeadmasterNip] = useState<string>("19750812 200003 1 005");
+  const [letterNumber, setLetterNumber] = useState<string>("");
+  const [letterPurpose, setLetterPurpose] = useState<string>("");
+  const [headmasterName, setHeadmasterName] = useState<string>("");
+  const [headmasterNip, setHeadmasterNip] = useState<string>("");
   const [letterDate, setLetterDate] = useState<string>(
     new Date().toLocaleDateString("id-ID", {
       day: "numeric",
@@ -174,15 +172,6 @@ export function ReportsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant print:hidden">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <span className="mx-1 text-md-on-surface-variant">/</span>
-          <span className="text-md-on-surface font-medium">Laporan &amp; Export Dokumen</span>
-        </nav>
-
         {/* Action Toolbar Card (hidden when printing) */}
         <div className="print:hidden space-y-4">
           <M3Banner
@@ -327,7 +316,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
         )}
 
         {/* Official Printable Document Container (Styled as A4 Paper) */}
-        <div className="bg-white text-slate-900 border border-slate-200 rounded-md-xl p-8 md:p-12 shadow-elevation-1 print:border-none print:shadow-none print:p-0 print:m-0 max-w-4xl mx-auto">
+        <div className="bg-white text-slate-900 border border-slate-200 rounded-[16px] p-8 md:p-12 shadow-[0_1px_2px_rgba(0,0,0,.05)] print:border-none print:shadow-none print:p-0 print:m-0 max-w-4xl mx-auto">
           {/* KOP Surat Resmi Sekolah */}
           <div className="border-b-[3px] border-double border-slate-900 pb-4 mb-6 flex items-center gap-6">
             {/* Logo Sekolah */}
@@ -412,13 +401,13 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                       <th className="p-2 border-r border-slate-300">Nama Lengkap Peserta Didik</th>
                       <th className="p-2 border-r border-slate-300 font-mono text-center">NIS / NISN</th>
                       <th className="p-2 border-r border-slate-300 text-center w-12">L/P</th>
-                      <th className="p-2 border-r border-slate-300 text-center w-14 bg-emerald-50 text-emerald-800">
+                      <th className="p-2 border-r border-slate-300 text-center w-14 bg-md-secondary-container/55 text-md-on-secondary-container">
                         Hadir (H)
                       </th>
-                      <th className="p-2 border-r border-slate-300 text-center w-14 bg-blue-50 text-blue-800">
+                      <th className="p-2 border-r border-slate-300 text-center w-14 bg-md-primary-container/55 text-md-on-primary-container">
                         Sakit (S)
                       </th>
-                      <th className="p-2 border-r border-slate-300 text-center w-14 bg-amber-50 text-amber-800">
+                      <th className="p-2 border-r border-slate-300 text-center w-14 bg-md-tertiary-container/55 text-md-on-tertiary-container">
                         Izin (I)
                       </th>
                       <th className="p-2 border-r border-slate-300 text-center w-14 bg-rose-50 text-rose-800">
@@ -450,7 +439,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                         <td className="p-2 border-r border-slate-300 text-center">
                           {st.gender}
                         </td>
-                        <td className="p-2 border-r border-slate-300 text-center font-bold text-emerald-700">
+                        <td className="p-2 border-r border-slate-300 text-center font-bold text-md-on-secondary-container">
                           {st.hadir}
                         </td>
                         <td className="p-2 border-r border-slate-300 text-center font-mono">
@@ -507,7 +496,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                   SURAT KETERANGAN AKTIF SEKOLAH
                 </h2>
                 <p className="font-mono text-xs text-slate-700 mt-1">
-                  Nomor: {letterNumber || "421.2/015/SMPN1/2026"}
+                  Nomor: {letterNumber || "-"}
                 </p>
               </div>
 
@@ -644,7 +633,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                         <td className="p-2 border-r border-slate-300 text-center font-mono">
                           {sg.averageExam ?? "-"}
                         </td>
-                        <td className="p-2 text-center font-bold font-mono text-teal-800">
+                        <td className="p-2 text-center font-bold font-mono text-md-on-secondary-container">
                           {sg.finalScore ?? "-"}
                         </td>
                       </tr>
@@ -730,7 +719,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                         <td className="p-2 border-r border-slate-300">
                           {p.companyName}
                         </td>
-                        <td className="p-2 border-r border-slate-300 text-center font-bold text-emerald-700">
+                        <td className="p-2 border-r border-slate-300 text-center font-bold text-md-on-secondary-container">
                           {p.stats.hadirCount} Hari
                         </td>
                         <td className="p-2 border-r border-slate-300 text-center">

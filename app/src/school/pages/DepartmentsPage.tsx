@@ -111,19 +111,6 @@ export function DepartmentsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Data Akademik</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Konsentrasi Keahlian
-          </span>
-        </div>
-
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

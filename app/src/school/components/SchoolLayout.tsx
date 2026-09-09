@@ -291,9 +291,9 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
   })();
 
   const drawerHeader = (
-    <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}>
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-md-primary text-[12px] font-semibold text-md-on-primary">{school.name.charAt(0).toUpperCase()}</div>
-      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-[13px] font-semibold text-md-on-surface">{school.name}</p><p className="mt-0.5 truncate text-[10.5px] text-md-on-surface-variant">{school.city || "Indonesia"}</p></div>}
+    <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-2.5"}`}>
+      <span className="size-2 shrink-0 rounded-full bg-md-primary shadow-[0_0_0_3px_rgba(0,113,227,.10)]" aria-hidden="true" />
+      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-[13px] font-semibold text-md-on-surface">{school.name}</p><p className="mt-0.5 truncate text-[10.5px] text-md-on-surface-variant">{school.city || "Portal Sekolah"}</p></div>}
     </div>
   );
 
@@ -304,6 +304,12 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     </div>
   );
 
+  const activeAcademicYear = school.activeAcademicYear;
+  const topBarContext = [
+    school.name,
+    activeAcademicYear ? `${activeAcademicYear.yearName} · ${activeAcademicYear.semester === "GANJIL" ? "Semester Ganjil" : "Semester Genap"}` : null,
+  ].filter(Boolean).join(" · ");
+
   return (
     <div className="min-h-screen bg-md-background text-md-on-background">
       <div className="flex min-h-screen">
@@ -311,7 +317,8 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         <div className="flex min-w-0 flex-1 flex-col">
           <M3TopAppBar
             leading={<M3Button variant="icon" size="icon-md" onClick={() => window.innerWidth < 1024 ? setMobileDrawerOpen(true) : toggleSidebar()} aria-label="Buka atau ciutkan navigasi" title="Navigasi (Ctrl+B)" icon={window.innerWidth < 1024 ? "menu" : isSidebarCollapsed ? "menu" : "menu_open"} />}
-            title={<div className="min-w-0"><p className="truncate text-[17px] font-semibold tracking-[-0.01em] text-md-on-surface">{getPageTitle(location.pathname)}</p><p className="hidden truncate text-[10.5px] text-md-on-surface-variant sm:block">{school.name}</p></div>}
+            title={getPageTitle(location.pathname)}
+            subtitle={topBarContext}
             actions={<>
               {isPlatformAdmin && <M3Button variant="tonal" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex">Ganti Sekolah</M3Button>}
               <M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} />

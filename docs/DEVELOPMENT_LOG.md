@@ -260,3 +260,28 @@ Release record:
 - Nginx dan `saas-satu.service` tetap active; backend tidak direstart pada rollout ini.
 
 Source of truth visual aktif: [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md). Nama internal komponen `M3*` dipertahankan sementara hanya sebagai compatibility API, bukan sebagai design-system authority.
+
+---
+
+## 9 September 2026: School OS final refinement
+
+Refinement visual final dilakukan setelah review langsung pada dashboard production.
+
+Perubahan utama:
+
+- sidebar menu beralih dari icon-first menjadi dot-marker navigation;
+- header besar Admin Sekolah di Beranda dihapus; konteks sekolah/tahun ajaran dipindahkan ke top toolbar;
+- dashboard Admin, Student, Teacher, dan DUDI Mentor dirombak menjadi stat strip + grouped panels ala macOS dengan data nyata;
+- Admin memperoleh statistik real untuk siswa, guru, rombel, LMS, mitra DUDI, dan PKL aktif;
+- Wali Kelas, Waka Kurikulum, dan Monitoring EWS mengikuti stat-card School OS yang sama;
+- breadcrumb redundan dihapus pada halaman school/PKL/governance/reports;
+- warna hard-coded module/status dinormalisasi ke semantic School OS palette;
+- default data contoh kepala sekolah, NIP, nomor surat, dan tujuan surat di Reports dihapus;
+- `getSchoolInfo` hanya ditambah field read-only `activeAcademicYear` untuk konteks toolbar; schema dan authorization tidak berubah.
+
+Quality gate sebelum release:
+
+- Wasp/TypeScript compile: PASS;
+- Wasp client tests: **67/67 PASS**;
+- `git diff --check`: PASS;
+- database schema diff: NONE.
