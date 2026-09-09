@@ -233,3 +233,30 @@ Quality gate awal:
 - `git diff --check`: PASS.
 
 Source of truth: [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md).
+
+---
+
+## 9 September 2026: Production Rollout School OS — Apple HIG
+
+Implementasi antarmuka **School OS** yang mengadaptasi Apple Human Interface Guidelines dipromosikan ke production secara static-only.
+
+Release record:
+
+- source commit: `818d1c7a89dc64b81b5cfdc78a52cd1211136146`;
+- branch implementasi: `redesign/apple-hig`;
+- static release: `/var/www/saas-satu/releases/818d1c7-school-os-hig`;
+- rollback static tetap tersedia: `/var/www/saas-satu/releases/6d23051-school-render-fix`;
+- backend tetap: `/home/ubuntu/deployments/SaaS_Satu/releases/678181a-dashboard-fix`;
+- database schema/migration dan backend authorization tidak berubah;
+- Wasp/TypeScript compile: PASS;
+- Wasp client tests: **67/67 PASS** pada 4 test files;
+- Wasp production build: PASS;
+- Vite SSR/client production build: PASS;
+- semantic primary web blue `#0071E3` dan semantic success/warning/error diuji dengan pasangan foreground utama dan memenuhi WCAG AA >= 4.5:1;
+- public `/`, `/login`, `/school`, CSS, dan JS release: HTTP 200;
+- HSTS, nosniff, SAMEORIGIN, dan referrer policy tetap aktif;
+- empat dashboard endpoint menolak request unauthenticated dengan HTTP 401;
+- tidak ditemukan HTTP 5xx pada window 3 menit setelah cutover;
+- Nginx dan `saas-satu.service` tetap active; backend tidak direstart pada rollout ini.
+
+Source of truth visual aktif: [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md). Nama internal komponen `M3*` dipertahankan sementara hanya sebagai compatibility API, bukan sebagai design-system authority.

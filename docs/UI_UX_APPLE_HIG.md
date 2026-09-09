@@ -190,3 +190,7 @@ Before production promotion:
 8. `/`, `/login`, and `/school` return 200 after static cutover;
 9. backend release remains unchanged for a frontend-only rollout;
 10. the previous static release remains available for rollback.
+
+## Status produksi
+
+School OS dipromosikan ke production pada 9 September 2026 dari source commit `818d1c7a89dc64b81b5cfdc78a52cd1211136146` melalui static release `818d1c7-school-os-hig`. Backend tetap menggunakan release `678181a-dashboard-fix`; tidak ada perubahan schema database.
