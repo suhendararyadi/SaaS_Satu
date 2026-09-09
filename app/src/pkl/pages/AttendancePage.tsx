@@ -188,8 +188,8 @@ export function AttendancePage({ user }: { user: AuthUser }) {
                 <div
                   className={`p-3 rounded-[16px] border flex items-center gap-3 ${
                     isInsideRadius
-                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200"
-                      : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200"
+                      ? "bg-md-secondary-container border-md-secondary/20 text-md-on-secondary-container"
+                      : "bg-md-tertiary-container border-md-tertiary/20 text-md-on-tertiary-container"
                   }`}
                 >
                   <M3Icon name="near_me" size={20} className="shrink-0" />

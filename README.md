@@ -1,12 +1,12 @@
 # SaaS Sistem Informasi Sekolah (Smart School Multi-Tenant)
 
 [![Wasp Framework](https://img.shields.io/badge/Wasp-v0.25.0-F9A03F.svg)](https://wasp.sh)
-[![Google Material 3](https://img.shields.io/badge/Design%20System-Google%20Material%203-12512E.svg)](https://m3.material.io)
+[![School OS](https://img.shields.io/badge/UI-School%20OS%20%7C%20HIG--inspired-007AFF.svg)](./docs/UI_UX_APPLE_HIG.md)
 [![Anti-Slop](https://img.shields.io/badge/Quality-Anti--Slop%20Verified-blue.svg)](./docs/ANTI_SLOP_GUIDELINES.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Passed-3178C6.svg)](https://www.typescriptlang.org/)
 [![Tests](https://img.shields.io/badge/Unit-67%2F67%20Passing-brightgreen.svg)](#pengujian)
 
-Platform Software-as-a-Service (SaaS) manajemen sekolah modern multi-tenant yang dibangun di atas framework full-stack **[Wasp](https://wasp.sh)**, **React 19**, **Node.js 24**, **Prisma ORM**, dan **PostgreSQL**. Mengusung sistem desain **Google Material 3 (Material You)** serta menerapkan standar kualitas tinggi **Anti-Slop (R-01 s/d R-38)**.
+Platform Software-as-a-Service (SaaS) manajemen sekolah modern multi-tenant yang dibangun di atas framework full-stack **[Wasp](https://wasp.sh)**, **React 19**, **Node.js 24**, **Prisma ORM**, dan **PostgreSQL**. Menggunakan **School OS**, sistem antarmuka web yang diadaptasi dari Apple Human Interface Guidelines dan prototipe School OS, serta menerapkan standar kualitas tinggi **Anti-Slop (R-01 s/d R-38)**.
 
 ---
 
@@ -46,7 +46,8 @@ Platform Software-as-a-Service (SaaS) manajemen sekolah modern multi-tenant yang
 Dokumentasi terperinci untuk arsitektur, panduan modul, desain sistem, dan catatan progres tersedia di folder [`docs/`](./docs):
 
 - 🏛️ [**Arsitektur & Desain Sistem (`docs/ARCHITECTURE.md`)**](./docs/ARCHITECTURE.md)
-- 🎨 [**Sistem Desain Google Material 3 (`docs/DESIGN_SYSTEM_M3.md`)**](./docs/DESIGN_SYSTEM_M3.md)
+- 🍎 [**School OS — Apple HIG-inspired UI (`docs/UI_UX_APPLE_HIG.md`)**](./docs/UI_UX_APPLE_HIG.md)
+- 🎨 [**Legacy Material 3/API compatibility reference (`docs/DESIGN_SYSTEM_M3.md`)**](./docs/DESIGN_SYSTEM_M3.md)
 - ✨ [**Rencana Redesign UI/UX v2 — Playful Academic (`docs/UI_UX_REDESIGN_PLAN_V2.md`)**](./docs/UI_UX_REDESIGN_PLAN_V2.md)
 - 🛡️ [**Pedoman Kualitas Anti-Slop (`docs/ANTI_SLOP_GUIDELINES.md`)**](./docs/ANTI_SLOP_GUIDELINES.md)
 - 📱 [**Panduan Alur & Modul Antarmuka (`docs/MODULES_GUIDE.md`)**](./docs/MODULES_GUIDE.md)

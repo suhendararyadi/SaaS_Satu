@@ -292,15 +292,15 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
 
   const drawerHeader = (
     <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}>
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-md-primary text-sm font-extrabold text-md-on-primary">{school.name.charAt(0).toUpperCase()}</div>
-      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-sm font-extrabold text-md-on-surface">{school.name}</p><p className="mt-0.5 truncate text-[11px] font-medium text-md-on-surface-variant">{school.city || "Indonesia"}</p></div>}
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-md-primary text-[12px] font-semibold text-md-on-primary">{school.name.charAt(0).toUpperCase()}</div>
+      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-[13px] font-semibold text-md-on-surface">{school.name}</p><p className="mt-0.5 truncate text-[10.5px] text-md-on-surface-variant">{school.city || "Indonesia"}</p></div>}
     </div>
   );
 
   const drawerFooter = (
     <div className={`${isSidebarCollapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-[12px] bg-md-secondary-container text-xs font-bold text-md-on-secondary-container">{(user.name || user.email || "U").charAt(0).toUpperCase()}</div>
-      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-xs font-bold text-md-on-surface">{user.name || user.username || user.email}</p><p className="text-[11px] text-md-on-surface-variant">{roleLabel(user)}</p></div>}
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-md-surface-container-high text-[10.5px] font-semibold text-md-on-surface-variant">{(user.name || user.email || "U").charAt(0).toUpperCase()}</div>
+      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-[12px] font-semibold text-md-on-surface">{user.name || user.username || user.email}</p><p className="text-[10.5px] text-md-on-surface-variant">{roleLabel(user)}</p></div>}
     </div>
   );
 
@@ -311,14 +311,14 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         <div className="flex min-w-0 flex-1 flex-col">
           <M3TopAppBar
             leading={<M3Button variant="icon" size="icon-md" onClick={() => window.innerWidth < 1024 ? setMobileDrawerOpen(true) : toggleSidebar()} aria-label="Buka atau ciutkan navigasi" title="Navigasi (Ctrl+B)" icon={window.innerWidth < 1024 ? "menu" : isSidebarCollapsed ? "menu" : "menu_open"} />}
-            title={<div className="min-w-0"><p className="truncate text-[17px] font-extrabold text-md-on-surface sm:text-[18px]">{getPageTitle(location.pathname)}</p><p className="hidden truncate text-[11px] text-md-on-surface-variant sm:block">{school.name}</p></div>}
+            title={<div className="min-w-0"><p className="truncate text-[17px] font-semibold tracking-[-0.01em] text-md-on-surface">{getPageTitle(location.pathname)}</p><p className="hidden truncate text-[10.5px] text-md-on-surface-variant sm:block">{school.name}</p></div>}
             actions={<>
               {isPlatformAdmin && <M3Button variant="tonal" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex">Ganti Sekolah</M3Button>}
               <M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} />
               <M3AccountMenu user={user} />
             </>}
           />
-          <main className="v2-mobile-safe-bottom mx-auto w-full max-w-[1440px] flex-1 p-4 sm:p-6 lg:p-8" id="main-content">{children}</main>
+          <main className="v2-mobile-safe-bottom mx-auto w-full max-w-[1600px] flex-1 p-4 sm:p-5 lg:px-7 lg:py-6" id="main-content">{children}</main>
         </div>
       </div>
       <M3BottomNavigation items={bottomItems.slice(0, 5)} />
@@ -326,12 +326,12 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       {isPlatformAdmin && (
         <M3Dialog isOpen={switcherOpen} onClose={() => setSwitcherOpen(false)} title="Ganti unit sekolah" subtitle="Pilih sekolah aktif. Semua operasi berikutnya tetap mengikuti konteks tenant yang dipilih." icon="corporate_fare" maxWidth="md" actions={<M3Button variant="text" onClick={() => setSwitcherOpen(false)}>Tutup</M3Button>}>
           <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
-            {regError && <div className="rounded-[12px] bg-md-error-container p-3 text-sm text-md-on-error-container" role="alert">{regError}</div>}
+            {regError && <div className="rounded-[10px] bg-md-error-container p-3 text-[13px] text-md-on-error-container" role="alert">{regError}</div>}
             {allSchools?.map((item: any) => {
               const active = item.id === school.id;
-              return <button key={item.id} type="button" disabled={active || isSwitching} onClick={() => handleSwitchSchool(item.id)} className={`flex min-h-14 w-full items-center gap-3 rounded-[14px] border p-3 text-left transition-colors ${active ? "border-md-primary/40 bg-md-primary-container/45" : "border-md-outline-variant hover:bg-md-surface-container-low"}`}>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-md-primary-container text-xs font-bold text-md-on-primary-container">{item.name.charAt(0).toUpperCase()}</span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-md-on-surface">{item.name}</span><span className="block truncate text-xs text-md-on-surface-variant">{item.city || "Indonesia"}</span></span>
+              return <button key={item.id} type="button" disabled={active || isSwitching} onClick={() => handleSwitchSchool(item.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-[10px] border p-2.5 text-left transition-colors ${active ? "border-md-primary/40 bg-md-primary-container/45" : "border-md-outline-variant hover:bg-md-surface-container-low"}`}>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-md-primary-container text-[11px] font-semibold text-md-primary">{item.name.charAt(0).toUpperCase()}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-md-on-surface">{item.name}</span><span className="block truncate text-[11px] text-md-on-surface-variant">{item.city || "Indonesia"}</span></span>
                 {active && <M3Badge variant="primary" size="sm">Aktif</M3Badge>}
               </button>;
             })}

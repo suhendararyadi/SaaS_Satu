@@ -1,6 +1,6 @@
 # Dokumentasi Sistem Informasi Sekolah (SaaS Multi-Tenant)
 
-Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, sebuah platform manajemen sekolah multi-tenant modern yang dibangun di atas framework full-stack [Wasp](https://wasp.sh), React, Node.js, Prisma ORM, dan PostgreSQL dengan sistem desain **Google Material 3 (Material You)** dan standar kualitas ketat **Anti-Slop**.
+Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, sebuah platform manajemen sekolah multi-tenant modern yang dibangun di atas framework full-stack [Wasp](https://wasp.sh), React, Node.js, Prisma ORM, dan PostgreSQL dengan sistem antarmuka aktif **School OS (Apple HIG-inspired)** dan standar kualitas ketat **Anti-Slop**.
 
 ---
 
@@ -12,13 +12,16 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Sistem otentikasi, perizinan (*Auth Guards*), dan hierarki peran pengguna (*User Roles*).
    - Konfigurasi router, queries, dan actions terdistribusi (`*.wasp.ts`).
 
-2. [**Sistem Desain Google Material 3 (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
-   - Peran token warna dinamis M3 (*Primary, Surface, Container, Outline, Error*).
-   - Skala tipografi standar M3 (*Display, Headline, Title, Body, Label*).
-   - Sistem bentuk M3 Expressive (*Pill buttons, 16px cards, 28px dialogs*).
-   - Katalog komponen M3 bawaan di `app/src/client/components/m3/`.
+2. [**School OS — Apple HIG-inspired UI (`UI_UX_APPLE_HIG.md`)**](./UI_UX_APPLE_HIG.md)
+   - Source of truth visual aktif untuk desktop dan mobile.
+   - System typography, semantic colors, translucent sidebar/toolbar, grouped surfaces, tables, sheets, and touch targets.
+   - Adaptasi dari Apple HIG dan prototipe `School OS.zip` tanpa menyalin data contoh ke production.
+   - Nama komponen `M3*` dipertahankan sementara sebagai API compatibility layer.
 
-3. [**Rencana Redesign UI/UX v2: Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
+3. [**Legacy Material 3 Reference (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
+   - Referensi historis implementasi UI awal; bukan source of truth visual aktif.
+
+4. [**Rencana Redesign UI/UX v2: Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
    - Source of truth untuk redesign antarmuka SaaS Satu v2.
    - Arah visual pendidikan tingkat menengah: modern, playful, fun, tetapi tetap profesional.
    - Design tokens v2, role-based UX, app shell, dashboard, responsive/mobile, accessibility, dan roadmap sprint.
@@ -26,13 +29,13 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Phase 0: [`UX_AUDIT_PHASE0_V2.md`](./UX_AUDIT_PHASE0_V2.md) dan [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md).
    - Implementasi aktual dan quality gate: [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md).
 
-4. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
+5. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
    - Penerapan aturan Anti-Slop (R-01 s/d R-38).
    - Standar salinan bahasa Indonesia baku edukasi (Kemdikbudristek).
    - Standar aksesibilitas (kontras warna WCAG AA >= 4.5:1, target sentuh 44px).
    - Rekap temuan audit pasca pengerjaan dan solusinya.
 
-5. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
+6. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
    - **Modul 1: Dasbor & Master Data** (Tahun Ajaran, Rombel Kelas, Jurusan, Pengaturan Sekolah, Super Admin).
    - **Modul 2: Kepegawaian & Kesiswaan (CRUD Manual & CSV)** (Manajemen Guru & Tendik, Data Siswa, Proteksi Kuota).
    - **Modul 3: Pembelajaran LMS & Kurikulum Merdeka** (Silabus otomatis Fase A-F, Materi, Tugas, Agenda KBM, Presensi, CBT).
@@ -40,7 +43,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - **Modul 5: Tata Kelola & Supervisi** (Guru Piket, Wali Kelas, Waka Kurikulum).
    - **Modul 6: Laporan & Cetak Dokumen Kedinasan** (KOP surat resmi berjenjang, Print stylesheet).
 
-6. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
+7. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
    - Kronologi lengkap setiap tahapan pengembangan dari awal hingga saat ini.
    - Detail keputusan teknis dan penyelesaian kendala implementasi.
    - Hasil pengujian otomatis per tahap, termasuk TypeScript, Wasp Unit Tests, dan riwayat E2E terdahulu bila tersedia.

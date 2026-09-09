@@ -207,3 +207,29 @@ Release record:
 - live static memuat asset v2 dengan Academic Indigo dan Inter.
 
 Rollback target tetap tersedia: `830008e-hardening`.
+
+---
+
+## 9 September 2026: School OS — Apple HIG-inspired UI
+
+SaaS Satu memigrasikan lapisan visual aktif dari Playful Academic v2 ke **School OS**, berdasarkan Apple Human Interface Guidelines dan prototipe `School OS.zip` yang diberikan pemilik produk.
+
+Keputusan utama:
+
+- implementasi dimulai dari baseline backend hotfix `678181a`, sehingga source v3 yang sebelumnya ditolak tidak terbawa;
+- desktop mengikuti pola macOS-like: sidebar 240px translucent, toolbar 58px, controls compact, grouped surfaces, subtle separators, dan data tables tetap dense;
+- mobile mengikuti pola iOS-like: touch target >= 44px untuk aksi utama, bottom navigation, safe-area support, dan dialog kontekstual sebagai bottom sheet;
+- font menggunakan system stack, tanpa membundel atau mendistribusikan font Apple;
+- warna aktif bersifat semantik: system blue, green, orange, red, grouped background, label, dan separator;
+- Material Symbols dipertahankan hanya sebagai web icon fallback dengan default outlined;
+- nama source component `M3*` dipertahankan sebagai compatibility layer untuk menghindari refactor berisiko;
+- role dashboards, tenant isolation, authorization matrix, data honesty, dan server DTO tidak diubah;
+- database schema/migration tidak berubah.
+
+Quality gate awal:
+
+- Wasp/TypeScript compilation: PASS;
+- client tests: **67/67 PASS** pada 4 test files;
+- `git diff --check`: PASS.
+
+Source of truth: [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md).

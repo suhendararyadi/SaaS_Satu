@@ -18,78 +18,37 @@ export interface M3ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const M3Button = forwardRef<HTMLButtonElement, M3ButtonProps>(
-  (
-    {
-      variant = "filled",
-      size = "md",
-      icon,
-      trailingIcon,
-      isLoading = false,
-      loading,
-      href,
-      target,
-      fullWidth = false,
-      disabled = false,
-      children,
-      className = "",
-      type = "button",
-      ...props
-    },
-    ref
-  ) => {
+  ({ variant = "filled", size = "md", icon, trailingIcon, isLoading = false, loading, href, target, fullWidth = false, disabled = false, children, className = "", type = "button", ...props }, ref) => {
     const isIconVariant = variant === "icon";
     const isSpinning = isLoading || !!loading;
-
     const variantStyles: Record<M3ButtonVariant, string> = {
-      filled:
-        "bg-md-primary text-md-on-primary shadow-[0_1px_2px_rgba(15,23,42,.12)] hover:bg-md-primary/92 active:bg-md-primary/84 focus-visible:ring-2 focus-visible:ring-md-primary focus-visible:ring-offset-2",
-      tonal:
-        "bg-md-primary-container text-md-on-primary-container hover:bg-md-primary-container/80 active:bg-md-primary-container/68 focus-visible:ring-2 focus-visible:ring-md-primary focus-visible:ring-offset-2",
-      elevated:
-        "bg-md-surface text-md-primary border border-md-outline-variant/60 shadow-[0_2px_8px_rgba(15,23,42,.08)] hover:bg-md-surface-container-low focus-visible:ring-2 focus-visible:ring-md-primary focus-visible:ring-offset-2",
-      outlined:
-        "border border-md-outline-variant bg-md-surface text-md-primary hover:bg-md-primary-container/35 active:bg-md-primary-container/55 focus-visible:ring-2 focus-visible:ring-md-primary focus-visible:ring-offset-2",
-      text:
-        "text-md-primary hover:bg-md-primary-container/40 active:bg-md-primary-container/60 focus-visible:ring-2 focus-visible:ring-md-primary",
-      danger:
-        "bg-md-error text-md-on-error hover:bg-md-error/90 active:bg-md-error/80 focus-visible:ring-2 focus-visible:ring-md-error focus-visible:ring-offset-2",
-      fab:
-        "bg-md-primary-container text-md-on-primary-container shadow-[0_4px_12px_rgba(15,23,42,.12)] hover:shadow-[0_6px_16px_rgba(15,23,42,.16)] focus-visible:ring-2 focus-visible:ring-md-primary focus-visible:ring-offset-2",
-      icon:
-        "text-md-on-surface-variant hover:bg-md-surface-container-high hover:text-md-on-surface active:bg-md-surface-container-highest focus-visible:ring-2 focus-visible:ring-md-primary",
+      filled: "bg-md-primary text-md-on-primary hover:bg-[#006ee6] active:bg-[#005fc7] shadow-[0_1px_2px_rgba(0,0,0,.08)]",
+      tonal: "bg-md-primary-container text-md-primary hover:bg-md-primary/16 active:bg-md-primary/22",
+      elevated: "bg-md-surface text-md-primary border border-md-outline-variant shadow-[0_1px_2px_rgba(0,0,0,.06)] hover:bg-md-surface-container-low",
+      outlined: "border border-md-outline bg-md-surface text-md-primary hover:bg-md-surface-container-low active:bg-md-surface-container",
+      text: "text-md-primary hover:bg-md-primary/8 active:bg-md-primary/14",
+      danger: "bg-md-error text-md-on-error hover:bg-[#e4332b] active:bg-[#c92c25]",
+      fab: "bg-md-primary text-md-on-primary shadow-[0_3px_12px_rgba(0,0,0,.16)] hover:bg-[#006ee6]",
+      icon: "text-md-on-surface-variant hover:bg-black/[.055] hover:text-md-on-surface active:bg-black/[.09] dark:hover:bg-white/[.08]",
     };
-
     const sizeStyles: Record<M3ButtonSize, string> = {
-      sm: isIconVariant ? "size-11 p-2.5" : "min-h-11 px-4 text-[13px] gap-2",
-      md: isIconVariant ? "size-11 p-2.5" : "min-h-11 px-5 text-sm gap-2",
-      lg: isIconVariant ? "size-12 p-3" : "min-h-12 px-6 text-[15px] gap-2.5",
-      "icon-sm": "size-11 p-2.5",
-      "icon-md": "size-11 p-2.5",
+      sm: isIconVariant ? "size-11 lg:size-8" : "min-h-11 px-3.5 text-[13px] gap-1.5 lg:min-h-8 lg:px-3",
+      md: isIconVariant ? "size-11 lg:size-8" : "min-h-11 px-4 text-[14px] gap-1.5 lg:min-h-[34px] lg:text-[13px]",
+      lg: isIconVariant ? "size-12 lg:size-9" : "min-h-12 px-5 text-[15px] gap-2 lg:min-h-9 lg:text-[14px]",
+      "icon-sm": "size-11 lg:size-8",
+      "icon-md": "size-11 lg:size-9",
     };
-
-    const radius = variant === "fab" ? "rounded-[16px]" : isIconVariant ? "rounded-[14px]" : "rounded-[12px]";
-    const baseClass = `inline-flex items-center justify-center font-semibold select-none touch-manipulation transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none ${radius} ${sizeStyles[size]} ${variantStyles[variant]} ${fullWidth ? "w-full" : ""} ${className}`;
-
-    const iconElement = typeof icon === "string" ? <M3Icon name={icon} size={size === "lg" ? 20 : 18} /> : icon;
-    const trailingIconElement = typeof trailingIcon === "string" ? <M3Icon name={trailingIcon} size={size === "lg" ? 20 : 18} /> : trailingIcon;
-    const content = (
-      <>
-        {isSpinning ? <span className="size-4 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden="true" /> : iconElement}
-        {children && <span>{children}</span>}
-        {trailingIconElement}
-      </>
-    );
-
+    const radius = variant === "fab" ? "rounded-[12px]" : isIconVariant ? "rounded-[8px]" : "rounded-[9px]";
+    const baseClass = `inline-flex items-center justify-center select-none touch-manipulation font-semibold transition-[background-color,color,box-shadow] duration-150 cursor-pointer disabled:pointer-events-none disabled:opacity-45 ${radius} ${sizeStyles[size]} ${variantStyles[variant]} ${fullWidth ? "w-full" : ""} ${className}`;
+    const iconElement = typeof icon === "string" ? <M3Icon name={icon} size={size === "lg" ? 19 : 17} /> : icon;
+    const trailingIconElement = typeof trailingIcon === "string" ? <M3Icon name={trailingIcon} size={size === "lg" ? 19 : 17} /> : trailingIcon;
+    const content = <>{isSpinning ? <span className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" /> : iconElement}{children && <span>{children}</span>}{trailingIconElement}</>;
     if (href && !disabled) {
       const isExternal = href.startsWith("http://") || href.startsWith("https://") || target === "_blank";
-      if (isExternal) {
-        return <a href={href} target={target} rel={target === "_blank" ? "noopener noreferrer" : undefined} className={baseClass}>{content}</a>;
-      }
+      if (isExternal) return <a href={href} target={target} rel={target === "_blank" ? "noopener noreferrer" : undefined} className={baseClass}>{content}</a>;
       return <Link to={href} className={baseClass}>{content}</Link>;
     }
-
     return <button ref={ref} type={type} disabled={disabled || isSpinning} aria-busy={isSpinning || undefined} className={baseClass} {...props}>{content}</button>;
   }
 );
-
 M3Button.displayName = "M3Button";

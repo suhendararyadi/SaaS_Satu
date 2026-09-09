@@ -21,7 +21,7 @@ export interface M3IconProps extends React.HTMLAttributes<HTMLSpanElement> {
   filled?: boolean;
   /** Grade axis (GRAD: -25 to 200). Default is 0. */
   grade?: -25 | 0 | 200 | number;
-  /** Material Symbols style variant (default: 'rounded') */
+  /** Web symbol style. Outlined is the default for the Apple HIG-inspired interface. */
   variant?: M3IconVariant;
   /** Accessible label */
   ariaLabel?: string;
@@ -42,8 +42,9 @@ function resolveOpsz(sizeVal: number | string): number {
 }
 
 /**
- * Official Google Material Design 3 Icon Component.
- * Supports Google Material Symbols variable font axes:
+ * Web symbol compatibility component. The Apple HIG-inspired UI uses a restrained
+ * outlined default while retaining Material Symbols as a cross-platform web fallback.
+ * Supports variable font axes:
  * - 'FILL': 0 (outline) or 1 (solid)
  * - 'wght': 100 to 700
  * - 'GRAD': -25 to 200
@@ -59,13 +60,13 @@ export function M3Icon({
   fill,
   filled,
   grade = 0,
-  variant = "rounded",
+  variant = "outlined",
   ariaLabel,
   ariaHidden,
   style,
   ...rest
 }: M3IconProps) {
-  // If a ReactNode icon is provided (e.g. Lucide icon), render it inside a standardized M3 container
+  // Custom ReactNode icons remain supported for feature-specific symbols.
   if (icon) {
     const numericSize =
       typeof size === "number" ? `${size}px` : size;
