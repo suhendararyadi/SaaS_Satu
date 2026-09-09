@@ -63,7 +63,7 @@ export const schoolSpec: Spec = [
     entities: ["User", "TeacherProfile", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
   }),
   query(getSchoolAdminDashboardData, {
-    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "Company", "Placement"],
+    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "LmsAttendanceSession", "LmsAttendanceRecord", "Company", "Placement"],
   }),
   query(getMentorDashboardData, {
     entities: ["User", "Placement", "Company", "DailyJournal"],

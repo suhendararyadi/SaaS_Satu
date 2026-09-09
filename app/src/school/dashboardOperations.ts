@@ -248,7 +248,8 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   const isAdmin = user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
   if (!isAdmin) throw new HttpError(403, "Dashboard ini hanya tersedia untuk administrator sekolah.");
 
-  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse] = await Promise.all([
+  const { start: todayStart, end: todayEnd } = jakartaDayBounds();
+  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, attendanceSessionCount] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
       select: { id: true, name: true, level: true, tier: true, studentQuota: true },
@@ -269,6 +270,21 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     prisma.user.count({
       where: { schoolId: user.schoolId, role: "TEACHER", teacherCourses: { none: {} } },
     }),
+    prisma.lmsAttendanceRecord.findMany({
+      where: {
+        session: {
+          date: { gte: todayStart, lte: todayEnd },
+          course: { schoolId: user.schoolId },
+        },
+      },
+      select: { status: true },
+    }),
+    prisma.lmsAttendanceSession.count({
+      where: {
+        date: { gte: todayStart, lte: todayEnd },
+        course: { schoolId: user.schoolId },
+      },
+    }),
   ]);
   if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
 
@@ -285,7 +301,18 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
       : []),
   ];
 
-  const percentage = school.studentQuota > 0 ? Math.min(100, Math.round((students / school.studentQuota) * 100)) : null;
+  const attendanceCounts = attendanceRecords.reduce(
+    (result, record) => {
+      if (record.status === "HADIR") result.hadir += 1;
+      else if (record.status === "SAKIT") result.sakit += 1;
+      else if (record.status === "IZIN") result.izin += 1;
+      else if (record.status === "ALPA") result.alpa += 1;
+      return result;
+    },
+    { hadir: 0, sakit: 0, izin: 0, alpa: 0 }
+  );
+  const attendanceTotal = attendanceCounts.hadir + attendanceCounts.sakit + attendanceCounts.izin + attendanceCounts.alpa;
+  const attendanceRate = attendanceTotal > 0 ? Math.round((attendanceCounts.hadir / attendanceTotal) * 100) : null;
 
   return {
     role: user.role === "SUPERADMIN" || user.isAdmin ? ("SUPERADMIN" as const) : ("SCHOOL_ADMIN" as const),
@@ -293,7 +320,13 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     academicYear,
     counts: { students, teachers, classRooms, lmsCourses, companies, placements },
     attention,
-    capacity: { studentCount: students, studentQuota: school.studentQuota, percentage },
+    attendance: {
+      dateKey: localDateKey(),
+      sessionCount: attendanceSessionCount,
+      totalRecords: attendanceTotal,
+      rate: attendanceRate,
+      ...attendanceCounts,
+    },
   };
 };
 

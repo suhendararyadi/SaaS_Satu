@@ -223,6 +223,12 @@ function AdminDashboard() {
   const data = query.data;
   const isVocational = !data.school.level || data.school.level === "SMA_SMK";
   const statColumns = isVocational ? "xl:grid-cols-6" : "xl:grid-cols-4";
+  const attendanceBreakdown: Array<{ label: string; value: number; tone: "success" | "neutral" | "warning" | "error" }> = [
+    { label: "Hadir", value: data.attendance.hadir, tone: "success" },
+    { label: "Sakit", value: data.attendance.sakit, tone: "neutral" },
+    { label: "Izin", value: data.attendance.izin, tone: "warning" },
+    { label: "Alpa", value: data.attendance.alpa, tone: "error" },
+  ];
 
   const quickLinks = [
     ["Data siswa", "/school/students"],
@@ -247,18 +253,39 @@ function AdminDashboard() {
         {isVocational && <M3StatCard label="PKL aktif" value={data.counts.placements} tone="green" href="/school/pkl/placements" />}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
-        <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="admin-attention-title">
-          <SectionTitle title="Perlu perhatian" note="Kondisi data yang perlu ditinjau admin." trailing={data.attention.length ? <M3Badge variant="warning">{data.attention.length}</M3Badge> : undefined} />
-          <div className="hig-list mt-4">
-            {data.attention.map((item: any) => <a key={item.code} href={item.destination} className="hig-list-row"><ListDot tone={item.severity === "warning" ? "warning" : "primary"} /><span className="min-w-0 flex-1 text-[13px] font-medium text-md-on-surface">{item.label}</span>{item.count !== null && <span className="text-[16px] font-semibold text-md-on-surface">{item.count}</span>}<span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
-            {!data.attention.length && <M3EmptyState compact icon="verified" title="Semua kondisi utama tertangani" description="Tidak ada masalah utama yang terdeteksi pada ringkasan data sekolah." />}
-          </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="attendance-title">
+          <SectionTitle
+            title="Kehadiran"
+            note={data.attendance.sessionCount > 0 ? `${data.attendance.sessionCount} sesi presensi tercatat hari ini` : "Belum ada sesi presensi LMS hari ini"}
+            trailing={data.attendance.rate !== null ? <span className="text-[24px] font-semibold tracking-[-0.035em] text-md-on-surface">{data.attendance.rate}%</span> : undefined}
+          />
+          {data.attendance.rate !== null ? (
+            <>
+              <M3LinearProgress value={data.attendance.rate} className="mt-5" />
+              <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 border-t border-md-outline-variant pt-4 sm:grid-cols-4">
+                {attendanceBreakdown.map((item) => (
+                  <div key={item.label} className="flex items-center gap-2.5">
+                    <ListDot tone={item.tone} />
+                    <div><p className="text-[10.5px] text-md-on-surface-variant">{item.label}</p><p className="mt-0.5 text-[18px] font-semibold text-md-on-surface">{item.value}</p></div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="mt-4 rounded-[10px] border border-md-outline-variant bg-md-surface-container-low px-3.5 py-3">
+              <p className="text-[12.5px] font-medium text-md-on-surface">Belum ada presensi tercatat</p>
+              <p className="mt-1 text-[11.5px] leading-5 text-md-on-surface-variant">Persentase akan muncul setelah guru mencatat presensi pada ruang LMS hari ini.</p>
+            </div>
+          )}
         </section>
 
-        <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="capacity-title">
-          <SectionTitle title="Kapasitas siswa" note={`${data.capacity.studentCount} dari ${data.capacity.studentQuota} kuota`} trailing={data.capacity.percentage !== null ? <span className="text-[18px] font-semibold tracking-[-0.02em] text-md-on-surface">{data.capacity.percentage}%</span> : undefined} />
-          {data.capacity.percentage !== null ? <><M3LinearProgress value={data.capacity.percentage} className="mt-5" /><div className="mt-4 grid grid-cols-2 gap-3 border-t border-md-outline-variant pt-4"><div><p className="text-[11px] text-md-on-surface-variant">Terdaftar</p><p className="mt-1 text-[20px] font-semibold text-md-on-surface">{data.capacity.studentCount}</p></div><div><p className="text-[11px] text-md-on-surface-variant">Sisa kuota</p><p className="mt-1 text-[20px] font-semibold text-md-on-surface">{Math.max(0, data.capacity.studentQuota - data.capacity.studentCount)}</p></div></div></> : <p className="mt-4 text-[12.5px] text-md-on-surface-variant">Persentase kapasitas belum tersedia.</p>}
+        <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="admin-decision-title">
+          <SectionTitle title="Perlu keputusan Anda" note="Hal yang memerlukan keputusan atau tindak lanjut admin." trailing={data.attention.length ? <M3Badge variant="warning">{data.attention.length}</M3Badge> : undefined} />
+          <div className="hig-list mt-4">
+            {data.attention.map((item: any) => <a key={item.code} href={item.destination} className="hig-list-row"><ListDot tone={item.severity === "warning" ? "warning" : "primary"} /><span className="min-w-0 flex-1 text-[13px] font-medium text-md-on-surface">{item.label}</span>{item.count !== null && <span className="text-[16px] font-semibold text-md-on-surface">{item.count}</span>}<span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+            {!data.attention.length && <M3EmptyState compact icon="verified" title="Tidak ada keputusan mendesak" description="Tidak ada kondisi utama yang memerlukan keputusan admin saat ini." />}
+          </div>
         </section>
       </div>
 

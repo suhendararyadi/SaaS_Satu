@@ -285,3 +285,15 @@ Quality gate sebelum release:
 - Wasp client tests: **67/67 PASS**;
 - `git diff --check`: PASS;
 - database schema diff: NONE.
+
+---
+
+## 9 September 2026: Dashboard Admin — Kehadiran & Keputusan
+
+Refinement School OS pada Beranda Admin mengganti panel kapasitas siswa dengan dua konteks operasional yang lebih relevan:
+
+- **Kehadiran** menampilkan persentase dan rincian HADIR/SAKIT/IZIN/ALPA berdasarkan record presensi LMS tenant pada hari berjalan (zona waktu Asia/Jakarta). Jika belum ada record, dashboard menampilkan state kosong dan tidak mengarang angka 0%;
+- **Perlu Keputusan Anda** menggunakan daftar attention server-side yang sudah tenant-scoped untuk menampilkan kondisi yang memerlukan keputusan atau tindak lanjut administrator;
+- `getSchoolAdminDashboardData` menambahkan agregat read-only dari `LmsAttendanceSession` dan `LmsAttendanceRecord` tanpa perubahan schema database atau authorization.
+
+Quality gate sebelum release: Wasp/TypeScript compile PASS, client tests **67/67 PASS**, dan `git diff --check` PASS.
