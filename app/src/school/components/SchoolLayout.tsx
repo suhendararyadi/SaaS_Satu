@@ -1,4 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from "react";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { type AuthUser } from "wasp/auth";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -321,7 +322,16 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         <M3NavigationDrawer sections={drawerSections} header={drawerHeader} footer={drawerFooter} isOpen={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} isCollapsed={isSidebarCollapsed} />
         <div className="flex min-w-0 flex-1 flex-col">
           <M3TopAppBar
-            leading={<M3Button variant="icon" size="icon-md" onClick={() => window.innerWidth < 1024 ? setMobileDrawerOpen(true) : toggleSidebar()} aria-label="Buka atau ciutkan navigasi" title="Navigasi (Ctrl+B)" icon={window.innerWidth < 1024 ? "menu" : isSidebarCollapsed ? "menu" : "menu_open"} />}
+            leading={(() => {
+              const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 1024;
+              const navigationLabel = isMobileViewport ? "Buka navigasi" : isSidebarCollapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar";
+              const navigationIcon = isMobileViewport
+                ? <Menu size={18} strokeWidth={1.8} aria-hidden="true" />
+                : isSidebarCollapsed
+                ? <PanelLeftOpen size={18} strokeWidth={1.75} aria-hidden="true" />
+                : <PanelLeftClose size={18} strokeWidth={1.75} aria-hidden="true" />;
+              return <M3Button variant="icon" size="icon-md" onClick={() => isMobileViewport ? setMobileDrawerOpen(true) : toggleSidebar()} aria-label={navigationLabel} title={`${navigationLabel} (Ctrl+B)`} icon={navigationIcon} className="text-md-on-surface-variant hover:text-md-on-surface" />;
+            })()}
             title={getPageTitle(location.pathname)}
             subtitle={topBarContext}
             actions={<>
