@@ -76,7 +76,7 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
     }
 
     return (
-      <Link key={item.href} to={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`mx-0.5 flex min-h-11 items-center gap-2.5 rounded-[8px] px-2.5 text-[14px] font-medium transition-colors lg:min-h-8 lg:text-[13px] ${active ? "bg-md-primary-container/65 text-md-on-surface" : "text-md-on-surface-variant hover:bg-black/[.04] hover:text-md-on-surface dark:hover:bg-white/[.055]"}`}>
+      <Link key={item.href} to={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`mx-0.5 flex min-h-11 items-center gap-2.5 rounded-[8px] px-2.5 text-[14px] font-medium transition-colors lg:min-h-8 lg:text-[13px] ${active ? "bg-md-primary-container/65 text-md-on-surface" : "text-md-on-surface hover:bg-black/[.04] dark:hover:bg-white/[.055]"}`}>
         <span className="flex size-[18px] shrink-0 items-center justify-center" aria-hidden="true">{renderDrawerIcon(item.icon, active)}</span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
         {item.badge !== undefined && <span className="min-w-5 rounded-[6px] bg-black/[.055] px-1.5 py-0.5 text-center text-[10px] font-semibold text-md-on-surface-variant dark:bg-white/[.08]">{item.badge}</span>}
