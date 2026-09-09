@@ -292,8 +292,13 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
 
   const drawerHeader = (
     <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-2.5"}`}>
-      <span className="size-2 shrink-0 rounded-full bg-md-primary shadow-[0_0_0_3px_rgba(0,113,227,.10)]" aria-hidden="true" />
-      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-[13px] font-semibold text-md-on-surface">{school.name}</p><p className="mt-0.5 truncate text-[10.5px] text-md-on-surface-variant">{school.city || "Portal Sekolah"}</p></div>}
+      {isSidebarCollapsed ? (
+        <span className="flex size-7 items-center justify-center rounded-[8px] bg-md-surface-container-high text-[11px] font-semibold text-md-on-surface-variant" aria-label={school.name}>
+          {school.name.charAt(0).toUpperCase()}
+        </span>
+      ) : (
+        <div className="min-w-0"><p className="truncate text-[13px] font-semibold text-md-on-surface">{school.name}</p><p className="mt-0.5 truncate text-[10.5px] text-md-on-surface-variant">{school.city || "Portal Sekolah"}</p></div>
+      )}
     </div>
   );
 
@@ -320,7 +325,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
             title={getPageTitle(location.pathname)}
             subtitle={topBarContext}
             actions={<>
-              {isPlatformAdmin && <M3Button variant="tonal" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex">Ganti Sekolah</M3Button>}
+              {isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}
               <M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} />
               <M3AccountMenu user={user} />
             </>}

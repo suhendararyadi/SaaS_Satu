@@ -21,6 +21,7 @@ import {
   M3Badge,
   M3CircularProgress,
   M3Banner,
+  M3EmptyState,
   M3Text,
   M3Icon,
 } from "../../client/components/m3";
@@ -295,15 +296,15 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
             <M3CircularProgress size={40} />
           </div>
         ) : filteredClasses?.length === 0 ? (
-          <M3Banner
-            variant="standard"
-            headline="Belum Ada Data Rombel Kelas"
-            supportingText="Tambahkan rombel kelas pertama Anda untuk mengorganisasikan data siswa dan presensi."
-            actionLabel={canManage ? "Tambah Kelas Baru" : undefined}
-            onAction={canManage ? openAddModal : undefined}
-            icon="meeting_room"
-            className="p-6"
-          />
+          <section className="hig-grouped-surface px-4 sm:px-5">
+            <M3EmptyState
+              icon="meeting_room"
+              title="Belum ada rombel kelas"
+              description="Tambahkan rombel pertama untuk mulai mengorganisasikan siswa, pembelajaran, dan presensi."
+              actionLabel={canManage ? "Tambah Kelas" : undefined}
+              onAction={canManage ? openAddModal : undefined}
+            />
+          </section>
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

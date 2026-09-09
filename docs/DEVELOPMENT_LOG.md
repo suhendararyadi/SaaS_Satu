@@ -297,3 +297,20 @@ Refinement School OS pada Beranda Admin mengganti panel kapasitas siswa dengan d
 - `getSchoolAdminDashboardData` menambahkan agregat read-only dari `LmsAttendanceSession` dan `LmsAttendanceRecord` tanpa perubahan schema database atau authorization.
 
 Quality gate sebelum release: Wasp/TypeScript compile PASS, client tests **67/67 PASS**, dan `git diff --check` PASS.
+
+---
+
+## 9 September 2026: School OS refinement — sidebar icons & grouped states
+
+Final visual refinement setelah review produksi:
+
+- sidebar desktop kembali memakai ikon navigasi, tetapi menggunakan Lucide stroke icons dengan ukuran/bobot restrained untuk mendekati karakter SF Symbols/macOS;
+- dot biru di identitas sekolah pada header sidebar dihapus;
+- aksi `Ganti Sekolah` di top bar diubah menjadi toolbar-style text action agar sejajar dengan kontrol macOS lain;
+- `M3EmptyState` diubah menjadi grouped-row state yang lebih ringan, tanpa icon tile Material;
+- `M3Banner` diubah menjadi compact inline notice dengan semantic tint tipis, border halus, dan text-style actions;
+- empty state `Belum ada rombel kelas` sekarang memakai grouped School OS state;
+- halaman `Organisasi Sekolah` dirombak dari tonal banner + card grid + ring biru menjadi grouped list ala macOS, dengan unit aktif, metadata ringkas, dan aksi `Beralih` di sisi kanan;
+- perubahan hanya pada frontend/shared visual components dan tests; backend, authorization, tenant scoping, schema, dan migration tidak berubah.
+
+Quality gate: Wasp/TypeScript compile PASS, client tests 67/67 PASS, `git diff --check` PASS.

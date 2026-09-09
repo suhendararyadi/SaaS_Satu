@@ -410,7 +410,7 @@ describe("Shared UI Components", () => {
       );
       const alertEl = screen.getByRole("alert");
       expect(alertEl).toBeInTheDocument();
-      expect(alertEl.className).toContain("bg-md-error-container");
+      expect(alertEl.className).toContain("bg-md-error/5");
       expect(screen.getByText("Koneksi GPS Terputus")).toBeInTheDocument();
     });
 
