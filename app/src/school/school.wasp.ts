@@ -8,6 +8,16 @@ import { StudentsPage } from "./pages/StudentsPage" with { type: "ref" };
 import { CsvImportPage } from "./pages/CsvImportPage" with { type: "ref" };
 import { AllSchoolsPage } from "./pages/AllSchoolsPage" with { type: "ref" };
 import { SchoolSettingsPage } from "./pages/SchoolSettingsPage" with { type: "ref" };
+import { WebsiteSchoolPage } from "./pages/WebsiteSchoolPage" with { type: "ref" };
+import { SchoolWebsitePreviewPage } from "./pages/SchoolWebsitePreviewPage" with { type: "ref" };
+import {
+  PublicSchoolHomePage,
+  PublicSchoolNewsIndexPage,
+  PublicSchoolNewsDetailPage,
+  PublicSchoolEventIndexPage,
+  PublicSchoolAnnouncementIndexPage,
+  PublicSchoolContentPage,
+} from "./pages/PublicSchoolWebsitePages" with { type: "ref" };
 
 import {
   getSchoolInfo,
@@ -47,6 +57,25 @@ import {
   importTeachersFromCsv,
   importCompaniesFromCsv,
 } from "./import/operations" with { type: "ref" };
+import {
+  getSchoolWebsiteAdmin,
+  initializeSchoolWebsite,
+  updateSchoolWebsiteSettings,
+  publishSchoolWebsite,
+  unpublishSchoolWebsite,
+  saveSchoolWebsiteContent,
+  setSchoolWebsiteContentStatus,
+  deleteSchoolWebsiteContent,
+  saveSchoolWebsiteNavItem,
+  deleteSchoolWebsiteNavItem,
+  saveSchoolWebsiteMedia,
+  deleteSchoolWebsiteMedia,
+  getPublicSchoolSite,
+  getPublicSchoolContent,
+  getSchoolWebsitePreview,
+} from "./websiteOperations" with { type: "ref" };
+
+const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "Department"] as const;
 
 export const schoolSpec: Spec = [
   query(getSchoolInfo, { entities: ["School", "User"] }),
@@ -68,6 +97,11 @@ export const schoolSpec: Spec = [
   query(getMentorDashboardData, {
     entities: ["User", "Placement", "Company", "DailyJournal"],
   }),
+
+  query(getSchoolWebsiteAdmin, { entities: [...websiteEntities] }),
+  query(getSchoolWebsitePreview, { entities: [...websiteEntities] }),
+  query(getPublicSchoolSite, { entities: [...websiteEntities] }),
+  query(getPublicSchoolContent, { entities: [...websiteEntities] }),
 
   action(registerSchool, { entities: ["School", "User", "AcademicYear"] }),
   action(updateSchoolInfo, { entities: ["School"] }),
@@ -91,6 +125,18 @@ export const schoolSpec: Spec = [
   action(switchActiveSchool, { entities: ["School", "User"] }),
   action(createSchoolByAdmin, { entities: ["School", "AcademicYear", "User"] }),
 
+  action(initializeSchoolWebsite, { entities: [...websiteEntities] }),
+  action(updateSchoolWebsiteSettings, { entities: [...websiteEntities] }),
+  action(publishSchoolWebsite, { entities: [...websiteEntities] }),
+  action(unpublishSchoolWebsite, { entities: [...websiteEntities] }),
+  action(saveSchoolWebsiteContent, { entities: [...websiteEntities] }),
+  action(setSchoolWebsiteContentStatus, { entities: [...websiteEntities] }),
+  action(deleteSchoolWebsiteContent, { entities: [...websiteEntities] }),
+  action(saveSchoolWebsiteNavItem, { entities: [...websiteEntities] }),
+  action(deleteSchoolWebsiteNavItem, { entities: [...websiteEntities] }),
+  action(saveSchoolWebsiteMedia, { entities: [...websiteEntities] }),
+  action(deleteSchoolWebsiteMedia, { entities: [...websiteEntities] }),
+
   route("SchoolDashboardRoute", "/school", page(SchoolDashboardPage, { authRequired: true })),
   route("DepartmentsRoute", "/school/departments", page(DepartmentsPage, { authRequired: true })),
   route("AcademicYearsRoute", "/school/academic-years", page(AcademicYearsPage, { authRequired: true })),
@@ -100,4 +146,13 @@ export const schoolSpec: Spec = [
   route("CsvImportRoute", "/school/import", page(CsvImportPage, { authRequired: true })),
   route("AllSchoolsRoute", "/school/admin/schools", page(AllSchoolsPage, { authRequired: true })),
   route("SchoolSettingsRoute", "/school/settings", page(SchoolSettingsPage, { authRequired: true })),
+  route("SchoolWebsiteRoute", "/school/website", page(WebsiteSchoolPage, { authRequired: true })),
+  route("SchoolWebsitePreviewRoute", "/school/website/preview", page(SchoolWebsitePreviewPage, { authRequired: true })),
+
+  route("PublicSchoolSiteRoute", "/site/:schoolSlug", page(PublicSchoolHomePage)),
+  route("PublicSchoolNewsRoute", "/site/:schoolSlug/berita", page(PublicSchoolNewsIndexPage)),
+  route("PublicSchoolNewsDetailRoute", "/site/:schoolSlug/berita/:slug", page(PublicSchoolNewsDetailPage)),
+  route("PublicSchoolEventRoute", "/site/:schoolSlug/agenda", page(PublicSchoolEventIndexPage)),
+  route("PublicSchoolAnnouncementRoute", "/site/:schoolSlug/pengumuman", page(PublicSchoolAnnouncementIndexPage)),
+  route("PublicSchoolContentRoute", "/site/:schoolSlug/:slug", page(PublicSchoolContentPage)),
 ];

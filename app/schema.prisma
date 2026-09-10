@@ -28,6 +28,37 @@ enum SchoolLevel {
   SMA_SMK
 }
 
+enum SchoolSiteStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CmsContentStatus {
+  DRAFT
+  IN_REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CmsContentType {
+  PAGE
+  NEWS
+  EVENT
+  ANNOUNCEMENT
+}
+
+enum SchoolSiteNavLocation {
+  HEADER
+  FOOTER
+}
+
+enum SchoolSiteNavType {
+  PAGE
+  ROUTE
+  EXTERNAL
+}
+
 model User {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -101,6 +132,10 @@ model School {
   placements    Placement[]
   lmsCourses    LmsCourse[]
   dutyReports   DutyTeacherReport[]
+  site          SchoolSite?
+  siteContents  SchoolSiteContent[]
+  siteNavItems  SchoolSiteNavItem[]
+  siteMedia     SchoolSiteMedia[]
 }
 
 model Department {
@@ -412,6 +447,96 @@ model DutyTeacherReport {
   notes              String?
 
   @@index([schoolId, date])
+}
+
+model SchoolSite {
+  id                    String           @id @default(uuid())
+  schoolId              String           @unique
+  school                School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  status                SchoolSiteStatus @default(DRAFT)
+  siteTitle             String
+  tagline               String?
+  heroTitle             String?
+  heroSubtitle          String?
+  heroImageUrl          String?
+  defaultSeoTitle       String?
+  defaultSeoDescription String?
+  themePreset           String           @default("CLEAN_SCHOOL")
+  robotsIndex           Boolean          @default(false)
+  publicEmail           String?
+  publicPhone           String?
+  socialLinks           Json?
+  publishedAt           DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+model SchoolSiteContent {
+  id               String           @id @default(uuid())
+  schoolId         String
+  school           School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  type             CmsContentType
+  title            String
+  slug             String
+  excerpt          String?
+  contentBlocks    Json
+  coverImageUrl    String?
+  category         String?
+  status           CmsContentStatus @default(DRAFT)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  location         String?
+  priority         Int              @default(0)
+  showInNavigation Boolean          @default(false)
+  navigationLabel  String?
+  navigationOrder  Int?
+  seoTitle         String?
+  seoDescription   String?
+  publishedAt      DateTime?
+  scheduledAt      DateTime?
+  createdById      String
+  updatedById      String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([schoolId, type, slug])
+  @@index([schoolId, type, status])
+  @@index([schoolId, status, scheduledAt])
+  @@index([schoolId, publishedAt])
+}
+
+model SchoolSiteNavItem {
+  id        String                @id @default(uuid())
+  schoolId  String
+  school    School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  location  SchoolSiteNavLocation
+  label     String
+  type      SchoolSiteNavType
+  contentId String?
+  href      String?
+  order     Int                   @default(0)
+  isVisible Boolean               @default(true)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@index([schoolId, location, order])
+}
+
+model SchoolSiteMedia {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  fileId      String?
+  url         String
+  altText     String
+  caption     String?
+  width       Int?
+  height      Int?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([schoolId, createdAt])
 }
 
 model GptResponse {

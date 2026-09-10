@@ -32,6 +32,8 @@ interface SchoolLayoutProps { user: AuthUser; children: ReactNode }
 
 const pageTitles: Array<[string, string]> = [
   ["/school/admin/schools", "Organisasi Sekolah"],
+  ["/school/website/preview", "Pratinjau Website"],
+  ["/school/website", "Website Sekolah"],
   ["/school/academic-years", "Tahun Ajaran"],
   ["/school/departments", "Jurusan & Konsentrasi"],
   ["/school/classes", "Kelas & Rombel"],
@@ -55,15 +57,6 @@ const pageTitles: Array<[string, string]> = [
 
 function getPageTitle(pathname: string) {
   return pageTitles.find(([path]) => path === "/school" ? pathname === path : pathname.startsWith(path))?.[1] ?? "Portal Sekolah";
-}
-
-function roleLabel(user: AuthUser) {
-  if (user.isAdmin || user.role === "SUPERADMIN") return "Super Admin";
-  if (user.role === "SCHOOL_ADMIN") return "Admin Sekolah";
-  if (user.role === "TEACHER") return "Guru";
-  if (user.role === "STUDENT") return "Siswa";
-  if (user.role === "DUDI_MENTOR") return "Pembimbing DUDI";
-  return "Pengguna";
 }
 
 function SchoolShellLoading() {
@@ -240,6 +233,9 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" },
         { label: "Early Warning", href: "/school/ews", icon: "warning" },
       ] });
+      sections.push({ title: "PUBLIKASI", items: [
+        { label: "Website Sekolah", href: "/school/website", icon: "language" },
+      ] });
       sections.push({ title: "TATA KELOLA", items: [
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
         { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
@@ -311,60 +307,37 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
 
   const drawerHeader = isSidebarCollapsed ? (
     <div className="flex flex-col items-center gap-2">
-      <span
-        className="flex size-10 items-center justify-center rounded-full bg-[#DDF3F5] text-[#287C83] shadow-[inset_0_0_0_1px_rgba(0,0,0,.035)] dark:bg-[#173C40] dark:text-[#6CD6DE]"
-        aria-label={school.name}
-        title={school.name}
-      >
+      <span className="flex size-10 items-center justify-center rounded-full bg-[#DDF3F5] text-[#287C83] shadow-[inset_0_0_0_1px_rgba(0,0,0,.035)] dark:bg-[#173C40] dark:text-[#6CD6DE]" aria-label={school.name} title={school.name}>
         <M3Icon name="school" size={21} weight={300} />
       </span>
       {sidebarToggleButton}
     </div>
   ) : (
     <div className="flex min-w-0 items-center gap-3">
-      <span
-        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#DDF3F5] text-[#287C83] shadow-[inset_0_0_0_1px_rgba(0,0,0,.035)] dark:bg-[#173C40] dark:text-[#6CD6DE]"
-        aria-hidden="true"
-      >
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#DDF3F5] text-[#287C83] shadow-[inset_0_0_0_1px_rgba(0,0,0,.035)] dark:bg-[#173C40] dark:text-[#6CD6DE]" aria-hidden="true">
         <M3Icon name="school" size={23} weight={300} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14.5px] font-semibold leading-5 tracking-[-0.01em] text-md-on-surface" title={school.name}>{school.name}</p>
-        <p className="mt-0.5 truncate text-[11.5px] leading-4 text-md-on-surface-variant">
-          {school.city ? `Unit sekolah aktif · ${school.city}` : "Unit sekolah aktif"}
-        </p>
+        <p className="mt-0.5 truncate text-[11.5px] leading-4 text-md-on-surface-variant">{school.city ? `Unit sekolah aktif · ${school.city}` : "Unit sekolah aktif"}</p>
       </div>
       {sidebarToggleButton}
     </div>
   );
 
-  const drawerFooter = (
-    <div className={`${isSidebarCollapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
-      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-md-surface-container-high text-[10.5px] font-semibold text-md-on-surface-variant">{(user.name || user.email || "U").charAt(0).toUpperCase()}</div>
-      {!isSidebarCollapsed && <div className="min-w-0"><p className="truncate text-[12px] font-semibold text-md-on-surface">{user.name || user.username || user.email}</p><p className="text-[10.5px] text-md-on-surface-variant">{roleLabel(user)}</p></div>}
-    </div>
-  );
-
   const activeAcademicYear = school.activeAcademicYear;
-  const topBarContext = [
-    school.name,
-    activeAcademicYear ? `${activeAcademicYear.yearName} · ${activeAcademicYear.semester === "GANJIL" ? "Semester Ganjil" : "Semester Genap"}` : null,
-  ].filter(Boolean).join(" · ");
+  const topBarContext = [school.name, activeAcademicYear ? `${activeAcademicYear.yearName} · ${activeAcademicYear.semester === "GANJIL" ? "Semester Ganjil" : "Semester Genap"}` : null].filter(Boolean).join(" · ");
 
   return (
     <div className="min-h-screen bg-md-background text-md-on-background">
       <div className="flex min-h-screen">
-        <M3NavigationDrawer sections={drawerSections} header={drawerHeader} footer={drawerFooter} isOpen={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} isCollapsed={isSidebarCollapsed} />
+        <M3NavigationDrawer sections={drawerSections} header={drawerHeader} isOpen={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} isCollapsed={isSidebarCollapsed} />
         <div className="flex min-w-0 flex-1 flex-col">
           <M3TopAppBar
             leading={<M3Button variant="icon" size="icon-md" onClick={() => setMobileDrawerOpen(true)} aria-label="Buka navigasi" title="Buka navigasi" icon={<Menu size={18} strokeWidth={1.8} aria-hidden="true" />} className="text-md-on-surface-variant hover:text-md-on-surface lg:hidden" />}
             title={getPageTitle(location.pathname)}
             subtitle={topBarContext}
-            actions={<>
-              {isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}
-              <M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} />
-              <M3AccountMenu user={user} />
-            </>}
+            actions={<>{isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}<M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} /><M3AccountMenu user={user} /></>}
           />
           <main className="v2-mobile-safe-bottom mx-auto w-full max-w-[1600px] flex-1 p-4 sm:p-5 lg:px-7 lg:py-6" id="main-content">{children}</main>
         </div>
@@ -377,11 +350,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
             {regError && <div className="rounded-[10px] bg-md-error-container p-3 text-[13px] text-md-on-error-container" role="alert">{regError}</div>}
             {allSchools?.map((item: any) => {
               const active = item.id === school.id;
-              return <button key={item.id} type="button" disabled={active || isSwitching} onClick={() => handleSwitchSchool(item.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-[10px] border p-2.5 text-left transition-colors ${active ? "border-md-primary/40 bg-md-primary-container/45" : "border-md-outline-variant hover:bg-md-surface-container-low"}`}>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-md-primary-container text-[11px] font-semibold text-md-primary">{item.name.charAt(0).toUpperCase()}</span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-md-on-surface">{item.name}</span><span className="block truncate text-[11px] text-md-on-surface-variant">{item.city || "Indonesia"}</span></span>
-                {active && <M3Badge variant="primary" size="sm">Aktif</M3Badge>}
-              </button>;
+              return <button key={item.id} type="button" disabled={active || isSwitching} onClick={() => handleSwitchSchool(item.id)} className={`flex min-h-12 w-full items-center gap-3 rounded-[10px] border p-2.5 text-left transition-colors ${active ? "border-md-primary/40 bg-md-primary-container/45" : "border-md-outline-variant hover:bg-md-surface-container-low"}`}><span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-md-primary-container text-[11px] font-semibold text-md-primary">{item.name.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-md-on-surface">{item.name}</span><span className="block truncate text-[11px] text-md-on-surface-variant">{item.city || "Indonesia"}</span></span>{active && <M3Badge variant="primary" size="sm">Aktif</M3Badge>}</button>;
             })}
           </div>
         </M3Dialog>
