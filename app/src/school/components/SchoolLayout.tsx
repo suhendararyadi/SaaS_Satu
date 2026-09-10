@@ -266,7 +266,10 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     } else if (isDudiMentor) {
       sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "Early Warning", href: "/school/ews", icon: "warning" }] });
     }
-    if (isPlatformAdmin) sections.push({ title: "SUPER ADMIN", items: [{ label: "Organisasi Sekolah", href: "/school/admin/schools", icon: "corporate_fare" }] });
+    if (isPlatformAdmin) sections.push({ title: "SUPER ADMIN", items: [
+      ...(user.isAdmin ? [{ label: "Dashboard Super Admin", href: "/admin", icon: "verified_user" }] : []),
+      { label: "Organisasi Sekolah", href: "/school/admin/schools", icon: "corporate_fare" },
+    ] });
     return sections;
   })();
 

@@ -35,6 +35,16 @@ export function M3AccountMenu({ user }: { user: AuthUser }) {
           <p className="truncate text-[11px] text-md-on-surface-variant">{user.email}</p>
         </div>
         <DropdownMenuSeparator />
+        {user.isAdmin && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link to="/admin" className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px]">
+                <M3Icon name="admin_panel_settings" size={17} />Dashboard Super Admin
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem asChild><Link to="/account" className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px]"><M3Icon name="person" size={17} />Akun Saya</Link></DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => logout()} className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px] text-md-error focus:text-md-error"><M3Icon name="logout" size={17} />Keluar</DropdownMenuItem>
