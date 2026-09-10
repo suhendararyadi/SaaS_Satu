@@ -3,6 +3,7 @@ import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { requireSchoolAdmin } from "./authGuards";
+import { isFileUploadConfigured } from "../file-upload/config";
 import {
   assertCmsTenant,
   cmsContentStatusSchema,
@@ -10,6 +11,8 @@ import {
   contentBlocksToText,
   isAnnouncementActive,
   isCmsContentPublic,
+  landingSectionsSchema,
+  normalizeLandingSections,
   navLocationSchema,
   navTypeSchema,
   slugifyCms,
@@ -58,6 +61,36 @@ function publicDepartments(items: Array<{ id: string; code: string; name: string
   });
 }
 
+function jsonSnapshot(value: unknown) {
+  return JSON.parse(JSON.stringify(value ?? {}));
+}
+
+function serializeSite(site: any) {
+  if (!site) return null;
+  return { ...site, landingSections: normalizeLandingSections(site.landingSections) };
+}
+
+async function recordRevision({
+  schoolId, resourceType, resourceId, action, snapshot, createdById,
+}: {
+  schoolId: string; resourceType: "SITE" | "CONTENT" | "NAV" | "MEDIA"; resourceId?: string | null; action: string; snapshot: unknown; createdById: string;
+}) {
+  return prisma.schoolSiteRevision.create({
+    data: { schoolId, resourceType, resourceId: resourceId ?? null, action, snapshot: jsonSnapshot(snapshot), createdById },
+  });
+}
+
+function normalizeSocialLinks(value: Record<string, string | null | undefined> | null | undefined): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!value) return result;
+  for (const [key, href] of Object.entries(value)) {
+    const trimmed = href?.trim();
+    if (!trimmed) continue;
+    result[key] = validateExternalHref(trimmed);
+  }
+  return result;
+}
+
 async function requireTenantContent(id: string, schoolId: string) {
   const item = await prisma.schoolSiteContent.findUnique({ where: { id } });
   if (!item) throw new HttpError(404, "Konten website tidak ditemukan.");
@@ -81,7 +114,7 @@ async function requireTenantMedia(id: string, schoolId: string) {
 
 export const getSchoolWebsiteAdmin = async (_args: unknown, context: SchoolContext) => {
   const user = requireSchoolAdmin(context);
-  const [school, site, contents, navItems, media] = await Promise.all([
+  const [school, site, contents, navItems, media, revisions] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
       select: { id: true, name: true, slug: true, logoUrl: true, address: true, city: true, province: true, email: true, phone: true, departments: { select: { id: true, code: true, name: true }, orderBy: { code: "asc" } } },
@@ -90,6 +123,7 @@ export const getSchoolWebsiteAdmin = async (_args: unknown, context: SchoolConte
     prisma.schoolSiteContent.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ type: "asc" }, { updatedAt: "desc" }] }),
     prisma.schoolSiteNavItem.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ location: "asc" }, { order: "asc" }, { label: "asc" }] }),
     prisma.schoolSiteMedia.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "desc" }, take: 100 }),
+    prisma.schoolSiteRevision.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "desc" }, take: 60 }),
   ]);
   if (!school) throw new HttpError(404, "Sekolah aktif tidak ditemukan.");
 
@@ -99,13 +133,22 @@ export const getSchoolWebsiteAdmin = async (_args: unknown, context: SchoolConte
     return acc;
   }, {});
 
+  const actorIds = [...new Set(revisions.map((item: any) => item.createdById))];
+  const actors = actorIds.length ? await prisma.user.findMany({
+    where: { id: { in: actorIds }, schoolId: user.schoolId },
+    select: { id: true, name: true, email: true },
+  }) : [];
+  const actorById = new Map(actors.map((item: any) => [item.id, item]));
+
   return {
     school,
-    site,
+    site: serializeSite(site),
     contents: contents.map(serializeContent),
     navItems,
     media,
     counts,
+    revisions: revisions.map((item: any) => ({ ...item, actor: actorById.get(item.createdById) ?? null })),
+    mediaUploadEnabled: isFileUploadConfigured(),
     publicUrl: `${PUBLIC_ORIGIN}/site/${school.slug}`,
   };
 };
@@ -120,6 +163,12 @@ const siteSettingsSchema = z.object({
   defaultSeoDescription: z.string().trim().max(180).optional().nullable(),
   publicEmail: z.string().trim().email().optional().nullable().or(z.literal("")),
   publicPhone: z.string().trim().max(40).optional().nullable(),
+  socialLinks: z.object({
+    instagram: z.string().max(1200).optional().nullable(),
+    youtube: z.string().max(1200).optional().nullable(),
+    facebook: z.string().max(1200).optional().nullable(),
+    tiktok: z.string().max(1200).optional().nullable(),
+  }).optional().nullable(),
   themePreset: z.enum(["CLEAN_SCHOOL", "EDITORIAL", "CAMPUS"]).default("CLEAN_SCHOOL"),
   robotsIndex: z.boolean().default(false),
 });
@@ -128,7 +177,7 @@ export const initializeSchoolWebsite = async (_args: unknown, context: SchoolCon
   const user = requireSchoolAdmin(context);
   const school = await prisma.school.findUnique({ where: { id: user.schoolId }, select: { name: true, email: true, phone: true } });
   if (!school) throw new HttpError(404, "Sekolah aktif tidak ditemukan.");
-  return prisma.schoolSite.upsert({
+  const site = await prisma.schoolSite.upsert({
     where: { schoolId: user.schoolId },
     update: {},
     create: {
@@ -138,14 +187,17 @@ export const initializeSchoolWebsite = async (_args: unknown, context: SchoolCon
       tagline: "Website resmi sekolah",
       publicEmail: school.email,
       publicPhone: school.phone,
+      landingSections: normalizeLandingSections(null),
     },
   });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "SITE", resourceId: site.id, action: "INITIALIZE_SITE", snapshot: serializeSite(site), createdById: user.id });
+  return serializeSite(site);
 };
 
 export const updateSchoolWebsiteSettings = async (rawArgs: unknown, context: SchoolContext) => {
   const user = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(siteSettingsSchema, rawArgs);
-  return prisma.schoolSite.upsert({
+  const site = await prisma.schoolSite.upsert({
     where: { schoolId: user.schoolId },
     update: {
       siteTitle: args.siteTitle,
@@ -157,6 +209,7 @@ export const updateSchoolWebsiteSettings = async (rawArgs: unknown, context: Sch
       defaultSeoDescription: nullableTrimmed(args.defaultSeoDescription),
       publicEmail: nullableTrimmed(args.publicEmail),
       publicPhone: nullableTrimmed(args.publicPhone),
+      socialLinks: normalizeSocialLinks(args.socialLinks),
       themePreset: args.themePreset,
       robotsIndex: args.robotsIndex,
     },
@@ -171,10 +224,26 @@ export const updateSchoolWebsiteSettings = async (rawArgs: unknown, context: Sch
       defaultSeoDescription: nullableTrimmed(args.defaultSeoDescription),
       publicEmail: nullableTrimmed(args.publicEmail),
       publicPhone: nullableTrimmed(args.publicPhone),
+      socialLinks: normalizeSocialLinks(args.socialLinks),
       themePreset: args.themePreset,
       robotsIndex: args.robotsIndex,
     },
   });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "SITE", resourceId: site.id, action: "UPDATE_SETTINGS", snapshot: serializeSite(site), createdById: user.id });
+  return serializeSite(site);
+};
+
+const landingSectionsInputSchema = z.object({ sections: landingSectionsSchema });
+
+export const updateSchoolWebsiteLandingSections = async (rawArgs: unknown, context: SchoolContext) => {
+  const user = requireSchoolAdmin(context);
+  const { sections } = ensureArgsSchemaOrThrowHttpError(landingSectionsInputSchema, rawArgs);
+  const normalized = normalizeLandingSections(sections);
+  const site = await prisma.schoolSite.findUnique({ where: { schoolId: user.schoolId } });
+  if (!site) throw new HttpError(404, "Website sekolah belum diinisialisasi.");
+  const updated = await prisma.schoolSite.update({ where: { schoolId: user.schoolId }, data: { landingSections: normalized } });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "SITE", resourceId: updated.id, action: "UPDATE_LANDING", snapshot: serializeSite(updated), createdById: user.id });
+  return serializeSite(updated);
 };
 
 export const publishSchoolWebsite = async (_args: unknown, context: SchoolContext) => {
@@ -182,14 +251,18 @@ export const publishSchoolWebsite = async (_args: unknown, context: SchoolContex
   const site = await prisma.schoolSite.findUnique({ where: { schoolId: user.schoolId } });
   if (!site) throw new HttpError(400, "Inisialisasi website dan simpan identitas terlebih dahulu.");
   if (!site.siteTitle.trim()) throw new HttpError(400, "Judul website wajib diisi sebelum publikasi.");
-  return prisma.schoolSite.update({ where: { schoolId: user.schoolId }, data: { status: "PUBLISHED", publishedAt: site.publishedAt ?? new Date() } });
+  const updated = await prisma.schoolSite.update({ where: { schoolId: user.schoolId }, data: { status: "PUBLISHED", publishedAt: site.publishedAt ?? new Date() } });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "SITE", resourceId: updated.id, action: "PUBLISH_SITE", snapshot: serializeSite(updated), createdById: user.id });
+  return serializeSite(updated);
 };
 
 export const unpublishSchoolWebsite = async (_args: unknown, context: SchoolContext) => {
   const user = requireSchoolAdmin(context);
   const site = await prisma.schoolSite.findUnique({ where: { schoolId: user.schoolId } });
   if (!site) throw new HttpError(404, "Website sekolah belum diinisialisasi.");
-  return prisma.schoolSite.update({ where: { schoolId: user.schoolId }, data: { status: "DRAFT" } });
+  const updated = await prisma.schoolSite.update({ where: { schoolId: user.schoolId }, data: { status: "DRAFT" } });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "SITE", resourceId: updated.id, action: "UNPUBLISH_SITE", snapshot: serializeSite(updated), createdById: user.id });
+  return serializeSite(updated);
 };
 
 const contentInputSchema = z.object({
@@ -250,12 +323,14 @@ export const saveSchoolWebsiteContent = async (rawArgs: unknown, context: School
   if (args.id) {
     await requireTenantContent(args.id, user.schoolId);
     const updated = await prisma.schoolSiteContent.update({ where: { id: args.id }, data });
+    await recordRevision({ schoolId: user.schoolId, resourceType: "CONTENT", resourceId: updated.id, action: "UPDATE_CONTENT", snapshot: serializeContent(updated), createdById: user.id });
     return serializeContent(updated);
   }
 
   const created = await prisma.schoolSiteContent.create({
     data: { ...data, schoolId: user.schoolId, createdById: user.id },
   });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "CONTENT", resourceId: created.id, action: "CREATE_CONTENT", snapshot: serializeContent(created), createdById: user.id });
   return serializeContent(created);
 };
 
@@ -269,20 +344,24 @@ export const setSchoolWebsiteContentStatus = async (rawArgs: unknown, context: S
   const user = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(contentStatusSchema, rawArgs);
   const item = await requireTenantContent(args.id, user.schoolId);
+  let updated;
   if (args.status === "SCHEDULED") {
     const scheduledAt = parseOptionalDate(args.scheduledAt, "Jadwal publikasi");
     if (!scheduledAt || scheduledAt <= new Date()) throw new HttpError(400, "Jadwal publikasi harus berada di waktu mendatang.");
-    return prisma.schoolSiteContent.update({ where: { id: item.id }, data: { status: "SCHEDULED", scheduledAt, updatedById: user.id } });
+    updated = await prisma.schoolSiteContent.update({ where: { id: item.id }, data: { status: "SCHEDULED", scheduledAt, updatedById: user.id } });
+  } else {
+    updated = await prisma.schoolSiteContent.update({
+      where: { id: item.id },
+      data: {
+        status: args.status,
+        scheduledAt: null,
+        publishedAt: args.status === "PUBLISHED" ? item.publishedAt ?? new Date() : item.publishedAt,
+        updatedById: user.id,
+      },
+    });
   }
-  return prisma.schoolSiteContent.update({
-    where: { id: item.id },
-    data: {
-      status: args.status,
-      scheduledAt: null,
-      publishedAt: args.status === "PUBLISHED" ? item.publishedAt ?? new Date() : item.publishedAt,
-      updatedById: user.id,
-    },
-  });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "CONTENT", resourceId: updated.id, action: `STATUS_${args.status}`, snapshot: serializeContent(updated), createdById: user.id });
+  return serializeContent(updated);
 };
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -294,6 +373,7 @@ export const deleteSchoolWebsiteContent = async (rawArgs: unknown, context: Scho
   if (item.publishedAt || item.status === "PUBLISHED" || item.status === "SCHEDULED") {
     throw new HttpError(409, "Konten yang pernah atau sedang dipublikasikan tidak dapat dihapus permanen. Arsipkan konten tersebut.");
   }
+  await recordRevision({ schoolId: user.schoolId, resourceType: "CONTENT", resourceId: item.id, action: "DELETE_DRAFT", snapshot: serializeContent(item), createdById: user.id });
   await prisma.schoolSiteContent.delete({ where: { id } });
   return { ok: true };
 };
@@ -332,15 +412,20 @@ export const saveSchoolWebsiteNavItem = async (rawArgs: unknown, context: School
   const data = { location: args.location, label: args.label, type: args.type, contentId, href, order: args.order, isVisible: args.isVisible };
   if (args.id) {
     await requireTenantNav(args.id, user.schoolId);
-    return prisma.schoolSiteNavItem.update({ where: { id: args.id }, data });
+    const updated = await prisma.schoolSiteNavItem.update({ where: { id: args.id }, data });
+    await recordRevision({ schoolId: user.schoolId, resourceType: "NAV", resourceId: updated.id, action: "UPDATE_NAV", snapshot: updated, createdById: user.id });
+    return updated;
   }
-  return prisma.schoolSiteNavItem.create({ data: { ...data, schoolId: user.schoolId } });
+  const created = await prisma.schoolSiteNavItem.create({ data: { ...data, schoolId: user.schoolId } });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "NAV", resourceId: created.id, action: "CREATE_NAV", snapshot: created, createdById: user.id });
+  return created;
 };
 
 export const deleteSchoolWebsiteNavItem = async (rawArgs: unknown, context: SchoolContext) => {
   const user = requireSchoolAdmin(context);
   const { id } = ensureArgsSchemaOrThrowHttpError(idSchema, rawArgs);
-  await requireTenantNav(id, user.schoolId);
+  const item = await requireTenantNav(id, user.schoolId);
+  await recordRevision({ schoolId: user.schoolId, resourceType: "NAV", resourceId: item.id, action: "DELETE_NAV", snapshot: item, createdById: user.id });
   await prisma.schoolSiteNavItem.delete({ where: { id } });
   return { ok: true };
 };
@@ -362,15 +447,20 @@ export const saveSchoolWebsiteMedia = async (rawArgs: unknown, context: SchoolCo
   const data = { url, altText: args.altText, caption: nullableTrimmed(args.caption), width: args.width ?? null, height: args.height ?? null };
   if (args.id) {
     await requireTenantMedia(args.id, user.schoolId);
-    return prisma.schoolSiteMedia.update({ where: { id: args.id }, data });
+    const updated = await prisma.schoolSiteMedia.update({ where: { id: args.id }, data });
+    await recordRevision({ schoolId: user.schoolId, resourceType: "MEDIA", resourceId: updated.id, action: "UPDATE_MEDIA", snapshot: updated, createdById: user.id });
+    return updated;
   }
-  return prisma.schoolSiteMedia.create({ data: { ...data, schoolId: user.schoolId, createdById: user.id } });
+  const created = await prisma.schoolSiteMedia.create({ data: { ...data, schoolId: user.schoolId, createdById: user.id } });
+  await recordRevision({ schoolId: user.schoolId, resourceType: "MEDIA", resourceId: created.id, action: "CREATE_MEDIA", snapshot: created, createdById: user.id });
+  return created;
 };
 
 export const deleteSchoolWebsiteMedia = async (rawArgs: unknown, context: SchoolContext) => {
   const user = requireSchoolAdmin(context);
   const { id } = ensureArgsSchemaOrThrowHttpError(idSchema, rawArgs);
-  await requireTenantMedia(id, user.schoolId);
+  const item = await requireTenantMedia(id, user.schoolId);
+  await recordRevision({ schoolId: user.schoolId, resourceType: "MEDIA", resourceId: item.id, action: "DELETE_MEDIA", snapshot: item, createdById: user.id });
   await prisma.schoolSiteMedia.delete({ where: { id } });
   return { ok: true };
 };
@@ -419,7 +509,7 @@ export const getPublicSchoolSite = async (rawArgs: unknown) => {
 
   return {
     school: { id: school.id, name: school.name, slug: school.slug, logoUrl: school.logoUrl, address: school.address, city: school.city, province: school.province, departments: publicDepartments(school.departments) },
-    site: school.site,
+    site: serializeSite(school.site),
     pages: pages.map(serializeContent),
     news: news.map(serializeContent),
     events: events.map(serializeContent),
@@ -444,7 +534,7 @@ export const getPublicSchoolContent = async (rawArgs: unknown) => {
     where: { schoolId_type_slug: { schoolId: school.id, type: args.type, slug: args.slug } },
   });
   if (!item || !isCmsContentPublic(item, now) || (item.type === "ANNOUNCEMENT" && !isAnnouncementActive(item, now))) throw new HttpError(404, "Konten tidak ditemukan atau belum dipublikasikan.");
-  return { school: { name: school.name, slug: school.slug, logoUrl: school.logoUrl }, site: school.site, content: serializeContent(item) };
+  return { school: { name: school.name, slug: school.slug, logoUrl: school.logoUrl }, site: serializeSite(school.site), content: serializeContent(item) };
 };
 
 export const getSchoolWebsitePreview = async (_args: unknown, context: SchoolContext) => {
@@ -456,5 +546,5 @@ export const getSchoolWebsitePreview = async (_args: unknown, context: SchoolCon
     prisma.schoolSiteMedia.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "desc" }, take: 12 }),
   ]);
   if (!school) throw new HttpError(404, "Sekolah aktif tidak ditemukan.");
-  return { school: { ...school, departments: publicDepartments(school.departments) }, site, contents: contents.map(serializeContent), media };
+  return { school: { ...school, departments: publicDepartments(school.departments) }, site: serializeSite(site), contents: contents.map(serializeContent), media };
 };

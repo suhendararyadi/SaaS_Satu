@@ -6,6 +6,58 @@ export const schoolSiteStatusSchema = z.enum(["DRAFT", "PUBLISHED"]);
 export const navLocationSchema = z.enum(["HEADER", "FOOTER"]);
 export const navTypeSchema = z.enum(["PAGE", "ROUTE", "EXTERNAL"]);
 
+export const landingSectionTypeSchema = z.enum([
+  "HERO",
+  "QUICK_LINKS",
+  "ANNOUNCEMENTS",
+  "ABOUT",
+  "PROGRAMS",
+  "NEWS",
+  "EVENTS",
+  "GALLERY",
+  "CONTACT",
+]);
+
+export const landingSectionSchema = z.object({
+  type: landingSectionTypeSchema,
+  enabled: z.boolean().default(true),
+});
+
+export const landingSectionsSchema = z.array(landingSectionSchema).min(1).max(9);
+export type LandingSection = z.infer<typeof landingSectionSchema>;
+
+export const DEFAULT_LANDING_SECTIONS: LandingSection[] = [
+  { type: "HERO", enabled: true },
+  { type: "QUICK_LINKS", enabled: true },
+  { type: "ANNOUNCEMENTS", enabled: true },
+  { type: "ABOUT", enabled: true },
+  { type: "PROGRAMS", enabled: true },
+  { type: "NEWS", enabled: true },
+  { type: "EVENTS", enabled: true },
+  { type: "GALLERY", enabled: true },
+  { type: "CONTACT", enabled: true },
+];
+
+export function normalizeLandingSections(value: unknown): LandingSection[] {
+  const parsed = landingSectionsSchema.safeParse(value);
+  const source = parsed.success ? parsed.data : [];
+  const seen = new Set<string>();
+  const normalized: LandingSection[] = [];
+
+  for (const item of source) {
+    if (seen.has(item.type)) continue;
+    seen.add(item.type);
+    normalized.push({ type: item.type, enabled: item.enabled });
+  }
+
+  for (const item of DEFAULT_LANDING_SECTIONS) {
+    if (seen.has(item.type)) continue;
+    normalized.push({ ...item });
+  }
+
+  return normalized;
+}
+
 export const contentBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("heading"), text: z.string().trim().min(1).max(180) }),
   z.object({ type: z.literal("paragraph"), text: z.string().trim().min(1).max(4000) }),

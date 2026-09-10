@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { contentBlocksToText, isAnnouncementActive, isCmsContentPublic, sameCmsTenant, slugifyCms, textToContentBlocks } from "./websitePolicyCore";
+import {
+  contentBlocksToText,
+  DEFAULT_LANDING_SECTIONS,
+  isAnnouncementActive,
+  isCmsContentPublic,
+  normalizeLandingSections,
+  sameCmsTenant,
+  slugifyCms,
+  textToContentBlocks,
+} from "./websitePolicyCore";
 
 describe("website CMS policy", () => {
   it("creates stable tenant-safe slugs", () => {
@@ -31,5 +40,18 @@ describe("website CMS policy", () => {
     const blocks = textToContentBlocks(raw);
     expect(blocks.map((b) => b.type)).toEqual(["heading", "paragraph", "quote", "callout"]);
     expect(contentBlocksToText(blocks)).toContain("## Profil");
+  });
+
+  it("normalizes landing sections without duplicates and preserves missing defaults", () => {
+    const result = normalizeLandingSections([
+      { type: "NEWS", enabled: false },
+      { type: "HERO", enabled: true },
+      { type: "NEWS", enabled: true },
+    ]);
+    expect(result[0]).toEqual({ type: "NEWS", enabled: false });
+    expect(result[1]).toEqual({ type: "HERO", enabled: true });
+    expect(result.filter((item) => item.type === "NEWS")).toHaveLength(1);
+    expect(result).toHaveLength(DEFAULT_LANDING_SECTIONS.length);
+    expect(result.map((item) => item.type)).toContain("CONTACT");
   });
 });

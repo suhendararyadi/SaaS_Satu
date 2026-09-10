@@ -1,4 +1,4 @@
-import { action, page, query, route, type Spec } from "@wasp.sh/spec";
+import { action, api, page, query, route, type Spec } from "@wasp.sh/spec";
 import { SchoolDashboardPage } from "./pages/SchoolDashboardPage" with { type: "ref" };
 import { DepartmentsPage } from "./pages/DepartmentsPage" with { type: "ref" };
 import { AcademicYearsPage } from "./pages/AcademicYearsPage" with { type: "ref" };
@@ -61,6 +61,7 @@ import {
   getSchoolWebsiteAdmin,
   initializeSchoolWebsite,
   updateSchoolWebsiteSettings,
+  updateSchoolWebsiteLandingSections,
   publishSchoolWebsite,
   unpublishSchoolWebsite,
   saveSchoolWebsiteContent,
@@ -74,8 +75,9 @@ import {
   getPublicSchoolContent,
   getSchoolWebsitePreview,
 } from "./websiteOperations" with { type: "ref" };
+import { schoolSiteSitemapApi } from "./websitePublicApi" with { type: "ref" };
 
-const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "Department"] as const;
+const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
 
 export const schoolSpec: Spec = [
   query(getSchoolInfo, { entities: ["School", "User"] }),
@@ -127,6 +129,7 @@ export const schoolSpec: Spec = [
 
   action(initializeSchoolWebsite, { entities: [...websiteEntities] }),
   action(updateSchoolWebsiteSettings, { entities: [...websiteEntities] }),
+  action(updateSchoolWebsiteLandingSections, { entities: [...websiteEntities] }),
   action(publishSchoolWebsite, { entities: [...websiteEntities] }),
   action(unpublishSchoolWebsite, { entities: [...websiteEntities] }),
   action(saveSchoolWebsiteContent, { entities: [...websiteEntities] }),
@@ -148,6 +151,8 @@ export const schoolSpec: Spec = [
   route("SchoolSettingsRoute", "/school/settings", page(SchoolSettingsPage, { authRequired: true })),
   route("SchoolWebsiteRoute", "/school/website", page(WebsiteSchoolPage, { authRequired: true })),
   route("SchoolWebsitePreviewRoute", "/school/website/preview", page(SchoolWebsitePreviewPage, { authRequired: true })),
+
+  api("GET", "/site/:schoolSlug/sitemap.xml", schoolSiteSitemapApi, { entities: [...websiteEntities], auth: false }),
 
   route("PublicSchoolSiteRoute", "/site/:schoolSlug", page(PublicSchoolHomePage)),
   route("PublicSchoolNewsRoute", "/site/:schoolSlug/berita", page(PublicSchoolNewsIndexPage)),

@@ -136,6 +136,7 @@ model School {
   siteContents  SchoolSiteContent[]
   siteNavItems  SchoolSiteNavItem[]
   siteMedia     SchoolSiteMedia[]
+  siteRevisions SchoolSiteRevision[]
 }
 
 model Department {
@@ -466,6 +467,7 @@ model SchoolSite {
   publicEmail           String?
   publicPhone           String?
   socialLinks           Json?
+  landingSections       Json?
   publishedAt           DateTime?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
@@ -537,6 +539,22 @@ model SchoolSiteMedia {
   updatedAt   DateTime @updatedAt
 
   @@index([schoolId, createdAt])
+}
+
+
+model SchoolSiteRevision {
+  id           String   @id @default(uuid())
+  schoolId     String
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  resourceType String
+  resourceId   String?
+  action       String
+  snapshot     Json
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, resourceType, resourceId, createdAt])
 }
 
 model GptResponse {
