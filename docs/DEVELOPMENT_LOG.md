@@ -482,3 +482,51 @@ Rollout:
 - rollback target tetap `5fac63e-dashboard-rombel` untuk backend dan static.
 
 Tidak ada schema migration atau mutation data production pada rollout ini. NPM audit masih melaporkan dependency debt yang sudah ada; rollout tidak diklaim audit-clean.
+
+
+---
+
+## 10 September 2026 — Dashboard attendance label alignment & sidebar palette polish
+
+Refinement lanjutan dilakukan pada Beranda Admin dan navigation drawer berdasarkan review visual production.
+
+Implementasi:
+
+- akar ketidakrapian **Kehadiran per rombel** adalah kolom nama yang sebelumnya memakai lebar `auto` serta suffix kode jurusan yang hanya ditambahkan pada sebagian rombel; akibatnya titik awal progress bar berbeda antarbaris;
+- row attendance sekarang memakai fixed-width label lane (`104px`, `132px` pada breakpoint lebih besar), flexible progress lane, dan fixed numeric lane sehingga semua bar sejajar;
+- label yang terlihat hanya menggunakan nama rombel yang dinormalisasi whitespace dan ditruncate satu baris; informasi kode jurusan tetap dapat tersedia melalui tooltip/ARIA tanpa mengubah lebar visual;
+- tombol **Import data** pada header dashboard dan shortcut **Import data** pada `Kelola cepat` dihapus; halaman/fitur `/school/import` tetap tersedia melalui sidebar;
+- `M3NavigationDrawer` mendapat explicit mapping untuk `account_tree` dan `warning`, sehingga keduanya tidak lagi menggunakan fallback abu-abu;
+- icon tile Mitra DUDI, Laporan, Pengaturan, dan fallback juga diberi variasi cyan/blue/purple/indigo agar sidebar lebih hidup tetapi tetap mengikuti prinsip Apple/macOS yang restrained.
+
+Implementasi aplikasi: `d16662a` — `refine(school): align attendance labels and sidebar colors`.
+
+Quality gate dan build:
+
+- TypeScript `tsc --noEmit`: PASS;
+- full Vitest: **68/68 PASS** pada 4 test files;
+- `git diff --check`: PASS;
+- Wasp 0.25.0 compile/build: PASS setelah build environment tidak memaksakan `NODE_ENV=production` pada tahap dependency/compile agar devDependencies build tidak ter-prune;
+- Prisma Client 5.19.1 generation: PASS;
+- generated server bundle: PASS;
+- Vite SSR + client production build dengan `REACT_APP_API_URL=https://sekolah.suhendararyadi.com`: PASS;
+- static artifact memuat fixed-width attendance lane dan tidak memuat `Import data` pada dashboard chunk;
+- schema/migrations: tidak berubah.
+
+Rollout:
+
+- immutable release: `d16662a-dashboard-sidebar-polish`;
+- bounded deploy preflight: PASS;
+- backend current -> `/home/ubuntu/deployments/SaaS_Satu/releases/d16662a-dashboard-sidebar-polish`;
+- static current -> `/var/www/saas-satu/releases/d16662a-dashboard-sidebar-polish`;
+- `saas-satu.service`: active;
+- public `/school`: HTTP 200;
+- public `/login`: HTTP 200;
+- unauthenticated POST Admin Dashboard operation: HTTP 401;
+- active dashboard bundle tidak mengandung `Import data` dan mengandung fixed attendance label lane;
+- active CSS memuat palette sidebar tambahan;
+- recent service log check tidak menemukan 5xx/error baru;
+- deploy function dipanggil ulang dan mengembalikan `idempotent: true`;
+- rollback target: `6f5d9b2-ews-apple-monitoring`.
+
+Tidak ada schema migration atau mutation data production. Dependency audit debt yang telah ada sebelumnya tetap dicatat dan rollout tidak diklaim audit-clean.

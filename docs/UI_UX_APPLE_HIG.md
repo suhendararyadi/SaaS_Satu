@@ -216,8 +216,8 @@ The original School OS baseline was promoted on 9 September 2026 and then refine
 
 Current pointers verified from the server on 10 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`;
-- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
+- active static release: `/var/www/saas-satu/releases/d16662a-dashboard-sidebar-polish`;
+- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/d16662a-dashboard-sidebar-polish`;
 - `saas-satu.service`: active/running.
 
 The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
@@ -255,3 +255,17 @@ The current production refinement extends the Apple HIG-inspired contract into o
 - EWS is a prioritization aid, not an automatic disciplinary decision. UI copy must keep the distinction between a detected signal and a verified school decision.
 
 Related implementation commits: `af4bf88` and `6f5d9b2`.
+
+
+## 16. Dashboard label alignment and sidebar palette refinement — 10 September 2026
+
+The School OS shell applies the following refinement after production review:
+
+- attendance rows use a fixed label lane, flexible progress lane, and fixed numeric lane so bars start and end consistently regardless of class-name length;
+- the visible attendance label is the canonical class-room name only; department information may remain in tooltip/accessibility context instead of being conditionally appended to only some rows;
+- long class-room names truncate to one line rather than changing the geometry of neighboring progress bars;
+- Admin Dashboard no longer exposes `Import Data` as a header action or `Kelola cepat` shortcut; the dedicated sidebar entry remains the intentional navigation path for that feature;
+- sidebar icon tiles should not default visually to gray when a semantic icon exists. The current palette intentionally mixes Apple-like blue, indigo, cyan, green, orange, pink, purple, and red while keeping labels and surfaces neutral;
+- `account_tree` and `warning` require explicit icon/tone mappings, and common system items such as reports/settings should also use deliberate tones instead of repeated gray fallback.
+
+Related implementation commit: `d16662a`.

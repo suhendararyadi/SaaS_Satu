@@ -30,39 +30,41 @@ Refinement visual terbaru yang sudah menjadi bagian dari branch ini:
 - label menu sidebar diperkuat menjadi near-black agar sesuai referensi Finder/macOS;
 - navigation drawer kemudian disempurnakan lagi mengikuti komposisi sidebar jendela Settings macOS;
 - grouped surfaces, compact toolbar, thin separators, data-dense tables, dan real-data-only dashboard tetap menjadi prinsip utama;
-- panel Admin **Kehadiran per rombel** tetap memilih maksimal 5 rombel prioritas dengan persentase hadir terendah pada hari berjalan, tetapi menampilkannya dari persentase yang lebih tinggi ke yang lebih rendah; nilai tanpa data tidak diperlakukan sebagai 0%;
+- panel Admin **Kehadiran per rombel** tetap memilih maksimal 5 rombel prioritas dengan persentase hadir terendah pada hari berjalan, lalu menampilkannya dari persentase yang lebih tinggi ke yang lebih rendah; lane nama rombel sekarang berlebar tetap agar seluruh bar sejajar, nama utama ditampilkan tanpa suffix jurusan kondisional, dan nama lengkap tetap tersedia sebagai tooltip/accessibility label; nilai tanpa data tidak diperlakukan sebagai 0%;
 - ranking kehadiran dinormalisasi dengan persentase, bukan jumlah absen mentah, agar rombel dengan ukuran/jumlah sesi berbeda tetap dapat dibandingkan secara adil; jumlah ketidakhadiran dipakai sebagai tie-breaker saat pemilihan prioritas;
 - tiga posisi teratas dari rombel terukur menggunakan biru, posisi kedua terbawah jingga, dan posisi terbawah merah; rombel tanpa data tetap netral agar tidak memberi sinyal risiko palsu;
 - panel **Perlu keputusan Anda** memakai icon tile bergaya macOS dan sekarang juga memuat ringkasan Early Warning System (EWS) PKL bila ada sinyal nyata;
 - halaman **`/school/ews`** menjadi hub EWS dengan ringkasan prioritas, siswa/penempatan terdampak, sumber sinyal, dan tautan tindak lanjut;
 - halaman **`/school/pkl/monitoring`** dipoles menjadi grouped surface/list-row Apple HIG-inspired yang lebih ringkas dan langsung mengarah ke bukti presensi/jurnal;
-- lifecycle fokus `M3Dialog` diperbaiki agar controlled input tidak kehilangan fokus/caret ketika dialog parent re-render saat pengguna mengetik.
+- lifecycle fokus `M3Dialog` diperbaiki agar controlled input tidak kehilangan fokus/caret ketika dialog parent re-render saat pengguna mengetik;
+- tombol/shortcut **Import Data** dihilangkan dari Beranda Admin agar header dan area Kelola cepat lebih bersih; fitur Import Data tetap tersedia dari sidebar;
+- palette icon tile sidebar diperluas: `account_tree` dan `warning` tidak lagi jatuh ke fallback abu-abu, sedangkan Mitra DUDI, Laporan, Pengaturan, dan fallback memakai warna Apple-like yang lebih bervariasi namun tetap restrained.
 
-Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, dan `6f5d9b2`.
+Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, `6f5d9b2`, dan `d16662a`.
 
 ## 3. Snapshot production terakhir yang terverifikasi
 
 Domain School OS: `https://sekolah.suhendararyadi.com`.
 
-Pada 10 September 2026, release EWS + Apple monitoring terbaru telah dipromosikan dan diverifikasi sebagai production aktif:
+Pada 10 September 2026, release dashboard/sidebar polish terbaru telah dipromosikan dan diverifikasi sebagai production aktif:
 
-- static web: `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`;
-- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
-- commit aplikasi yang dideploy: `6f5d9b27b48ede1881904f7cc9572dc32ff09c04`;
+- static web: `/var/www/saas-satu/releases/d16662a-dashboard-sidebar-polish`;
+- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/d16662a-dashboard-sidebar-polish`;
+- commit aplikasi yang dideploy: `d16662a73b3b1f085bbf340247ec39caa276ac84`;
 - `saas-satu.service`: **active/running**;
 - public `/school`: HTTP 200;
 - public `/login`: HTTP 200;
-- public `/school/ews`: HTTP 200;
-- public `/school/pkl/monitoring`: HTTP 200;
 - unauthenticated POST Admin Dashboard operation: HTTP 401;
-- unauthenticated POST EWS operation: HTTP 401;
-- bundle production memuat halaman `Early Warning System` dan refinement dua rombel terbawah;
+- bundle dashboard production tidak lagi memuat tombol/shortcut `Import data`;
+- bundle dashboard memuat fixed-width attendance label lane sehingga progress bar rombel sejajar;
+- CSS production memuat palette sidebar tambahan Apple-like (purple/cyan/orange) untuk mengurangi fallback abu-abu;
+- recent service log verification tidak menemukan 5xx/error baru;
 - deploy function dijalankan ulang dan mengembalikan `idempotent: true`.
 
 Rollback target yang dipertahankan:
 
-- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
-- static: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`.
+- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
+- static: `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`.
 
 Schema/migrations tidak berubah dan deployment ini tidak melakukan mutation data.
 
