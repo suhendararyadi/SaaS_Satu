@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { access, lstat, readlink, realpath, symlink, rename, unlink } from 'node:fs/promises';
+import { access, lstat, realpath, symlink, rename, unlink } from 'node:fs/promises';
 import { constants as fsConstants } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
@@ -78,7 +78,16 @@ async function resolvedSymlink(path, root) {
 
 function assertBackendAuthRuntime(backend) {
   const probe = `
-    import { PrismaClient } from '@prisma/client';
+    const requiredPackages = ['lucia', '@lucia-auth/adapter-prisma', 'pg-boss'];
+    const missingPackages = [];
+    for (const name of requiredPackages) {
+      try { await import(name); } catch { missingPackages.push(name); }
+    }
+    if (missingPackages.length) {
+      console.error('missing backend runtime packages: ' + missingPackages.join(','));
+      process.exit(41);
+    }
+    const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
     const required = ['user', 'auth', 'session'];
     const missing = required.filter((name) => typeof prisma[name] !== 'object');
@@ -89,7 +98,7 @@ function assertBackendAuthRuntime(backend) {
     }
   `;
   const result = run(NODE_RUNTIME, ['--input-type=module', '-e', probe], { allowFailure: true, cwd: `${backend}/app` });
-  if (result.code !== 0) fail(result.stderr || result.stdout || 'Prisma auth runtime validation failed');
+  if (result.code !== 0) fail(result.stderr || result.stdout || 'Backend runtime validation failed');
 }
 
 async function preflight(release, expectedCommit, { requireBackendRuntime = true } = {}) {
