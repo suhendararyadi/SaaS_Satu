@@ -297,7 +297,6 @@ function AdminDashboard() {
   const lowestMeasuredIndex = measuredIndexes.at(-1);
   const secondLowestMeasuredIndex = measuredIndexes.at(-2);
   const isVocational = !data.school.level || data.school.level === "SMA_SMK";
-  const statColumns = isVocational ? "xl:grid-cols-6" : "xl:grid-cols-4";
   const quickLinks = [
     ["Data siswa", "/school/students"],
     ["Guru & tendik", "/school/teachers"],
@@ -311,13 +310,16 @@ function AdminDashboard() {
     <div className="space-y-5">
       <DashboardIntro title="Ringkasan sekolah" note="Statistik operasional terkini berdasarkan data sekolah aktif." />
 
-      <div className={`grid gap-3 sm:grid-cols-2 md:grid-cols-3 ${statColumns}`}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <M3StatCard label="Siswa" value={data.counts.students} tone="blue" href="/school/students" />
-        <M3StatCard label="Guru" value={data.counts.teachers} tone="teal" href="/school/teachers" />
+        <M3StatCard label="Guru & Tendik" value={data.counts.teachers} tone="teal" href="/school/teachers" />
         <M3StatCard label="Rombel" value={data.counts.classRooms} tone="indigo" href="/school/classes" />
-        <M3StatCard label="Ruang LMS" value={data.counts.lmsCourses} tone="blue" href="/school/lms/courses" />
-        {isVocational && <M3StatCard label="Mitra DUDI" value={data.counts.companies} tone="orange" href="/school/pkl/companies" />}
-        {isVocational && <M3StatCard label="PKL aktif" value={data.counts.placements} tone="green" href="/school/pkl/placements" />}
+        <M3StatCard
+          label="Kehadiran hari ini"
+          value={data.attendance.rate !== null ? `${formatAttendanceRate(data.attendance.rate)}%` : "—"}
+          tone={data.attendance.rate !== null && data.attendance.rate < 90 ? "orange" : "green"}
+          helper={data.attendance.sessionCount > 0 ? `${data.attendance.sessionCount} sesi presensi` : "Belum ada sesi presensi"}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
