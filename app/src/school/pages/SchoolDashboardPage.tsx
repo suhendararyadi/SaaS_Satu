@@ -126,9 +126,14 @@ function formatAttendanceRate(rate: number) {
   return new Intl.NumberFormat("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(rate);
 }
 
-function ClassAttendanceRow({ item }: { item: any }) {
+function ClassAttendanceRow({ item, tone = "primary" }: { item: any; tone?: "primary" | "warning" | "error" }) {
   const hasData = item.rate !== null;
-  const barTone = !hasData ? "bg-transparent" : item.alpa > 0 ? "bg-md-error" : "bg-md-primary";
+  const toneClasses = {
+    primary: "bg-md-primary",
+    warning: "bg-[#FF9500] dark:bg-[#FF9F0A]",
+    error: "bg-md-error",
+  };
+  const barTone = hasData ? toneClasses[tone] : "bg-transparent";
   const label = item.departmentCode && !item.className.toUpperCase().includes(item.departmentCode.toUpperCase())
     ? `${item.className} · ${item.departmentCode}`
     : item.className;
@@ -146,7 +151,13 @@ function ClassAttendanceRow({ item }: { item: any }) {
       >
         <div className={`h-full rounded-full transition-[width] duration-300 ${barTone}`} style={{ width: hasData ? `${Math.max(0, Math.min(100, item.rate))}%` : "0%" }} />
       </div>
-      <span className={`text-right text-[13px] font-semibold tabular-nums ${hasData && item.alpa > 0 ? "text-md-error" : "text-md-on-surface"}`}>
+      <span className={`text-right text-[13px] font-semibold tabular-nums ${
+        hasData && tone === "error"
+          ? "text-md-error"
+          : hasData && tone === "warning"
+            ? "text-[#C76B00] dark:text-[#FF9F0A]"
+            : "text-md-on-surface"
+      }`}>
         {hasData ? formatAttendanceRate(item.rate) : "—"}
       </span>
     </div>
@@ -273,6 +284,17 @@ function AdminDashboard() {
   if (query.error || !query.data) return <QueryError retry={() => query.refetch()} />;
 
   const data = query.data;
+  const displayedClassAttendance = [...data.attendance.byClass].sort((a: any, b: any) => {
+    if (a.rate === null && b.rate === null) return a.className.localeCompare(b.className, "id");
+    if (a.rate === null) return 1;
+    if (b.rate === null) return -1;
+    return (b.rate - a.rate) || a.className.localeCompare(b.className, "id");
+  });
+  const measuredIndexes = displayedClassAttendance
+    .map((item: any, index: number) => item.rate !== null ? index : -1)
+    .filter((index: number) => index >= 0);
+  const lowestMeasuredIndex = measuredIndexes.at(-1);
+  const secondLowestMeasuredIndex = measuredIndexes.at(-2);
   const isVocational = !data.school.level || data.school.level === "SMA_SMK";
   const statColumns = isVocational ? "xl:grid-cols-6" : "xl:grid-cols-4";
   const quickLinks = [
@@ -302,16 +324,22 @@ function AdminDashboard() {
         <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="attendance-title">
           <SectionTitle
             title="Kehadiran per rombel"
-            note="5 rombel dengan persentase hadir terendah hari ini."
+            note="5 rombel prioritas, diurutkan dari kehadiran lebih tinggi ke lebih rendah."
           />
-          {data.attendance.byClass.length ? (
+          {displayedClassAttendance.length ? (
             <>
               <div className="mt-4 space-y-2.5">
-                {data.attendance.byClass.map((item: any) => <ClassAttendanceRow key={item.classRoomId} item={item} />)}
+                {displayedClassAttendance.map((item: any, index: number) => (
+                  <ClassAttendanceRow
+                    key={item.classRoomId}
+                    item={item}
+                    tone={index === lowestMeasuredIndex ? "error" : index === secondLowestMeasuredIndex ? "warning" : "primary"}
+                  />
+                ))}
               </div>
               <p className="mt-4 border-t border-md-outline-variant pt-3 text-[11.5px] leading-5 text-md-on-surface-variant">
                 {data.attendance.rate !== null
-                  ? `Rata-rata sekolah ${data.attendance.rate}% dari ${data.attendance.sessionCount} sesi presensi hari ini. Rombel dengan ALPA ditandai merah.`
+                  ? `Rata-rata sekolah ${data.attendance.rate}% dari ${data.attendance.sessionCount} sesi presensi hari ini. Dua rombel terbawah diberi aksen jingga dan merah.`
                   : "Belum ada presensi tercatat hari ini. Rombel aktif tetap ditampilkan tanpa menganggap data kosong sebagai 0%."}
               </p>
             </>
