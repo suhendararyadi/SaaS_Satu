@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last updated: **10 September 2026 (Asia/Jakarta)**.
+Last updated: **11 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Jika isi dokumen bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot ini.
 
@@ -12,6 +12,9 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Source CMS foundation: `5869a68` — `feat(website): add tenant-isolated school CMS`
 - Public-data safety + starter seed: `f382ad3` — `refine(website): protect public data and add starter seed`
 - Editorial review UI + deploy hardening: `9735dd2` — `refine(website): complete review flow and deploy checks`
+- Website Sekolah Phase 2: `ba863b9` — `feat(website): deliver phase 2 publishing experience`
+- Sitemap API signature fix: `5b16861` — `fix(website): align sitemap api signature`
+- Route-specific social metadata polish: `f142e94` — `fix(website): prefer school social metadata`
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -41,12 +44,12 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production sengaja memakai split release karena refinement terakhir hanya frontend:
+Production memakai split release setelah metadata polish frontend-only:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/f382ad3-school-website-cms-safe`
-- **static current**: `/var/www/saas-satu/releases/9735dd2-website-review-flow`
-- backend source commit: `f382ad389f71da4251d47e38456533ee6440c267`
-- static source commit: `9735dd2f4a720a2374cdd8b5ee53f56b602bc6f4`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`
+- **static current**: `/var/www/saas-satu/releases/f142e94-website-phase2-meta`
+- backend source commit: `5b1686189824aeccb54b4c28633cf835cd340307`
+- static source commit: `f142e947d723c041f019da84eb5a608574e5af15`
 - `saas-satu.service`: active
 - `/school`: HTTP 200
 - `/school/website`: HTTP 200
@@ -57,7 +60,7 @@ Production sengaja memakai split release karena refinement terakhir hanya fronte
 - unauthenticated Website Sekolah admin operation: HTTP 401
 - recent CMS/auth 500 count pada final verification window: 0
 
-Static deployment `9735dd2-website-review-flow` dipanggil ulang dan menghasilkan `idempotent: true`; backend tetap tidak berubah/restart pada rollout tersebut.
+Static deployment final `f142e94-website-phase2-meta` dipanggil ulang dan menghasilkan `idempotent: true`; backend Phase 2 tetap `5b16861-website-phase2` dan tidak direstart pada metadata polish.
 
 ## 4. Website Sekolah CMS — LIVE
 
@@ -77,7 +80,9 @@ Workspace admin memiliki:
 - Agenda & Pengumuman
 - Galeri & Media
 - Navigasi
+- Landing Page
 - Identitas & SEO
+- Riwayat
 
 Editorial states:
 
@@ -114,7 +119,7 @@ Run kedua telah diverifikasi membuat 0 record baru (`created.site/profile/news=f
 
 ## 5. CMS data/security boundaries
 
-Model CMS production menggunakan tenant key `schoolId` dan meliputi `SchoolSite`, `SchoolSiteContent`, `SchoolSiteNavItem`, dan `SchoolSiteMedia`.
+Model CMS production menggunakan tenant key `schoolId` dan meliputi `SchoolSite`, `SchoolSiteContent`, `SchoolSiteNavItem`, `SchoolSiteMedia`, serta `SchoolSiteRevision`. `SchoolSite.landingSections` menyimpan konfigurasi Landing Composer.
 
 Guardrails yang sudah diterapkan dan diverifikasi:
 
@@ -126,7 +131,7 @@ Guardrails yang sudah diterapkan dan diverifikasi:
 - public site tidak otomatis mengambil siswa, NIS/NISN, nilai, presensi, EWS, jurnal PKL, atau data internal lain;
 - department/program dengan marker QA `[DEMO]` atau code `DEMO-` difilter dari public site dan preview;
 - final public response untuk SMKN 1 RONGGA hanya menampilkan program nyata `RPL`, bukan jurusan seed QA;
-- media admin saat ini berupa explicit public HTTPS image entry dengan alt text wajib; tidak ada file tenant internal yang otomatis dipublikasikan.
+- media admin saat ini berupa explicit public HTTPS image entry dengan alt text wajib; media library dapat dipilih untuk hero/cover. Direct object-storage upload belum diaktifkan karena deployment production melaporkan `enabled:false`; UI tidak menampilkan upload palsu.
 
 Public browser verification setelah rollout:
 
@@ -136,38 +141,42 @@ Public browser verification setelah rollout:
 
 ## 6. Database migration & backups CMS
 
-Migration CMS production:
+Migration production yang sudah applied:
 
-`20260910194000_add_school_website_cms`
+- `20260910194000_add_school_website_cms` — CMS foundation
+- `20260910224500_add_school_website_phase2` — `landingSections` + `SchoolSiteRevision`
 
-Migration bersifat additive dan sudah applied. Prisma production status setelah deploy: **Database schema is up to date**.
-
-Jangan menjalankan migration ini ulang secara manual.
+Keduanya additive. Prisma production status setelah rollout Phase 2: **Database schema is up to date**. Jangan menjalankan migration tersebut ulang secara manual.
 
 Backup penting:
 
-- pra-migration: `/var/backups/saas-satu/saas_satu_staging-20260910T124315Z.sql.gz`
-- pasca-migration, sebelum starter content: `/var/backups/saas-satu/saas_satu_staging-20260910T132421Z-pre-website-seed.sql.gz`
+- pra-CMS foundation: `/var/backups/saas-satu/saas_satu_staging-20260910T124315Z.sql.gz`
+- pasca-foundation, sebelum starter content: `/var/backups/saas-satu/saas_satu_staging-20260910T132421Z-pre-website-seed.sql.gz`
+- pra-Phase 2: `/var/backups/saas-satu/saas_satu_staging-20260910T154255Z-pre-website-phase2.sql.gz`
 
-Keduanya diverifikasi gzip PASS dan mode `600` root-only.
+Backup Phase 2 diverifikasi `gzip -t` PASS dan tetap root-only. Nginx sebelum penambahan sitemap proxy juga dibackup ke `/etc/nginx/sites-available/sekolah.suhendararyadi.com.bak-20260910T222508Z-website-phase2`.
 
 ## 7. Quality gate CMS terakhir
 
-CMS foundation/refinement telah melewati:
+Phase 2 final telah melewati:
 
-- Prisma schema validate: PASS
-- Prisma Client generate: PASS
+- Prisma schema validate / generate: PASS
 - TypeScript: PASS
-- Vitest: **75/75 PASS** pada 6 test files
-- Wasp 0.25.0 production build: PASS
-- Vite SSR build: PASS
-- Vite client build: PASS
+- Vitest: **76/76 PASS** pada 6 test files (`NODE_ENV=test`)
+- Wasp 0.25.0 production build: PASS dengan Node 24.14.1
+- Vite SSR + client multi-environment build: PASS
 - backend bundle: PASS
-- Prisma auth delegates (`user`, `auth`, `session`): PASS pada backend production sehat
-- live static marker `Kirim review`: PASS
-- public browser responsive smoke: PASS
+- full preflight: PASS, termasuk runtime packages + Prisma auth/CMS/revision delegates
+- migration Phase 2: PASS
+- full release cutover: PASS
+- static metadata polish cutover: PASS dan second run `idempotent: true`
+- sitemap public: HTTP 200, `application/xml`, invalid school 404
+- unauthenticated Website Sekolah admin operation: HTTP 401
+- Playwright desktop 1440×900 + iPhone 390×844: HTTP 200, overflow=false, DEMO=false, console errors=0, request failures=0
+- landing metadata: route-specific title/canonical/Open Graph/Twitter + `EducationalOrganization` JSON-LD PASS
+- news detail: `og:type=article` + `NewsArticle` JSON-LD PASS
 
-NPM audit tetap melaporkan dependency debt existing; rollout CMS tidak diklaim audit-clean dan dependency upgrade besar harus dilakukan sebagai pekerjaan terpisah dengan regression testing.
+NPM audit tetap melaporkan dependency debt existing (8 moderate, 5 high); rollout Phase 2 tidak diklaim audit-clean dan dependency upgrade besar harus dilakukan terpisah dengan regression testing.
 
 ## 8. Deployment contract & incident lesson
 
@@ -205,18 +214,16 @@ Login/password demo Guru, Siswa, dan Pembimbing DUDI **belum dibuat**. Jika dibu
 
 ## 10. Pekerjaan lanjutan Website Sekolah
 
-Phase CMS yang aktif sudah mencakup foundation + sebagian besar editorial operations. Pekerjaan lanjutan yang masih layak dipisahkan:
+Phase 2 sudah selesai/live untuk Landing Composer, revision/audit snapshot, social metadata, canonical, sitemap, `EducationalOrganization`/`NewsArticle` structured data, preview parity, serta public redesign. Pekerjaan lanjutan yang masih layak dipisahkan:
 
-- revision/audit history yang lebih lengkap per content;
-- object-storage upload + image variants WebP/AVIF dan ownership verification yang terintegrasi;
-- sitemap.xml + structured data `EducationalOrganization`, `NewsArticle`, `Event`;
-- canonical/OG metadata yang lebih lengkap;
+- konfigurasi object storage/CDN production agar direct image upload + image variants WebP/AVIF dapat diaktifkan dengan ownership verification;
+- structured data `Event` untuk detail/agenda bila route detail agenda ditambahkan;
 - custom domain verification;
-- optional AUTHOR/EDITOR workflow untuk guru tertentu;
+- optional AUTHOR/EDITOR role untuk guru tertentu;
 - analytics publik yang privacy-safe;
-- cache/CDN tuning.
+- cache/CDN tuning dan image transformation setelah storage tersedia.
 
-Jangan menambah fitur tersebut sebagai placeholder visual sebelum persistence/authorization/verification nyata tersedia.
+Jangan menambah capability infra tersebut sebagai placeholder visual sebelum persistence/authorization/verification nyata tersedia.
 
 ## 11. Guardrails umum
 
@@ -235,7 +242,8 @@ Jangan menambah fitur tersebut sebagai placeholder visual sebelum persistence/au
 - [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) — snapshot ini
 - [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md) — visual contract
 - [`WEBSITE_SEKOLAH_CMS_PLAN.md`](./WEBSITE_SEKOLAH_CMS_PLAN.md) — architecture/product contract + implementation status
-- [`RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md`](./RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md) — release record CMS production
+- [`RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md`](./RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md) — release record CMS foundation
+- [`RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md`](./RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md) — release record Phase 2 + public redesign
 - [`DEMO_DATA.md`](./DEMO_DATA.md) — demo seed safety
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — historical development chronology
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — architecture/security boundaries

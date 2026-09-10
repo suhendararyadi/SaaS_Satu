@@ -1,8 +1,8 @@
 # Website Sekolah CMS — Product, Architecture & Implementation Status
 
-Last updated: **10 September 2026 (Asia/Jakarta)**.
+Last updated: **11 September 2026 (Asia/Jakarta)**.
 
-Dokumen ini adalah contract produk/arsitektur modul **Website Sekolah** di School OS. Status penting: **CMS foundation sudah aktif di production**. Bagian yang belum tersedia harus diperlakukan sebagai roadmap, bukan placeholder UI.
+Dokumen ini adalah contract produk/arsitektur modul **Website Sekolah** di School OS. Status penting: **CMS foundation + Phase 2 sudah aktif di production**. Bagian yang belum tersedia harus diperlakukan sebagai roadmap, bukan placeholder UI.
 
 ## 1. Tujuan produk
 
@@ -59,7 +59,9 @@ Workspace menggunakan secondary navigation:
 4. **Agenda & Pengumuman**
 5. **Galeri & Media**
 6. **Navigasi**
-7. **Identitas & SEO**
+7. **Landing Page**
+8. **Identitas & SEO**
+9. **Riwayat**
 
 Ringkasan menampilkan status website, URL publik, jumlah konten terbit, draft/review, scheduled, kesiapan SEO, serta shortcut pembuatan konten/preview.
 
@@ -69,11 +71,11 @@ Berita menangani judul, slug, excerpt, structured body blocks, cover HTTPS, kate
 
 Agenda menangani waktu mulai/selesai, lokasi, ringkasan, body, dan status editorial. Pengumuman memiliki prioritas serta masa tayang.
 
-Galeri & Media saat ini menggunakan explicit public HTTPS image entry dengan alt text wajib. Tidak ada blob DB atau implicit publishing file tenant.
+Galeri & Media menggunakan explicit public HTTPS image entry dengan alt text wajib. Media existing dapat dipilih untuk hero dan cover. Direct object-storage upload sengaja tidak ditampilkan karena storage production saat rollout Phase 2 masih `enabled:false`.
 
 Navigasi hanya dapat menuju halaman tenant yang sama, route publik resmi (`berita`, `agenda`, `pengumuman`), atau HTTPS external link.
 
-Identitas & SEO mengelola site title, tagline, hero, email/telepon publik, default SEO title/description, theme preset, dan robots indexing toggle.
+Landing Page mengelola urutan/visibility section terkontrol (Hero, Akses Cepat, Pengumuman, Tentang, Program, Berita, Agenda, Galeri, Kontak). Identitas & SEO mengelola site title, tagline, hero, email/telepon publik, social links, default SEO title/description, theme preset, dan robots indexing toggle. Riwayat menampilkan audit snapshot perubahan CMS.
 
 ## 4. Editorial workflow
 
@@ -108,7 +110,7 @@ Model utama:
 
 ### `SchoolSite`
 
-Satu record per sekolah, membawa `schoolId`, publication status, identity/hero/SEO fields, preset tema, robotsIndex, dan timestamps.
+Satu record per sekolah, membawa `schoolId`, publication status, identity/hero/SEO fields, preset tema, robotsIndex, social links, `landingSections`, dan timestamps.
 
 ### `SchoolSiteContent`
 
@@ -131,7 +133,9 @@ Membawa `schoolId`, location (`HEADER`/`FOOTER`), label, type (`PAGE`/`ROUTE`/`E
 
 Membawa tenant ownership metadata untuk explicit public HTTPS image: URL, alt text, caption, dimensions, creator, timestamps.
 
-Revision/audit snapshot yang lebih lengkap belum menjadi model tersendiri dan tetap roadmap.
+### `SchoolSiteRevision`
+
+Audit snapshot tenant-scoped untuk mutation site, content, navigation, dan media. Menyimpan resource type/id, action, JSON snapshot, actor id, dan timestamp. Riwayat mulai terisi oleh mutation yang terjadi setelah Phase 2 aktif; data historis tidak dibuat secara retroaktif.
 
 ## 6. Content block contract
 
@@ -172,36 +176,30 @@ Record QA dengan marker `[DEMO]` atau code `DEMO-` difilter dari public site dan
 
 ## 9. Public rendering & theme
 
-Preset aktif:
+Preset aktif tetap `Clean School`, `Editorial`, dan `Campus`, tetapi renderer publik Phase 2 memakai komposisi editorial-campus yang lebih kuat dan data-driven. Landing dapat menyusun Hero, quick paths, Pengumuman, storytelling Profil, Program Keahlian, featured News, Agenda, Gallery, dan Contact. Section tanpa data tidak dipaksakan tampil.
 
-- `Clean School`
-- `Editorial`
-- `Campus`
-
-Public site tidak harus terlihat seperti macOS. Prioritasnya adalah identitas sekolah, readability, performance, responsiveness, dan accessibility.
-
-Empty section tidak dirender sebagai placeholder produksi. Berita/agenda/pengumuman yang kosong menggunakan honest empty state pada index page.
+Header memakai navigasi jelas + mobile menu; hero memakai gambar sekolah bila tersedia atau visual gradient ringan bila tidak tersedia. Tidak ada stock/fake student photo atau statistik/prestasi palsu. Preview authenticated memakai renderer landing yang sama dengan public page agar hasil editor dan hasil live konsisten.
 
 ## 10. SEO, performance, accessibility
 
 Sudah tersedia:
 
-- per-page title/meta dasar;
+- route-specific title + meta description;
+- canonical URL;
+- Open Graph/Twitter title, description, URL, optional image, dan school-specific `og:site_name`;
 - robots `index,follow` / `noindex,nofollow` berdasarkan site setting;
-- lazy-loaded gallery images;
-- alt text wajib untuk media entry;
+- sitemap XML di `/site/:schoolSlug/sitemap.xml`, diproxy sempit oleh Nginx ke backend dan hanya memuat content public;
+- JSON-LD `EducationalOrganization` pada landing dan `NewsArticle` pada detail berita;
+- lazy-loaded images dan alt text wajib untuk media entry;
 - responsive header/mobile menu;
 - public route tidak membutuhkan admin CMS bundle;
-- desktop/iPhone browser smoke tanpa horizontal overflow dan tanpa console/request error.
+- desktop/iPhone browser smoke tanpa horizontal overflow, console error, atau request failure.
 
-Belum selesai dan menjadi roadmap:
+Masih roadmap/infrastruktur:
 
-- canonical URL;
-- Open Graph/Twitter metadata lengkap;
-- sitemap.xml;
-- structured data `EducationalOrganization`, `NewsArticle`, `Event`;
-- image variants WebP/AVIF;
-- CDN/cache tuning.
+- object-storage upload + WebP/AVIF variants;
+- `Event` structured data jika detail route Agenda dikembangkan;
+- CDN/cache tuning lanjutan.
 
 ## 11. Publication safety
 
@@ -240,45 +238,38 @@ Run kedua telah diverifikasi idempotent: tidak membuat record baru dan tidak men
 
 Mencakup schema + migration, tenant authorization, CMS hub, identity/settings, Halaman, Berita, draft/preview/publish, public landing/page/news routes, backup + production rollout.
 
-### Phase 2 — editorial operations: **SEBAGIAN BESAR SELESAI / LIVE**
+### Phase 2 — editorial + landing experience: **SELESAI / LIVE**
 
-Sudah tersedia Agenda, Pengumuman, media metadata library, navigation editor, scheduled publication, review status/action.
+Mencakup Agenda, Pengumuman, media library selection, navigation editor, scheduled publication, review flow, Landing Composer, audit/revision snapshot, social links, canonical/OG/Twitter metadata, sitemap, organization/news structured data, shared preview renderer, serta redesign public landing.
 
-Belum tersedia revision history khusus CMS dan object-storage image pipeline yang terintegrasi.
+Direct object-storage upload bukan placeholder Phase 2 karena infrastructure production saat ini `enabled:false`; fitur itu menunggu bucket/CDN yang benar-benar tersedia.
 
-### Phase 3 — advanced publishing: **ROADMAP**
+### Phase 3 — infrastructure & advanced publishing: **ROADMAP**
 
-- object storage upload + ownership verification + variants;
-- revision/audit history;
-- sitemap/structured data/canonical/OG;
+- object storage upload + ownership verification + image variants;
 - custom domain verification;
 - AUTHOR/EDITOR role granular;
 - analytics publik privacy-safe;
-- reusable section presets;
+- optional Event detail + Event structured data;
 - cache/CDN tuning.
 
 ## 14. Acceptance verification production
 
-Verified pada 10 September 2026:
+Verified final pada 11 September 2026:
 
-- `/school/website` route tersedia;
-- Halaman/Berita persistence aktif;
-- draft dan future scheduled tidak public;
-- published content tersedia di public URL;
-- tenant key eksplisit pada CMS model;
-- public payload tidak memuat internal student/attendance/EWS/PKL data;
-- DEMO department filter aktif;
-- no arbitrary HTML/script storage;
-- migration additive applied dan status schema up-to-date;
-- backup pra-migration tersedia;
-- backup pasca-migration/pra-starter tersedia;
-- TypeScript PASS;
-- Vitest **75/75 PASS**;
-- Wasp build PASS;
-- Vite SSR/client PASS;
-- browser desktop/iPhone PASS tanpa overflow/error;
+- backend release `5b16861-website-phase2`; static final `f142e94-website-phase2-meta`;
+- migration `20260910224500_add_school_website_phase2` applied dan schema up-to-date;
+- backup pra-Phase 2 tersedia dan gzip PASS;
+- Landing Composer + revision model ter-generate pada Prisma/backend;
+- public sitemap HTTP 200 `application/xml`, invalid school 404;
 - admin CMS operation tanpa login HTTP 401;
-- deployment static review-flow idempotent PASS.
+- site SMKN 1 RONGGA tetap PUBLISHED tetapi `robotsIndex=false`;
+- public browser desktop 1440×900 dan iPhone 390×844: overflow=false, DEMO=false, console errors=0, request failures=0;
+- quick paths 4/4 dan mobile menu terdeteksi;
+- landing Open Graph/Twitter/canonical spesifik sekolah dan `EducationalOrganization` JSON-LD PASS;
+- detail berita memakai `og:type=article`, canonical route-specific, dan `NewsArticle` JSON-LD PASS;
+- TypeScript PASS; Vitest **76/76 PASS**; Wasp/Vite build PASS; backend bundle PASS;
+- final static deployment kedua `idempotent: true`; backend tidak berubah pada metadata polish.
 
 ## 15. Deployment safety
 

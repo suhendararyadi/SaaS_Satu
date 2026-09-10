@@ -603,3 +603,14 @@ Quality gate dan rollout:
 - jumlah `/auth/me` 500 setelah static cutover pada window verifikasi: **0**.
 
 Tidak ada perubahan schema, migration, mutation data production, atau backend runtime pada rollout ini.
+
+
+---
+
+## 11 September 2026 — Website Sekolah Phase 2 + public editorial redesign
+
+Website Sekolah ditingkatkan dari CMS foundation menjadi Phase 2 production. Admin mendapat Landing Composer terkontrol, revision/audit snapshot, media-library selection untuk hero/cover, social links, serta preview yang menggunakan renderer yang sama dengan public landing. Public site dirombak menjadi editorial-campus experience dengan sticky navigation, cinematic hero, quick paths, profile storytelling, program showcase, featured news, agenda, gallery, contact CTA, dan institutional footer; section tanpa data tidak membuat konten palsu.
+
+SEO ditingkatkan dengan canonical, route-specific Open Graph/Twitter metadata, `EducationalOrganization` dan `NewsArticle` JSON-LD, serta sitemap XML tenant-scoped. Nginx menambah hanya route regex `/site/<slug>/sitemap.xml` ke backend; config dibackup dan `nginx -t` PASS. Production object storage terdeteksi `enabled:false`, sehingga direct upload tidak dipalsukan dan media tetap explicit public HTTPS entries.
+
+Migration additive `20260910224500_add_school_website_phase2` diterapkan setelah backup `/var/backups/saas-satu/saas_satu_staging-20260910T154255Z-pre-website-phase2.sql.gz` diverifikasi. Full release `5b16861-website-phase2` dipromosikan sukses; metadata polish berikutnya memakai static-only release `f142e94-website-phase2-meta` dan run kedua idempotent. Final Playwright desktop+iPhone tidak menemukan overflow, marker DEMO, console error, atau request failure; admin CMS unauthenticated tetap HTTP 401; sitemap HTTP 200 XML; Vitest 76/76 PASS. `robotsIndex=false` dipertahankan.
