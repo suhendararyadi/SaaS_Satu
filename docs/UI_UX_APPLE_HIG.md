@@ -169,6 +169,7 @@ Admin dashboard refinement includes:
 - **Kehadiran per rombel** uses up to five compact horizontal bars ranked by the lowest measured attendance percentage for the current day; random sampling is not used for operational prioritization;
 - missing attendance data stays neutral and is never treated as 0%; a red bar is reserved for a rombel that has an actual `ALPA` record;
 - `Perlu Keputusan Anda` remains backed by server-side attention data and uses compact rounded icon tiles, restrained stroke icons, optional count, and a trailing disclosure chevron in the macOS Settings/Finder visual language;
+- operational navigation rows that sit inside `Perlu Keputusan Anda` must use the same `hig-list-row` geometry as attention rows when they are visually integrated, while remaining semantically excluded from the real decision count;
 - honest empty states remain required when operational records do not exist.
 
 ## 10. Accessibility
@@ -216,7 +217,7 @@ The original School OS baseline was promoted on 9 September 2026 and then refine
 
 Current pointers verified from the server on 10 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/bcca333-sidebar-identity`;
+- active static release: `/var/www/saas-satu/releases/76395d0-decision-row`;
 - active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
 - `saas-satu.service`: active/running.
 
@@ -256,7 +257,6 @@ The current production refinement extends the Apple HIG-inspired contract into o
 
 Related implementation commits: `af4bf88` and `6f5d9b2`.
 
-
 ## 16. Dashboard label alignment and sidebar palette refinement — 10 September 2026
 
 The School OS shell applies the following refinement after production review:
@@ -270,7 +270,7 @@ The School OS shell applies the following refinement after production review:
 
 Related implementation commit: `d16662a`.
 
-## 17. School identity row and sidebar toggle placement — 10 September 2026
+## 17. School identity row, sidebar toggle, and decision-card integration — 10 September 2026
 
 The desktop shell further refines the sidebar using the hierarchy seen in macOS Settings while keeping the content specific to a school system:
 
@@ -279,6 +279,7 @@ The desktop shell further refines the sidebar using the hierarchy seen in macOS 
 - the desktop collapse/expand control uses one restrained split-panel glyph and lives at the trailing edge of the sidebar header, keeping the action visually attached to the panel it controls;
 - the desktop top app bar no longer duplicates the sidebar collapse action; the mobile navigation button remains in the top bar because the mobile drawer is a different interaction;
 - keyboard `Ctrl+B` / `Cmd+B` remains available for precision-input workflows;
-- the Admin **Perlu keputusan Anda** card may include a separated supplemental navigation row such as `Buka pusat monitoring PKL`. This row is not part of `attention`, does not increment the attention badge, and must never be presented as a detected problem or fabricated decision.
+- the Admin **Perlu keputusan Anda** card may include the utility route `Buka pusat monitoring PKL`, but it must be rendered inside the same `hig-list` and use the same row height, icon tile scale, typography, separator behavior, hover state, and disclosure chevron as the real attention items;
+- the monitoring utility row is not part of `attention`, carries no count, and does not increment the attention badge. Its role is navigation, not a fabricated detected problem or decision.
 
-Related implementation commits: `349ac7c` and `bcca333`. Production static release: `bcca333-sidebar-identity`; backend remains `6f5d9b2-ews-apple-monitoring`.
+Related implementation commits: `349ac7c`, `bcca333`, and `76395d0`. Production static release: `76395d0-decision-row`; backend remains `6f5d9b2-ews-apple-monitoring`.
