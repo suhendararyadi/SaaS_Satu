@@ -9,7 +9,7 @@ Dokumen ini adalah snapshot konteks operasional untuk melanjutkan pengembangan S
 - Repository utama: `/home/ubuntu/projects/SaaS_Satu`
 - Worktree pengembangan School OS saat ini: `/home/ubuntu/projects/SaaS_Satu-hardening`
 - Branch aktif: `redesign/apple-hig`
-- HEAD saat snapshot ini: `edafa20a0d88ccc8a7dd8ff744107b62b621637a` (`feat: add reversible School OS demo dataset`)
+- Implementasi dashboard terbaru yang tercatat: `10eb867` (`refine(dashboard): prioritize class attendance and decision icons`)
 - Branch `main` masih berada pada garis baseline yang lebih lama dan **bukan** tempat perubahan School OS terbaru ini dikembangkan.
 
 Jika melanjutkan pekerjaan School OS dari konteks ini, gunakan worktree `SaaS_Satu-hardening` kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -27,9 +27,13 @@ Refinement visual terbaru yang sudah menjadi bagian dari branch ini:
 - kontrol hide/show sidebar memakai gaya macOS;
 - label menu sidebar diperkuat menjadi near-black agar sesuai referensi Finder/macOS;
 - navigation drawer kemudian disempurnakan lagi mengikuti komposisi sidebar jendela Settings macOS;
-- grouped surfaces, compact toolbar, thin separators, data-dense tables, dan real-data-only dashboard tetap menjadi prinsip utama.
+- grouped surfaces, compact toolbar, thin separators, data-dense tables, dan real-data-only dashboard tetap menjadi prinsip utama;
+- panel Admin **Kehadiran per rombel** menampilkan maksimal 5 rombel prioritas berdasarkan persentase hadir terendah pada hari berjalan; nilai tanpa data tidak diperlakukan sebagai 0%;
+- ranking kehadiran dinormalisasi dengan persentase, bukan jumlah absen mentah, agar rombel dengan ukuran/jumlah sesi berbeda tetap dapat dibandingkan secara adil; jumlah ketidakhadiran dipakai sebagai tie-breaker;
+- rombel dengan record `ALPA` memakai aksen merah, sedangkan data kosong tetap netral;
+- panel **Perlu keputusan Anda** memakai icon tile bergaya macOS per jenis kondisi tanpa membuat kasus atau angka contoh baru.
 
-Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, dan `ea99802`.
+Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, dan `10eb867`.
 
 ## 3. Snapshot production terakhir yang terverifikasi
 
@@ -42,6 +46,8 @@ Pada 10 September 2026, pointer runtime yang dibaca dari server adalah:
 - `saas-satu.service`: **active/running**.
 
 Perubahan seed demo terakhir tidak membutuhkan schema migration, restart backend, atau deploy UI.
+
+Refinement dashboard commit `10eb867` sudah terverifikasi di source tree tetapi **belum dipromosikan ke production** pada snapshot ini. Deployment harus mengikuti quality gate dan immutable release/cutover yang berlaku.
 
 ## 4. Demo dataset School OS
 

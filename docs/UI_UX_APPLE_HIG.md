@@ -166,9 +166,10 @@ Visual redesign must not introduce fake progress, invented metrics, or cross-rol
 Admin dashboard refinement includes:
 
 - compact stat strip using real tenant data;
-- Kehadiran derived from LMS attendance records for the relevant day/context;
-- `Perlu Keputusan Anda` backed by server-side attention data rather than placeholder cards;
-- honest empty states when operational records do not exist.
+- **Kehadiran per rombel** uses up to five compact horizontal bars ranked by the lowest measured attendance percentage for the current day; random sampling is not used for operational prioritization;
+- missing attendance data stays neutral and is never treated as 0%; a red bar is reserved for a rombel that has an actual `ALPA` record;
+- `Perlu Keputusan Anda` remains backed by server-side attention data and uses compact rounded icon tiles, restrained stroke icons, optional count, and a trailing disclosure chevron in the macOS Settings/Finder visual language;
+- honest empty states remain required when operational records do not exist.
 
 ## 10. Accessibility
 

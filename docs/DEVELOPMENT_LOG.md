@@ -340,3 +340,30 @@ Snapshot mencatat:
 `docs/UI_UX_APPLE_HIG.md` juga diperbarui agar tidak lagi menyebut eksperimen dot-only sidebar sebagai kontrak final. Kontrak terbaru memakai restrained stroke icons, near-black labels, macOS-style sidebar toggle, dan komposisi navigation drawer yang mengambil inspirasi dari macOS Settings/Finder.
 
 Tidak ada perubahan runtime application, schema database, seed execution, service restart, atau deployment dalam pekerjaan dokumentasi ini.
+
+---
+
+## 10 September 2026 — Admin Dashboard: 5 Rombel Prioritas & Decision Icons
+
+Refinement Beranda Admin dilakukan berdasarkan referensi visual School OS/macOS yang diberikan pemilik produk.
+
+Perubahan utama:
+
+- panel **Kehadiran** diubah menjadi **Kehadiran per rombel** dengan maksimal lima bar progres;
+- sumber data tetap `LmsAttendanceSession`/`LmsAttendanceRecord` tenant-scoped pada hari berjalan zona waktu Asia/Jakarta;
+- pemilihan lima rombel menggunakan persentase hadir terendah, bukan random sampling dan bukan jumlah ketidakhadiran mentah, agar perbandingan lebih adil terhadap perbedaan ukuran rombel dan jumlah sesi;
+- jika nilai persentase sama, jumlah ketidakhadiran menjadi tie-breaker; rombel tanpa record presensi ditempatkan setelah rombel terukur dan tidak dianggap memiliki kehadiran 0%;
+- nilai persentase per rombel ditampilkan satu desimal dengan locale Indonesia; rombel yang memiliki `ALPA` diberi aksen merah;
+- panel **Perlu keputusan Anda** sekarang memakai icon tile kontekstual bergaya macOS/Lucide untuk tahun ajaran, siswa tanpa rombel, guru tanpa ruang mapel, dan fallback attention lain;
+- data contoh pada screenshot seperti BK/SPP/Dapodik tidak disalin ke runtime karena backend hanya menampilkan kondisi nyata yang tersedia.
+
+Implementasi: commit `10eb867` (`refine(dashboard): prioritize class attendance and decision icons`).
+
+Quality gate source tree:
+
+- TypeScript `node_modules/.bin/tsc --noEmit`: PASS;
+- Vitest `NODE_ENV=test node_modules/.bin/vitest run`: **67/67 PASS** pada 4 test files;
+- `git diff --check`: PASS;
+- database schema/migration: tidak berubah;
+- percobaan tambahan `wasp compile` tidak dijadikan bukti kelulusan karena environment dev lokal tidak memiliki kredensial database Wasp dan sempat menghasilkan SDK parsial; `.wasp/out` kemudian dipulihkan dari backend release aktif dan dependency development dipulihkan dari lockfile;
+- belum ada deployment/restart production pada tahap ini.
