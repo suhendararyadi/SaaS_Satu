@@ -7,13 +7,24 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "release": { "type": "string" },
-          "expectedCommit": { "type": "string" }
+          "release": {
+            "type": "string"
+          },
+          "expectedCommit": {
+            "type": "string"
+          }
         },
-        "required": ["release", "expectedCommit"],
+        "required": [
+          "release",
+          "expectedCommit"
+        ],
         "additionalProperties": false
       },
-      "command": ["/usr/bin/node", "ops/deploy-school-os-release.mjs", "preflight"],
+      "command": [
+        "/usr/bin/node",
+        "ops/deploy-school-os-release.mjs",
+        "preflight"
+      ],
       "timeoutMs": 30000
     },
     {
@@ -22,14 +33,90 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "release": { "type": "string" },
-          "expectedCommit": { "type": "string" },
-          "confirm": { "type": "string", "enum": ["PROMOTE_SCHOOL_OS_RELEASE"] }
+          "release": {
+            "type": "string"
+          },
+          "expectedCommit": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "string",
+            "enum": [
+              "PROMOTE_SCHOOL_OS_RELEASE"
+            ]
+          }
         },
-        "required": ["release", "expectedCommit", "confirm"],
+        "required": [
+          "release",
+          "expectedCommit",
+          "confirm"
+        ],
         "additionalProperties": false
       },
-      "command": ["/usr/bin/node", "ops/deploy-school-os-release.mjs", "deploy"],
+      "command": [
+        "/usr/bin/node",
+        "ops/deploy-school-os-release.mjs",
+        "deploy"
+      ],
+      "timeoutMs": 30000
+    },
+    {
+      "name": "school_os_deploy_static_preflight",
+      "description": "Validate one staged School OS static release and current production pointers without changing backend or production.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "release": {
+            "type": "string"
+          },
+          "expectedCommit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "release",
+          "expectedCommit"
+        ],
+        "additionalProperties": false
+      },
+      "command": [
+        "/usr/bin/node",
+        "ops/deploy-school-os-release.mjs",
+        "static-preflight"
+      ],
+      "timeoutMs": 30000
+    },
+    {
+      "name": "school_os_deploy_static",
+      "description": "Promote only School OS static assets for frontend-only changes, verify public smoke checks, and leave the backend pointer and service untouched.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "release": {
+            "type": "string"
+          },
+          "expectedCommit": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "string",
+            "enum": [
+              "PROMOTE_SCHOOL_OS_STATIC"
+            ]
+          }
+        },
+        "required": [
+          "release",
+          "expectedCommit",
+          "confirm"
+        ],
+        "additionalProperties": false
+      },
+      "command": [
+        "/usr/bin/node",
+        "ops/deploy-school-os-release.mjs",
+        "static"
+      ],
       "timeoutMs": 30000
     }
   ]

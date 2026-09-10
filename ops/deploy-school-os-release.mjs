@@ -11,6 +11,7 @@ const STATIC_RELEASES = '/var/www/saas-satu/releases';
 const STATIC_CURRENT = '/var/www/saas-satu/current';
 const SERVICE = 'saas-satu.service';
 const PUBLIC_ORIGIN = 'https://sekolah.suhendararyadi.com';
+const NODE_RUNTIME = '/home/ubuntu/.local/opt/node-v24.14.1-linux-arm64/bin/node';
 const RELEASE_RE = /^[0-9a-f]{7,40}-[a-z0-9][a-z0-9-]{0,63}$/;
 const COMMIT_RE = /^[0-9a-f]{7,40}$/;
 
@@ -20,12 +21,13 @@ function fail(message) {
   throw new Error(message);
 }
 
-function run(command, args, { allowFailure = false } = {}) {
+function run(command, args, { allowFailure = false, cwd = undefined } = {}) {
   const result = spawnSync(command, args, {
     encoding: 'utf8',
     shell: false,
     timeout: 15_000,
     env: process.env,
+    cwd,
   });
   if (result.error) fail(`${command} failed to start: ${result.error.message}`);
   const code = result.status ?? 1;
@@ -46,13 +48,13 @@ async function readInput() {
   return input;
 }
 
-function validateInput(input, deploy) {
+function validateInput(input, confirmationToken = null) {
   const release = typeof input.release === 'string' ? input.release : '';
   const expectedCommit = typeof input.expectedCommit === 'string' ? input.expectedCommit : '';
   if (!RELEASE_RE.test(release)) fail('release has invalid format');
   if (!COMMIT_RE.test(expectedCommit)) fail('expectedCommit must be 7-40 lowercase hex characters');
   if (!release.startsWith(`${expectedCommit.slice(0, 7)}-`)) fail('release prefix does not match expectedCommit');
-  if (deploy && input.confirm !== 'PROMOTE_SCHOOL_OS_RELEASE') fail('confirmation token is invalid');
+  if (confirmationToken && input.confirm !== confirmationToken) fail('confirmation token is invalid');
   return { release, expectedCommit };
 }
 
@@ -74,13 +76,32 @@ async function resolvedSymlink(path, root) {
   return target;
 }
 
-async function preflight(release, expectedCommit) {
+function assertBackendAuthRuntime(backend) {
+  const probe = `
+    import { PrismaClient } from '@prisma/client';
+    const prisma = new PrismaClient();
+    const required = ['user', 'auth', 'session'];
+    const missing = required.filter((name) => typeof prisma[name] !== 'object');
+    await prisma.$disconnect();
+    if (missing.length) {
+      console.error('missing Prisma auth delegates: ' + missing.join(','));
+      process.exit(42);
+    }
+  `;
+  const result = run(NODE_RUNTIME, ['--input-type=module', '-e', probe], { allowFailure: true, cwd: `${backend}/app` });
+  if (result.code !== 0) fail(result.stderr || result.stdout || 'Prisma auth runtime validation failed');
+}
+
+async function preflight(release, expectedCommit, { requireBackendRuntime = true } = {}) {
   const backend = `${BACKEND_RELEASES}/${release}`;
   const staticDir = `${STATIC_RELEASES}/${release}`;
 
   await assertDir(backend);
   await assertDir(staticDir);
-  await assertFile(`${backend}/app/.wasp/out/server/bundle/server.js`);
+  if (requireBackendRuntime) {
+    await assertFile(`${backend}/app/.wasp/out/server/bundle/server.js`);
+    assertBackendAuthRuntime(backend);
+  }
   await assertFile(`${staticDir}/index.html`);
   await assertDir(`${staticDir}/assets`);
 
@@ -167,15 +188,18 @@ async function rollback(previousBackend, previousStatic) {
 }
 
 async function main() {
-  if (MODE !== 'preflight' && MODE !== 'deploy') fail('mode must be preflight or deploy');
+  const validModes = ['preflight', 'deploy', 'static-preflight', 'static'];
+  if (!validModes.includes(MODE)) fail('mode must be preflight, deploy, static-preflight, or static');
   const input = await readInput();
-  const { release, expectedCommit } = validateInput(input, MODE === 'deploy');
-  const state = await preflight(release, expectedCommit);
+  const confirmationToken = MODE === 'deploy' ? 'PROMOTE_SCHOOL_OS_RELEASE' : MODE === 'static' ? 'PROMOTE_SCHOOL_OS_STATIC' : null;
+  const { release, expectedCommit } = validateInput(input, confirmationToken);
+  const staticOnly = MODE === 'static-preflight' || MODE === 'static';
+  const state = await preflight(release, expectedCommit, { requireBackendRuntime: !staticOnly });
 
-  if (MODE === 'preflight') {
+  if (MODE === 'preflight' || MODE === 'static-preflight') {
     console.log(JSON.stringify({
       ok: true,
-      mode: 'preflight',
+      mode: MODE,
       release,
       commit: state.actualCommit,
       backendArtifact: state.backend,
@@ -185,6 +209,27 @@ async function main() {
       service: 'active',
     }));
     return;
+  }
+
+  if (MODE === 'static') {
+    if (state.currentStatic === state.staticDir) {
+      const smoke = await publicSmoke();
+      console.log(JSON.stringify({ ok: true, mode: 'static', idempotent: true, release, smoke, liveBackend: state.currentBackend, liveStatic: state.currentStatic }));
+      return;
+    }
+    try {
+      switchStatic(state.staticDir);
+      const smoke = await publicSmoke();
+      const liveBackend = await resolvedSymlink(BACKEND_CURRENT, BACKEND_RELEASES);
+      const liveStatic = await resolvedSymlink(STATIC_CURRENT, STATIC_RELEASES);
+      if (liveBackend !== state.currentBackend) fail('static-only deployment unexpectedly changed backend');
+      if (liveStatic !== state.staticDir) fail('post-cutover static symlink verification failed');
+      console.log(JSON.stringify({ ok: true, mode: 'static', idempotent: false, release, commit: state.actualCommit, smoke, liveBackend, liveStatic, rollbackStatic: state.currentStatic }));
+      return;
+    } catch (error) {
+      try { switchStatic(state.currentStatic); } catch {}
+      throw error;
+    }
   }
 
   if (state.currentBackend === state.backend && state.currentStatic === state.staticDir) {
