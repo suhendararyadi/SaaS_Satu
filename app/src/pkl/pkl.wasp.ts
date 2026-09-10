@@ -4,6 +4,7 @@ import { PlacementsPage } from "./pages/PlacementsPage" with { type: "ref" };
 import { AttendancePage } from "./pages/AttendancePage" with { type: "ref" };
 import { JournalsPage } from "./pages/JournalsPage" with { type: "ref" };
 import { MonitoringEwsPage } from "./pages/MonitoringEwsPage" with { type: "ref" };
+import { EarlyWarningSystemPage } from "./pages/EarlyWarningSystemPage" with { type: "ref" };
 
 import {
   getCompanies,
@@ -90,5 +91,10 @@ export const pklSpec: Spec = [
     "MonitoringEwsRoute",
     "/school/pkl/monitoring",
     page(MonitoringEwsPage, { authRequired: true })
+  ),
+  route(
+    "EarlyWarningSystemRoute",
+    "/school/ews",
+    page(EarlyWarningSystemPage, { authRequired: true })
   ),
 ];

@@ -156,6 +156,31 @@ describe("Shared UI Components", () => {
       expect(handleClose).toHaveBeenCalled();
     });
 
+    it("does not steal focus when a controlled dialog rerenders with a new onClose callback", () => {
+      const firstClose = vi.fn();
+      const secondClose = vi.fn();
+      const { rerender } = render(
+        <M3Dialog isOpen onClose={firstClose} title="Form Sekolah">
+          <M3TextField aria-label="Nama sekolah" value="S" onChange={() => {}} />
+        </M3Dialog>
+      );
+
+      const input = screen.getByRole("textbox", { name: "Nama sekolah" });
+      input.focus();
+      expect(input).toHaveFocus();
+
+      rerender(
+        <M3Dialog isOpen onClose={secondClose} title="Form Sekolah">
+          <M3TextField aria-label="Nama sekolah" value="SM" onChange={() => {}} />
+        </M3Dialog>
+      );
+
+      expect(screen.getByRole("textbox", { name: "Nama sekolah" })).toHaveFocus();
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(firstClose).not.toHaveBeenCalled();
+      expect(secondClose).toHaveBeenCalledTimes(1);
+    });
+
     it("does not render when isOpen is false", () => {
       render(
         <M3Dialog isOpen={false} onClose={vi.fn()} title="Tertutup">

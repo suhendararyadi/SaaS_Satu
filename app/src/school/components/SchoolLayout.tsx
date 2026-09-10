@@ -44,6 +44,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/pkl/attendance", "Presensi PKL"],
   ["/school/pkl/journals", "Jurnal PKL"],
   ["/school/pkl/monitoring", "Monitoring PKL"],
+  ["/school/ews", "Early Warning System"],
   ["/school/governance/piket", "Guru Piket"],
   ["/school/governance/walikelas", "Wali Kelas"],
   ["/school/governance/waka", "Waka Kurikulum"],
@@ -236,7 +237,8 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Mitra DUDI", href: "/school/pkl/companies", icon: "apartment" },
         { label: "Penempatan", href: "/school/pkl/placements", icon: "work" },
         { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },
-        { label: "Monitoring", href: "/school/pkl/monitoring", icon: "monitor_heart" },
+        { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" },
+        { label: "Early Warning", href: "/school/ews", icon: "warning" },
       ] });
       sections.push({ title: "TATA KELOLA", items: [
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
@@ -251,7 +253,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
       ] });
-      if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }] });
+      if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "Early Warning", href: "/school/ews", icon: "warning" }] });
       const responsibilities = [
         ...(teacherDashboard?.assignments?.homeroomClass ? [{ label: `Wali ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/governance/walikelas", icon: "supervisor_account" }] : []),
         ...(teacherDashboard?.assignments?.isWaka ? [{ label: "Waka Kurikulum", href: "/school/governance/waka", icon: "verified_user" }] : []),
@@ -262,7 +264,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       sections.push({ title: "BELAJAR", items: [{ label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" }] });
       if (studentHasPkl) sections.push({ title: "PKL SAYA", items: [{ label: "Presensi PKL", href: "/school/pkl/attendance", icon: "location_on" }, { label: "Jurnal Kegiatan", href: "/school/pkl/journals", icon: "edit_note" }] });
     } else if (isDudiMentor) {
-      sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }] });
+      sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "Early Warning", href: "/school/ews", icon: "warning" }] });
     }
     if (isPlatformAdmin) sections.push({ title: "SUPER ADMIN", items: [{ label: "Organisasi Sekolah", href: "/school/admin/schools", icon: "corporate_fare" }] });
     return sections;

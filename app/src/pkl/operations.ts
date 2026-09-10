@@ -5,6 +5,7 @@ import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser, requireSchoolAdmin, requireStudent, requirePklAccess, requirePklMonitoring, requireAnySchoolCapability } from "../school/authGuards";
 import { type SchoolScopedUser } from "../school/types";
 import { calculateDistanceMeters, isWithinGeofence } from "./geofence";
+import { getPklEwsAlertsForScope } from "./ews";
 
 
 function getPklPlacementScope(user: SchoolScopedUser) {
@@ -544,116 +545,5 @@ export const reviewDailyJournal = async (rawArgs: unknown, context: { user?: Use
 
 export const getPklEwsAlerts = async (_args: unknown, context: { user?: User }) => {
   const user = requirePklMonitoring(context);
-
-  // Find active placements in this school
-  const activePlacements = await prisma.placement.findMany({
-    where: {
-      schoolId: user.schoolId,
-      status: "ACTIVE",
-      ...getPklPlacementScope(user),
-    },
-    include: {
-      student: {
-        select: {
-          id: true,
-          name: true,
-          studentProfile: true,
-          classRoom: { select: { name: true } },
-        },
-      },
-      company: { select: { id: true, name: true } },
-      teacherSupervisor: { select: { id: true, name: true } },
-      attendances: {
-        orderBy: { timestamp: "desc" },
-        take: 5,
-      },
-      journals: {
-        orderBy: { date: "desc" },
-        take: 5,
-      },
-    },
-  });
-
-  const alerts: Array<{
-    studentId: string;
-    studentName: string;
-    className: string;
-    companyName: string;
-    teacherName: string;
-    severity: "HIGH" | "MEDIUM" | "LOW";
-    issue: string;
-    details: string;
-  }> = [];
-
-  const now = new Date();
-
-  for (const p of activePlacements) {
-    const studentName = p.student?.name || "Siswa";
-    const className = p.student?.classRoom?.name || "-";
-    const companyName = p.company?.name || "-";
-    const teacherName = p.teacherSupervisor?.name || "Belum Ditugaskan";
-
-    // 1. Missing attendance in last 3 days
-    const recentAttendances = p.attendances;
-    if (recentAttendances.length === 0) {
-      alerts.push({
-        studentId: p.studentId,
-        studentName,
-        className,
-        companyName,
-        teacherName,
-        severity: "HIGH",
-        issue: "Belum Pernah Presensi",
-        details: "Siswa belum pernah mencatatkan kehadiran di lokasi PKL sejak penempatan dibuat.",
-      });
-    }
-
-    // 2. Out of radius check-ins
-    const outOfRadiusCount = recentAttendances.filter((a) => a.status === "DI LUAR RADIUS").length;
-    if (outOfRadiusCount > 0) {
-      alerts.push({
-        studentId: p.studentId,
-        studentName,
-        className,
-        companyName,
-        teacherName,
-        severity: "MEDIUM",
-        issue: `${outOfRadiusCount} Presensi Di Luar Radius DUDI`,
-        details: "Terdeteksi presensi dari luar radius geofence yang ditentukan oleh perusahaan mitra.",
-      });
-    }
-
-    // 3. Journal inactivity
-    const lastJournal = p.journals[0];
-    if (!lastJournal) {
-      alerts.push({
-        studentId: p.studentId,
-        studentName,
-        className,
-        companyName,
-        teacherName,
-        severity: "MEDIUM",
-        issue: "Belum Mengisi Jurnal",
-        details: "Belum ada laporan jurnal kegiatan harian yang diunggah siswa.",
-      });
-    } else {
-      const daysSinceLastJournal = Math.floor(
-        (now.getTime() - new Date(lastJournal.date).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysSinceLastJournal >= 3) {
-        alerts.push({
-          studentId: p.studentId,
-          studentName,
-          className,
-          companyName,
-          teacherName,
-          severity: "HIGH",
-          issue: `Jurnal Tertunda ${daysSinceLastJournal} Hari`,
-          details: `Terakhir kali mengisi jurnal pada ${new Date(lastJournal.date).toLocaleDateString("id-ID")}.`,
-        });
-      }
-    }
-  }
-
-  return alerts;
+  return getPklEwsAlertsForScope(user.schoolId, getPklPlacementScope(user));
 };

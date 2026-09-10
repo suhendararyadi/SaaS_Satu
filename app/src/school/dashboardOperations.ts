@@ -1,6 +1,7 @@
 import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import { ensureSchoolUser } from "./authGuards";
+import { getPklEwsAlertsForScope, summarizePklEwsAlerts } from "../pkl/ews";
 
 function displayName(user: Pick<User, "name" | "email" | "username">) {
   return user.name || user.username || user.email || "Pengguna";
@@ -249,7 +250,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   if (!isAdmin) throw new HttpError(403, "Dashboard ini hanya tersedia untuk administrator sekolah.");
 
   const { start: todayStart, end: todayEnd } = jakartaDayBounds();
-  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, attendanceSessionCount, classAttendanceSources] = await Promise.all([
+  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, attendanceSessionCount, classAttendanceSources, ewsAlerts] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
       select: { id: true, name: true, level: true, tier: true, studentQuota: true },
@@ -305,10 +306,12 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
         },
       },
     }),
+    getPklEwsAlertsForScope(user.schoolId),
   ]);
   if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
 
   const [students, teachers, classRooms, lmsCourses, companies, placements] = counts;
+  const ews = summarizePklEwsAlerts(ewsAlerts);
   const attention = [
     ...(!academicYear
       ? [{ code: "NO_ACTIVE_YEAR", severity: "warning" as const, label: "Belum ada tahun ajaran aktif", count: null, destination: "/school/academic-years" }]
@@ -318,6 +321,17 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
       : []),
     ...(teachersWithoutCourse > 0
       ? [{ code: "TEACHERS_WITHOUT_COURSE", severity: "info" as const, label: "Guru belum memiliki ruang mapel", count: teachersWithoutCourse, destination: "/school/lms/courses" }]
+      : []),
+    ...(ews.totalAlerts > 0
+      ? [{
+          code: "PKL_EWS_ALERTS",
+          severity: ews.high > 0 ? ("warning" as const) : ("info" as const),
+          label: ews.high > 0
+            ? `Early Warning System: ${ews.high} prioritas tinggi`
+            : "Early Warning System perlu ditinjau",
+          count: ews.totalAlerts,
+          destination: "/school/ews",
+        }]
       : []),
   ];
 
@@ -373,6 +387,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     academicYear,
     counts: { students, teachers, classRooms, lmsCourses, companies, placements },
     attention,
+    ews,
     attendance: {
       dateKey: localDateKey(),
       sessionCount: attendanceSessionCount,
