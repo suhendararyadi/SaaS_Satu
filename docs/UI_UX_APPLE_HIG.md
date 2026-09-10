@@ -160,6 +160,7 @@ Existing role-specific server DTOs remain authoritative.
 - Teacher: work requiring attention, teaching rooms, supervised PKL, extra assignments.
 - Admin: school summary, real attention conditions, attendance, quick management.
 - DUDI Mentor: assigned students and journal review work.
+- Super Admin: platform-wide statistics and platform operations available to `user.isAdmin` only.
 
 Visual redesign must not introduce fake progress, invented metrics, or cross-role data.
 
@@ -217,9 +218,10 @@ The original School OS baseline was promoted on 9 September 2026 and then refine
 
 Current pointers verified from the server on 10 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/76395d0-decision-row`;
+- active static release: `/var/www/saas-satu/releases/ef167b5-auth-admin-hig`;
 - active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
-- `saas-satu.service`: active/running.
+- `saas-satu.service`: active/running;
+- rollback static langsung: `/var/www/saas-satu/releases/9ae05d3-login-superadmin`.
 
 The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
 
@@ -282,4 +284,29 @@ The desktop shell further refines the sidebar using the hierarchy seen in macOS 
 - the Admin **Perlu keputusan Anda** card may include the utility route `Buka pusat monitoring PKL`, but it must be rendered inside the same `hig-list` and use the same row height, icon tile scale, typography, separator behavior, hover state, and disclosure chevron as the real attention items;
 - the monitoring utility row is not part of `attention`, carries no count, and does not increment the attention badge. Its role is navigation, not a fabricated detected problem or decision.
 
-Related implementation commits: `349ac7c`, `bcca333`, and `76395d0`. Production static release: `76395d0-decision-row`; backend remains `6f5d9b2-ews-apple-monitoring`.
+Related implementation commits: `349ac7c`, `bcca333`, and `76395d0`.
+
+## 18. Auth wallpaper and Super Admin HIG — 10 September 2026
+
+Auth and platform administration use the same School OS design language, but each has a distinct context-specific composition.
+
+### Authentication
+
+- `/login` and `/signup` may take visual inspiration from the calm hierarchy of a Mac sign-in screen: full-screen wallpaper, centered identity, and a focused authentication surface;
+- the wallpaper must be an **original project asset**, not a copied Apple/macOS wallpaper. Current asset: `app/public/school-os-auth-wallpaper.svg`, an approximately 2 KB vector landscape made from simple gradients and layered paths;
+- photographic wallpaper is avoided for this implementation to reduce transfer cost and keep the background deterministic across displays;
+- the wallpaper is decorative (`alt=""` / `aria-hidden`), while all actionable content sits on readable translucent/darkened surfaces with explicit focus indicators;
+- Login/Signup keep the existing Wasp auth forms and routing. Visual inspiration must never change authentication semantics;
+- the auth surface must remain responsive and usable without relying on the wallpaper for meaning or contrast.
+
+### Super Admin
+
+- `/admin` uses the same `M3NavigationDrawer` and `M3TopAppBar` compatibility components as School OS rather than the historical Open SaaS admin `Header`/`Sidebar` template;
+- sidebar identity is `Super Admin / Kontrol platform SaaS Satu`; navigation is grouped into Platform, Operasional, and Sekolah;
+- `/admin` authorization remains `user.isAdmin === true`; a tenant role label alone is not a security boundary;
+- the dashboard summary uses only real `getDailyStats` values. Missing values say `Belum ada`, and the view has explicit loading, error, and empty states;
+- the old ApexCharts-heavy overview was removed from the active Super Admin dashboard. Seven-day activity is represented with lightweight CSS bars and source data as a compact grouped list;
+- no fake revenue, user counts, visitors, or sources may be introduced for visual balance;
+- the active root `/admin` must match exactly so child routes such as `/admin/users` do not highlight both root and child navigation items.
+
+Related implementation commit: `ef167b5`. Production static release: `ef167b5-auth-admin-hig`; backend remains `6f5d9b2-ews-apple-monitoring`.
