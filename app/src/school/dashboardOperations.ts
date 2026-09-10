@@ -249,7 +249,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   if (!isAdmin) throw new HttpError(403, "Dashboard ini hanya tersedia untuk administrator sekolah.");
 
   const { start: todayStart, end: todayEnd } = jakartaDayBounds();
-  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, attendanceSessionCount] = await Promise.all([
+  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, attendanceSessionCount, classAttendanceSources] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
       select: { id: true, name: true, level: true, tier: true, studentQuota: true },
@@ -285,6 +285,26 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
         course: { schoolId: user.schoolId },
       },
     }),
+    prisma.classRoom.findMany({
+      where: {
+        schoolId: user.schoolId,
+        academicYear: { isActive: true },
+      },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        department: { select: { code: true } },
+        lmsCourses: {
+          select: {
+            attendances: {
+              where: { date: { gte: todayStart, lte: todayEnd } },
+              select: { records: { select: { status: true } } },
+            },
+          },
+        },
+      },
+    }),
   ]);
   if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
 
@@ -314,6 +334,39 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   const attendanceTotal = attendanceCounts.hadir + attendanceCounts.sakit + attendanceCounts.izin + attendanceCounts.alpa;
   const attendanceRate = attendanceTotal > 0 ? Math.round((attendanceCounts.hadir / attendanceTotal) * 100) : null;
 
+  const classAttendance = classAttendanceSources.map((classRoom) => {
+    const statuses = classRoom.lmsCourses.flatMap((course) =>
+      course.attendances.flatMap((session) => session.records.map((record) => record.status))
+    );
+    const hadir = statuses.filter((status) => status === "HADIR").length;
+    const alpa = statuses.filter((status) => status === "ALPA").length;
+    const totalRecords = statuses.length;
+    const absentCount = totalRecords - hadir;
+    const rate = totalRecords > 0 ? Math.round((hadir / totalRecords) * 1000) / 10 : null;
+
+    return {
+      classRoomId: classRoom.id,
+      className: classRoom.name,
+      departmentCode: classRoom.department?.code ?? null,
+      totalRecords,
+      absentCount,
+      alpa,
+      rate,
+    };
+  });
+
+  const measuredClassAttendance = classAttendance
+    .filter((item) => item.rate !== null)
+    .sort((a, b) =>
+      (a.rate! - b.rate!) ||
+      (b.absentCount - a.absentCount) ||
+      a.className.localeCompare(b.className, "id")
+    );
+  const unmeasuredClassAttendance = classAttendance
+    .filter((item) => item.rate === null)
+    .sort((a, b) => a.className.localeCompare(b.className, "id"));
+  const attendanceByClass = [...measuredClassAttendance, ...unmeasuredClassAttendance].slice(0, 5);
+
   return {
     role: user.role === "SUPERADMIN" || user.isAdmin ? ("SUPERADMIN" as const) : ("SCHOOL_ADMIN" as const),
     school,
@@ -325,6 +378,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
       sessionCount: attendanceSessionCount,
       totalRecords: attendanceTotal,
       rate: attendanceRate,
+      byClass: attendanceByClass,
       ...attendanceCounts,
     },
   };

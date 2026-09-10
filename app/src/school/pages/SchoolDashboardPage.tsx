@@ -1,4 +1,5 @@
 import React, { type ReactNode } from "react";
+import { BookOpen, CalendarX2, CircleAlert, UsersRound, type LucideIcon } from "lucide-react";
 import { type AuthUser } from "wasp/auth";
 import {
   useQuery,
@@ -13,7 +14,6 @@ import {
   M3Button,
   M3Card,
   M3EmptyState,
-  M3LinearProgress,
   M3StatCard,
 } from "../../client/components/m3";
 
@@ -99,6 +99,57 @@ function ListDot({ tone = "neutral" }: { tone?: "primary" | "success" | "warning
     neutral: "bg-md-on-surface-variant/35",
   };
   return <span className={`size-2 shrink-0 rounded-full ${classes[tone]}`} aria-hidden="true" />;
+}
+
+const attentionIconConfig: Record<string, { icon: LucideIcon; tile: string }> = {
+  NO_ACTIVE_YEAR: { icon: CalendarX2, tile: "bg-[#FF3B30] dark:bg-[#FF453A]" },
+  STUDENTS_WITHOUT_CLASS: { icon: UsersRound, tile: "bg-[#007AFF] dark:bg-[#0A84FF]" },
+  TEACHERS_WITHOUT_COURSE: { icon: BookOpen, tile: "bg-[#8E8E93]" },
+};
+
+function AttentionIcon({ code, severity }: { code: string; severity?: string }) {
+  const fallback = {
+    icon: CircleAlert,
+    tile: severity === "warning" ? "bg-[#FF3B30] dark:bg-[#FF453A]" : "bg-[#8E8E93]",
+  };
+  const config = attentionIconConfig[code] ?? fallback;
+  const Icon = config.icon;
+  return (
+    <span className={`flex size-8 shrink-0 items-center justify-center rounded-[8px] shadow-[0_1px_2px_rgba(0,0,0,.14)] ${config.tile}`} aria-hidden="true">
+      <Icon size={17} strokeWidth={2.1} className="text-white" />
+    </span>
+  );
+}
+
+function formatAttendanceRate(rate: number) {
+  return new Intl.NumberFormat("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(rate);
+}
+
+function ClassAttendanceRow({ item }: { item: any }) {
+  const hasData = item.rate !== null;
+  const barTone = !hasData ? "bg-transparent" : item.alpa > 0 ? "bg-md-error" : "bg-md-primary";
+  const label = item.departmentCode && !item.className.toUpperCase().includes(item.departmentCode.toUpperCase())
+    ? `${item.className} · ${item.departmentCode}`
+    : item.className;
+
+  return (
+    <div className="grid min-h-9 grid-cols-[minmax(92px,auto)_minmax(90px,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(120px,auto)_1fr_54px]">
+      <span className="truncate text-[13px] font-medium text-md-on-surface-variant" title={label}>{label}</span>
+      <div
+        className="h-[7px] overflow-hidden rounded-full bg-md-surface-container-high"
+        role={hasData ? "progressbar" : undefined}
+        aria-label={hasData ? `Kehadiran ${label} ${formatAttendanceRate(item.rate)} persen` : `Kehadiran ${label} belum tercatat`}
+        aria-valuemin={hasData ? 0 : undefined}
+        aria-valuemax={hasData ? 100 : undefined}
+        aria-valuenow={hasData ? item.rate : undefined}
+      >
+        <div className={`h-full rounded-full transition-[width] duration-300 ${barTone}`} style={{ width: hasData ? `${Math.max(0, Math.min(100, item.rate))}%` : "0%" }} />
+      </div>
+      <span className={`text-right text-[13px] font-semibold tabular-nums ${hasData && item.alpa > 0 ? "text-md-error" : "text-md-on-surface"}`}>
+        {hasData ? formatAttendanceRate(item.rate) : "—"}
+      </span>
+    </div>
+  );
 }
 
 function StudentDashboard() {
@@ -223,13 +274,6 @@ function AdminDashboard() {
   const data = query.data;
   const isVocational = !data.school.level || data.school.level === "SMA_SMK";
   const statColumns = isVocational ? "xl:grid-cols-6" : "xl:grid-cols-4";
-  const attendanceBreakdown: Array<{ label: string; value: number; tone: "success" | "neutral" | "warning" | "error" }> = [
-    { label: "Hadir", value: data.attendance.hadir, tone: "success" },
-    { label: "Sakit", value: data.attendance.sakit, tone: "neutral" },
-    { label: "Izin", value: data.attendance.izin, tone: "warning" },
-    { label: "Alpa", value: data.attendance.alpa, tone: "error" },
-  ];
-
   const quickLinks = [
     ["Data siswa", "/school/students"],
     ["Guru & tendik", "/school/teachers"],
@@ -256,26 +300,24 @@ function AdminDashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="attendance-title">
           <SectionTitle
-            title="Kehadiran"
-            note={data.attendance.sessionCount > 0 ? `${data.attendance.sessionCount} sesi presensi tercatat hari ini` : "Belum ada sesi presensi LMS hari ini"}
-            trailing={data.attendance.rate !== null ? <span className="text-[24px] font-semibold tracking-[-0.035em] text-md-on-surface">{data.attendance.rate}%</span> : undefined}
+            title="Kehadiran per rombel"
+            note="5 rombel dengan persentase hadir terendah hari ini."
           />
-          {data.attendance.rate !== null ? (
+          {data.attendance.byClass.length ? (
             <>
-              <M3LinearProgress value={data.attendance.rate} className="mt-5" />
-              <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 border-t border-md-outline-variant pt-4 sm:grid-cols-4">
-                {attendanceBreakdown.map((item) => (
-                  <div key={item.label} className="flex items-center gap-2.5">
-                    <ListDot tone={item.tone} />
-                    <div><p className="text-[10.5px] text-md-on-surface-variant">{item.label}</p><p className="mt-0.5 text-[18px] font-semibold text-md-on-surface">{item.value}</p></div>
-                  </div>
-                ))}
+              <div className="mt-4 space-y-2.5">
+                {data.attendance.byClass.map((item: any) => <ClassAttendanceRow key={item.classRoomId} item={item} />)}
               </div>
+              <p className="mt-4 border-t border-md-outline-variant pt-3 text-[11.5px] leading-5 text-md-on-surface-variant">
+                {data.attendance.rate !== null
+                  ? `Rata-rata sekolah ${data.attendance.rate}% dari ${data.attendance.sessionCount} sesi presensi hari ini. Rombel dengan ALPA ditandai merah.`
+                  : "Belum ada presensi tercatat hari ini. Rombel aktif tetap ditampilkan tanpa menganggap data kosong sebagai 0%."}
+              </p>
             </>
           ) : (
             <div className="mt-4 rounded-[10px] border border-md-outline-variant bg-md-surface-container-low px-3.5 py-3">
-              <p className="text-[12.5px] font-medium text-md-on-surface">Belum ada presensi tercatat</p>
-              <p className="mt-1 text-[11.5px] leading-5 text-md-on-surface-variant">Persentase akan muncul setelah guru mencatat presensi pada ruang LMS hari ini.</p>
+              <p className="text-[12.5px] font-medium text-md-on-surface">Belum ada rombel aktif</p>
+              <p className="mt-1 text-[11.5px] leading-5 text-md-on-surface-variant">Rombel akan muncul setelah tahun ajaran aktif dan kelas tersedia.</p>
             </div>
           )}
         </section>
@@ -283,7 +325,14 @@ function AdminDashboard() {
         <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="admin-decision-title">
           <SectionTitle title="Perlu keputusan Anda" note="Hal yang memerlukan keputusan atau tindak lanjut admin." trailing={data.attention.length ? <M3Badge variant="warning">{data.attention.length}</M3Badge> : undefined} />
           <div className="hig-list mt-4">
-            {data.attention.map((item: any) => <a key={item.code} href={item.destination} className="hig-list-row"><ListDot tone={item.severity === "warning" ? "warning" : "primary"} /><span className="min-w-0 flex-1 text-[13px] font-medium text-md-on-surface">{item.label}</span>{item.count !== null && <span className="text-[16px] font-semibold text-md-on-surface">{item.count}</span>}<span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+            {data.attention.map((item: any) => (
+              <a key={item.code} href={item.destination} className="hig-list-row min-h-[52px]">
+                <AttentionIcon code={item.code} severity={item.severity} />
+                <span className="min-w-0 flex-1 text-[13px] font-medium text-md-on-surface">{item.label}</span>
+                {item.count !== null && <span className="text-[13px] font-semibold tabular-nums text-md-on-surface">{item.count}</span>}
+                <span className="text-[22px] font-light leading-none text-md-on-surface-variant/45" aria-hidden="true">›</span>
+              </a>
+            ))}
             {!data.attention.length && <M3EmptyState compact icon="verified" title="Tidak ada keputusan mendesak" description="Tidak ada kondisi utama yang memerlukan keputusan admin saat ini." />}
           </div>
         </section>
