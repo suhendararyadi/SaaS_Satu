@@ -12,7 +12,8 @@ Dokumen ini adalah snapshot konteks operasional untuk melanjutkan pengembangan S
 - Implementasi fitur EWS/monitoring terbaru: `af4bf88` (`feat(school): add EWS hub and polish PKL monitoring`)
 - Refinement Kehadiran terbaru: `6f5d9b2` (`refine(dashboard): reverse attendance priority order`)
 - Refinement auth + Super Admin HIG: `ef167b5` (`refine(ui): add mac login auth and HIG super admin`)
-- Refinement tema + account chrome + sidebar search terbaru: `37754b3` (`refine(shell): fix theme and add sidebar search`)
+- Refinement tema + account chrome + sidebar search: `37754b3` (`refine(shell): fix theme and add sidebar search`)
+- Refinement dashboard 4 KPI + rancangan Website Sekolah CMS terbaru: `0679c2b` (`refine(dashboard): focus school KPIs and plan website CMS`)
 - Jalur deployment bounded: `6f7fae9` (`ops: add bounded School OS deployment function`)
 - Branch `main` masih berada pada garis baseline yang lebih lama dan **bukan** tempat perubahan School OS terbaru ini dikembangkan.
 
@@ -32,10 +33,11 @@ Refinement visual terbaru yang sudah menjadi bagian dari branch ini:
 - label menu sidebar diperkuat menjadi near-black agar sesuai referensi Finder/macOS;
 - navigation drawer kemudian disempurnakan lagi mengikuti komposisi sidebar jendela Settings macOS;
 - grouped surfaces, compact toolbar, thin separators, data-dense tables, dan real-data-only dashboard tetap menjadi prinsip utama;
-- panel Admin **Kehadiran per rombel** tetap memilih maksimal 5 rombel prioritas dengan persentase hadir terendah pada hari berjalan, lalu menampilkannya dari persentase yang lebih tinggi ke yang lebih rendah; lane nama rombel sekarang berlebar tetap agar seluruh bar sejajar, nama utama ditampilkan tanpa suffix jurusan kondisional, dan nama lengkap tetap tersedia sebagai tooltip/accessibility label; nilai tanpa data tidak diperlakukan sebagai 0%;
+- **stat strip Admin Sekolah sekarang hanya 4 KPI tetap**: `Siswa`, `Guru & Tendik`, `Rombel`, dan `Kehadiran hari ini`; KPI kehadiran memakai data nyata hari berjalan, menampilkan helper jumlah sesi, dan tetap netral bila belum ada presensi; angka LMS, DUDI, dan PKL tetap tersedia pada area operasional/quick access tetapi tidak lagi memenuhi baris statistik utama;
+- panel Admin **Kehadiran per rombel** tetap memilih maksimal 5 rombel prioritas dengan persentase hadir terendah pada hari berjalan, lalu menampilkannya dari persentase yang lebih tinggi ke yang lebih rendah; lane nama rombel berlebar tetap agar seluruh bar sejajar, nama utama ditampilkan tanpa suffix jurusan kondisional, dan nama lengkap tetap tersedia sebagai tooltip/accessibility label; nilai tanpa data tidak diperlakukan sebagai 0%;
 - ranking kehadiran dinormalisasi dengan persentase, bukan jumlah absen mentah, agar rombel dengan ukuran/jumlah sesi berbeda tetap dapat dibandingkan secara adil; jumlah ketidakhadiran dipakai sebagai tie-breaker saat pemilihan prioritas;
 - tiga posisi teratas dari rombel terukur menggunakan biru, posisi kedua terbawah jingga, dan posisi terbawah merah; rombel tanpa data tetap netral agar tidak memberi sinyal risiko palsu;
-- panel **Perlu keputusan Anda** memakai icon tile bergaya macOS dan sekarang juga memuat ringkasan Early Warning System (EWS) PKL bila ada sinyal nyata;
+- panel **Perlu keputusan Anda** memakai icon tile bergaya macOS dan juga memuat ringkasan Early Warning System (EWS) PKL bila ada sinyal nyata;
 - halaman **`/school/ews`** menjadi hub EWS dengan ringkasan prioritas, siswa/penempatan terdampak, sumber sinyal, dan tautan tindak lanjut;
 - halaman **`/school/pkl/monitoring`** dipoles menjadi grouped surface/list-row Apple HIG-inspired yang lebih ringkas dan langsung mengarah ke bukti presensi/jurnal;
 - lifecycle fokus `M3Dialog` diperbaiki agar controlled input tidak kehilangan fokus/caret ketika dialog parent re-render saat pengguna mengetik;
@@ -49,12 +51,12 @@ Refinement visual terbaru yang sudah menjadi bagian dari branch ini:
 - shell **Super Admin `/admin`** tidak lagi memakai `Header`/`Sidebar` template Open SaaS lama. Shell sekarang memakai navigation drawer, translucent top toolbar, account menu, theme control, grouped canvas, dan compact navigation yang konsisten dengan School OS;
 - dashboard ringkasan Super Admin tidak lagi memakai kumpulan card/chart template ApexCharts. Ia menampilkan data nyata `getDailyStats` dalam compact stat strip, aktivitas 7 hari berbasis bar CSS ringan, dan grouped list sumber kunjungan, lengkap dengan loading/error/empty state yang jujur;
 - route `/admin` tetap hanya untuk `user.isAdmin === true`; redesign tidak mengubah server-side authorization atau memberi akses platform admin kepada role lain;
-- kontrak tema `/admin` sekarang disatukan dengan School OS: localStorage key `theme`, fallback system preference, dan class `dark` disinkronkan pada `document.documentElement` serta `document.body`. Legacy mismatch `color-theme`/body-only tidak lagi dipakai pada shell Super Admin;
-- footer identitas akun pada **sidebar School** dihapus karena duplikat dengan account control di top toolbar. Account trigger toolbar sekarang hanya berupa avatar/inisial bulat; nama, email, dan action tetap tersedia setelah dropdown dibuka;
+- kontrak tema `/admin` disatukan dengan School OS: localStorage key `theme`, fallback system preference, dan class `dark` disinkronkan pada `document.documentElement` serta `document.body`. Legacy mismatch `color-theme`/body-only tidak lagi dipakai pada shell Super Admin;
+- footer identitas akun pada **sidebar School** dihapus karena duplikat dengan account control di top toolbar. Account trigger toolbar hanya berupa avatar/inisial bulat; nama, email, dan action tetap tersedia setelah dropdown dibuka;
 - sidebar School dalam mode expanded desktop dan mobile drawer memiliki search `Cari menu` yang benar-benar memfilter section/menu yang sudah diizinkan untuk role aktif. Search tidak membuat route baru, memiliki clear action, honest empty state `Menu tidak ditemukan.`, dan disembunyikan pada collapsed rail;
 - regression test khusus shell menambah coverage menjadi **70/70 test PASS** pada 5 test files.
 
-Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, `6f5d9b2`, `d16662a`, `349ac7c`, `bcca333`, `76395d0`, `9ae05d3`, `ef167b5`, dan `37754b3`.
+Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, `6f5d9b2`, `d16662a`, `349ac7c`, `bcca333`, `76395d0`, `9ae05d3`, `ef167b5`, `37754b3`, dan `0679c2b`.
 
 ## 3. Snapshot production terakhir yang terverifikasi
 
@@ -62,9 +64,9 @@ Domain School OS: `https://sekolah.suhendararyadi.com`.
 
 Pada 10 September 2026 production tetap memakai **split release yang disengaja**: static terbaru dengan backend sebelumnya yang telah terbukti sehat.
 
-- static web: `/var/www/saas-satu/releases/37754b3-theme-sidebar-search`;
+- static web: `/var/www/saas-satu/releases/0679c2b-dashboard-4kpi`;
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
-- static commit: `37754b3808569836e2488ff70643718e82f97837`;
+- static commit: `0679c2b224462ec02f89041051e60c72aecb852d`;
 - backend commit: `6f5d9b27b48ede1881904f7cc9572dc32ff09c04`;
 - `saas-satu.service`: **active/running**;
 - public `/school`: HTTP 200;
@@ -72,18 +74,18 @@ Pada 10 September 2026 production tetap memakai **split release yang disengaja**
 - public `/admin`: HTTP 200 untuk shell route; halaman tetap menggunakan existing `user.isAdmin` authorization setelah aplikasi memuat user;
 - public `/auth/me` anonymous smoke: HTTP 200;
 - unauthenticated POST Admin Dashboard operation: HTTP 401;
-- live static bundle memuat marker `Cari menu sidebar`, honest search empty state, avatar-only account trigger, dan unified admin theme contract (`theme`, bukan legacy `color-theme`);
+- live static dashboard bundle memuat marker `Kehadiran hari ini` dan source AdminDashboard diverifikasi memiliki tepat 4 `M3StatCard`;
 - pemeriksaan log setelah cutover menemukan **0** error `/auth/me` 500 pada window verifikasi;
-- backend pointer dan service tidak berubah/restart dalam rollout theme/sidebar-search ini;
-- rollback static langsung tersedia di `/var/www/saas-satu/releases/ef167b5-auth-admin-hig`.
+- backend pointer dan service tidak berubah/restart dalam rollout dashboard 4 KPI ini;
+- rollback static langsung tersedia di `/var/www/saas-satu/releases/37754b3-theme-sidebar-search`.
 
 Insiden historis yang harus diingat: backend `d16662a-dashboard-sidebar-polish` membawa Prisma Client runtime tanpa delegate `auth` dan `session`. Lucia/Wasp menginisialisasi adapter dengan `prisma.session` dan `prisma.auth`, sehingga request dengan bearer/session valid menghasilkan HTTP 500 walaupun request anonim `/auth/me` tetap 200. Release tersebut **jangan dipromosikan sebagai backend**.
 
-Rollback/backend sehat yang dipertahankan: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`. Static historis `6f5d9b2-ews-apple-monitoring`, `bcca333-sidebar-identity`, `76395d0-decision-row`, `9ae05d3-login-superadmin`, dan `ef167b5-auth-admin-hig` tetap tersedia sebagai referensi/rollback sesuai kebutuhan.
+Rollback/backend sehat yang dipertahankan: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`. Static historis `6f5d9b2-ews-apple-monitoring`, `bcca333-sidebar-identity`, `76395d0-decision-row`, `9ae05d3-login-superadmin`, `ef167b5-auth-admin-hig`, dan `37754b3-theme-sidebar-search` tetap tersedia sebagai referensi/rollback sesuai kebutuhan.
 
-Schema/migrations tidak berubah dan refinement UI ini tidak melakukan mutation data.
+Schema/migrations tidak berubah dan refinement dashboard ini tidak melakukan mutation data.
 
-Jalur deployment project-scoped tersedia melalui `.mso/functions.json` dan `ops/deploy-school-os-release.mjs`. Untuk perubahan frontend-only gunakan `school_os_deploy_static_preflight` -> `school_os_deploy_static`; jalur ini tidak mengganti backend atau restart service. Untuk perubahan backend/full-stack gunakan `school_os_deploy_preflight` -> `school_os_deploy_release`; full preflight sekarang wajib membuktikan Prisma runtime memiliki delegate `user`, `auth`, dan `session` sebelum backend boleh dipromosikan. Jika tahap full cutover gagal, fungsi mengembalikan backend/static ke pointer sebelumnya dan memulihkan backend rollback. Jalur ini sengaja dibuat untuk menghindari pelemahan global safety guard MSO.
+Jalur deployment project-scoped tersedia melalui `.mso/functions.json` dan `ops/deploy-school-os-release.mjs`. Untuk perubahan frontend-only gunakan `school_os_deploy_static_preflight` -> `school_os_deploy_static`; jalur ini tidak mengganti backend atau restart service. Untuk perubahan backend/full-stack gunakan `school_os_deploy_preflight` -> `school_os_deploy_release`; full preflight wajib membuktikan Prisma runtime memiliki delegate `user`, `auth`, dan `session` sebelum backend boleh dipromosikan. Jika tahap full cutover gagal, fungsi mengembalikan backend/static ke pointer sebelumnya dan memulihkan backend rollback. Jalur ini sengaja dibuat untuk menghindari pelemahan global safety guard MSO.
 
 ## 4. Demo dataset School OS
 
@@ -135,13 +137,19 @@ Status ini adalah snapshot historis, bukan pengganti health check baru sebelum/s
 
 ## 7. Pekerjaan berikutnya yang belum dilakukan
 
+### Login role test
+
 **Belum dibuat password/login demo untuk role Guru, Siswa, dan Pembimbing DUDI.** Record user/relasi demo sudah tersedia sebagai data aplikasi, tetapi belum dijadikan kredensial login buatan.
 
-Jika pengujian role-based dashboard dilanjutkan, buat tiga akun uji melalui **flow autentikasi resmi School OS**, bukan dengan menyisipkan password/hash secara ad-hoc ke database production. Tujuannya adalah menguji tampilan dan authorization dari sudut pandang:
+Jika pengujian role-based dashboard dilanjutkan, buat tiga akun uji melalui **flow autentikasi resmi School OS**, bukan dengan menyisipkan password/hash secara ad-hoc ke database production.
 
-- Guru;
-- Siswa;
-- Pembimbing DUDI.
+### Website Sekolah CMS
+
+Rancangan production-ready sudah disimpan di [`WEBSITE_SEKOLAH_CMS_PLAN.md`](./WEBSITE_SEKOLAH_CMS_PLAN.md), tetapi **fitur CMS belum aktif** karena schema saat ini belum memiliki model Halaman, Berita, Agenda, Pengumuman, Media, Navigation, atau publication state.
+
+Keputusan arsitektur: jangan menambahkan banyak menu placeholder. Setelah Phase 1 memiliki persistence dan public rendering nyata, tambahkan satu entry sidebar **PUBLIKASI → Website Sekolah** (`/school/website`) dan gunakan secondary navigation di dalam modul untuk Ringkasan, Halaman, Berita, Agenda & Pengumuman, Galeri & Media, Navigasi, Identitas & SEO, serta Pengaturan Publikasi.
+
+Phase 1 yang direkomendasikan: schema + migration, tenant-scoped authorization helpers, admin CMS hub, site identity/settings, Halaman CRUD, Berita CRUD, draft/preview/publish, public namespace `/site/:schoolSlug`, dan public landing/page/news rendering. Backup database wajib dibuat sebelum migration production.
 
 ## 8. Guardrails untuk pekerjaan lanjutan
 
@@ -152,6 +160,8 @@ Jika pengujian role-based dashboard dilanjutkan, buat tiga akun uji melalui **fl
 - Super Admin `/admin` tetap platform-only (`user.isAdmin`), terpisah dari role tenant `SUPERADMIN` bila flag platform admin tidak dimiliki.
 - Theme persistence untuk shell School dan Super Admin menggunakan key `theme`; jangan memperkenalkan kembali `color-theme` pada shell aktif tanpa migrasi eksplisit.
 - Sidebar search hanya boleh memfilter menu yang sudah tersedia untuk current authorization/role; jangan menjadikannya jalan pintas ke route tersembunyi.
+- Website Sekolah tidak boleh otomatis mengekspos data siswa, nilai, presensi, EWS, jurnal PKL, atau data internal lain; public data harus eksplisit dan privacy-safe.
+- Editor Website Sekolah tidak boleh menyimpan arbitrary HTML/JavaScript; gunakan validated content blocks dan media ownership checks.
 - Sebelum deployment, jalankan quality gate relevan: TypeScript/Wasp compile, client tests, `git diff --check`, build bila diperlukan, lalu smoke test sesuai dampak.
 - Backup database sebelum operasi production yang mengubah data/schema.
 - Pertahankan release sebelumnya sebagai rollback target saat melakukan cutover.
@@ -161,11 +171,13 @@ Jika pengujian role-based dashboard dilanjutkan, buat tiga akun uji melalui **fl
 
 - [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) — snapshot lintas sesi ini.
 - [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md) — source of truth visual aktif.
+- [`WEBSITE_SEKOLAH_CMS_PLAN.md`](./WEBSITE_SEKOLAH_CMS_PLAN.md) — product/architecture contract untuk modul Website Sekolah.
 - [`DEMO_DATA.md`](./DEMO_DATA.md) — operasi seed/status/cleanup demo.
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — kronologi implementasi dan rollout.
 - [`RELEASE_2026-09-10_LOGIN_SUPERADMIN.md`](./RELEASE_2026-09-10_LOGIN_SUPERADMIN.md) — refinement awal login dan pemulihan navigasi Super Admin sebelum shell HIG penuh.
 - [`RELEASE_2026-09-10_AUTH_ADMIN_HIG.md`](./RELEASE_2026-09-10_AUTH_ADMIN_HIG.md) — auth wallpaper vector dan migrasi shell/dashboard Super Admin ke School OS HIG.
 - [`RELEASE_2026-09-10_THEME_SIDEBAR_SEARCH.md`](./RELEASE_2026-09-10_THEME_SIDEBAR_SEARCH.md) — penyatuan kontrak tema, account avatar-only, penghapusan footer akun sidebar School, dan search menu sidebar.
+- [`RELEASE_2026-09-10_DASHBOARD_4KPI_WEBSITE_CMS_PLAN.md`](./RELEASE_2026-09-10_DASHBOARD_4KPI_WEBSITE_CMS_PLAN.md) — dashboard 4 KPI dan keputusan arsitektur Website Sekolah CMS.
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — arsitektur dan security boundaries.
 - [`ANTI_SLOP_GUIDELINES.md`](./ANTI_SLOP_GUIDELINES.md) — quality/copy/UI guardrails.
 
