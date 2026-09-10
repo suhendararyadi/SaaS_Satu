@@ -59,6 +59,8 @@ Perubahan seed demo terakhir tidak membutuhkan schema migration, restart backend
 
 Refinement dashboard commit `10eb867` sudah terverifikasi di source tree tetapi **belum dipromosikan ke production** pada snapshot ini. Immutable release `5fac63e-dashboard-rombel` sudah berhasil dibangun dan distage untuk backend maupun static web, namun cutover sengaja tidak dipaksa karena kontrol MSO pada sesi ini menolak operasi pengendalian ulang service lokal. Production tetap memakai backend `107c2e8-dashboard-attendance` dan static `ea99802-macos-settings-sidebar`.
 
+Jalur deployment project-scoped sekarang tersedia melalui `.mso/functions.json` dan `ops/deploy-school-os-release.mjs`. Gunakan `school_os_deploy_preflight` sebelum `school_os_deploy_release`; fungsi deploy hanya menerima release immutable yang sudah ada, memverifikasi commit/artifact, mengganti backend terlebih dahulu, me-restart `saas-satu.service`, menunggu health localhost, baru mengganti static, lalu menjalankan public smoke checks. Jika tahap setelah cutover gagal, fungsi mengembalikan backend/static ke pointer sebelumnya dan me-restart backend rollback. Jalur ini sengaja dibuat untuk menghindari pelemahan global safety guard MSO.
+
 ## 4. Demo dataset School OS
 
 Runner permanen:

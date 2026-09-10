@@ -8,6 +8,15 @@ Before changing School OS, read [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTE
 
 Do not assume `main` contains the latest School OS work. The current School OS development line is maintained in the worktree/branch recorded in `docs/PROJECT_CONTEXT.md`; verify repository state before editing.
 
+## Production deployment
+
+Do not bypass MSO service-control guards with forced process kills or unrestricted shell exceptions. School OS exposes bounded project functions in `.mso/functions.json`:
+
+- `school_os_deploy_preflight` validates an already-built immutable backend/static release and the current rollback pointers without changing production.
+- `school_os_deploy_release` performs backend symlink cutover, bounded service restart, local health verification, static cutover, public smoke checks, and automatic rollback on failure.
+
+Build and verify the immutable release first; then call preflight, and only then call the deploy function with the exact release id, expected commit, and confirmation token.
+
 ## Documentation
 
 ### Open SaaS

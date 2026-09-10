@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "functions": [
+    {
+      "name": "school_os_deploy_preflight",
+      "description": "Validate a staged immutable School OS backend/static release and current production pointers without changing production.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "release": { "type": "string" },
+          "expectedCommit": { "type": "string" }
+        },
+        "required": ["release", "expectedCommit"],
+        "additionalProperties": false
+      },
+      "command": ["/usr/bin/node", "ops/deploy-school-os-release.mjs", "preflight"],
+      "timeoutMs": 30000
+    },
+    {
+      "name": "school_os_deploy_release",
+      "description": "Promote one already-built immutable School OS release by switching backend, restarting the bounded service, verifying health, switching static assets, running public smoke checks, and rolling back automatically on failure.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "release": { "type": "string" },
+          "expectedCommit": { "type": "string" },
+          "confirm": { "type": "string", "enum": ["PROMOTE_SCHOOL_OS_RELEASE"] }
+        },
+        "required": ["release", "expectedCommit", "confirm"],
+        "additionalProperties": false
+      },
+      "command": ["/usr/bin/node", "ops/deploy-school-os-release.mjs", "deploy"],
+      "timeoutMs": 30000
+    }
+  ]
+}

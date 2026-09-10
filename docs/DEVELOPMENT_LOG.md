@@ -395,3 +395,19 @@ Production yang tetap aktif setelah rollback pointer:
 - static: `ea99802-macos-settings-sidebar`;
 - `saas-satu.service`: active;
 - public `/school`: HTTP 200.
+
+
+---
+
+## 10 September 2026 — Bounded MSO deployment function
+
+Ditambahkan jalur deployment project-scoped agar School OS tetap dapat dipromosikan setelah hardening MSO memblokir direct service restart dari generic `exec_run`, tanpa membuka kembali unrestricted destructive shell.
+
+Artefak baru:
+
+- `.mso/functions.json` — manifest dua project functions;
+- `ops/deploy-school-os-release.mjs` — deploy runner fixed-argv/no-shell.
+
+Function `school_os_deploy_preflight` hanya memvalidasi release, commit, generated backend bundle, static index/assets, current pointers, dan state service. Function `school_os_deploy_release` membutuhkan confirmation token eksplisit, melakukan backend cutover -> restart service -> localhost health -> static cutover -> public smoke (`/school` 200, `/auth/me` 200, unauthenticated admin dashboard operation 401), kemudian memverifikasi symlink final. Kegagalan setelah cutover memicu rollback backend/static ke pointer awal dan restart release sebelumnya.
+
+Project capability discovery telah memvalidasi manifest sebagai version 1 dengan 2 functions. Preflight terhadap release `5fac63e-dashboard-rombel` PASS dan memastikan current production masih backend `107c2e8-dashboard-attendance`, static `ea99802-macos-settings-sidebar`, service active sebelum promotion.
