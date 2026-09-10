@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { Navigate, useLocation } from "react-router";
 import { type AuthUser } from "wasp/auth";
@@ -10,7 +10,6 @@ import {
   M3TopAppBar,
   type M3DrawerSection,
 } from "../../client/components/m3";
-import { useColorMode } from "../../client/hooks/useColorMode";
 
 interface Props {
   user: AuthUser;
@@ -33,7 +32,18 @@ function getAdminPageTitle(pathname: string) {
 export function DefaultLayout({ children, user }: Props) {
   const location = useLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [colorMode, setColorMode] = useColorMode();
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") return true;
+    if (saved === "light") return false;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+    document.body.classList.toggle("dark", isDarkMode);
+  }, [isDarkMode]);
 
   if (!user.isAdmin) {
     return <Navigate to="/" replace />;
@@ -86,11 +96,12 @@ export function DefaultLayout({ children, user }: Props) {
     </div>
   );
 
-  const isDarkMode = colorMode === "dark";
-  const toggleColorMode = () => {
-    if (typeof setColorMode === "function") {
-      setColorMode(isDarkMode ? "light" : "dark");
-    }
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("theme", next ? "dark" : "light"); } catch {}
+      return next;
+    });
   };
 
   return (
@@ -127,7 +138,7 @@ export function DefaultLayout({ children, user }: Props) {
                 <M3Button
                   variant="icon"
                   size="icon-md"
-                  onClick={toggleColorMode}
+                  onClick={toggleDarkMode}
                   aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"}
                   title={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"}
                   icon={isDarkMode ? "light_mode" : "dark_mode"}

@@ -1,4 +1,4 @@
-import React, { type ReactNode } from "react";
+import React, { useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { M3Icon } from "./M3Icon";
 import {
@@ -16,12 +16,14 @@ import {
   MapPin,
   Network,
   NotebookPen,
+  Search,
   Settings,
   ShieldCheck,
   TriangleAlert,
   Upload,
   UserRoundCheck,
   UsersRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +58,26 @@ const sidebarIconMap: Record<string, LucideIcon> = {
 
 export function M3NavigationDrawer({ sections, header, footer, isOpen = true, onClose, isCollapsed = false, isHidden = false, className = "" }: M3NavigationDrawerProps) {
   const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+  const isSchoolPortal = location.pathname === "/school" || location.pathname.startsWith("/school/");
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase("id-ID");
+
+  const visibleSections = useMemo(() => {
+    if (!isSchoolPortal || !normalizedQuery) return sections;
+
+    return sections
+      .map((section) => {
+        const sectionMatches = section.title?.toLocaleLowerCase("id-ID").includes(normalizedQuery) ?? false;
+        return {
+          ...section,
+          items: sectionMatches
+            ? section.items
+            : section.items.filter((item) => item.label.toLocaleLowerCase("id-ID").includes(normalizedQuery)),
+        };
+      })
+      .filter((section) => section.items.length > 0);
+  }, [isSchoolPortal, normalizedQuery, sections]);
+
   const isCurrent = (href: string) => {
     if (href === "/school" || href === "/admin") return location.pathname === href;
     return location.pathname.startsWith(href);
@@ -130,16 +152,47 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
   const renderContent = (rail: boolean) => (
     <div className={`${rail ? "w-[60px]" : "w-[min(86vw,300px)] lg:w-[240px]"} hig-sidebar-material flex h-full flex-col border-r border-md-outline-variant transition-all duration-200 ${className}`}>
       {header && <div className={`${rail ? "p-2.5" : "px-3 py-4"} shrink-0`}>{header}</div>}
+
+      {isSchoolPortal && !rail && (
+        <div className="shrink-0 px-2 pb-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-md-on-surface-variant" strokeWidth={1.8} aria-hidden="true" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Cari menu"
+              aria-label="Cari menu sidebar"
+              className="min-h-11 w-full rounded-[10px] border-0 bg-black/[.055] py-2 pl-9 pr-9 text-[13px] text-md-on-surface placeholder:text-md-on-surface-variant/75 focus:ring-2 focus:ring-md-primary/35 lg:min-h-9 dark:bg-white/[.08]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-md-on-surface-variant transition-colors hover:bg-black/[.06] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/40 dark:hover:bg-white/[.08]"
+                aria-label="Hapus pencarian menu"
+                title="Hapus pencarian"
+              >
+                <X size={14} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className={`${rail ? "space-y-2 px-1.5 py-2" : "space-y-3 px-2 py-1"} flex-1 overflow-y-auto`}>
-        {sections.filter((section) => section.items.length > 0).map((section, index) => (
+        {visibleSections.length > 0 ? visibleSections.filter((section) => section.items.length > 0).map((section, index) => (
           <section key={`${section.title ?? "section"}-${index}`} className="space-y-1">
             {section.title && !rail && <h2 className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/60">{section.title}</h2>}
             {section.title && rail && index > 0 && <div className="mx-auto my-2 w-6 border-t border-md-outline-variant" />}
             <div className="space-y-0.5">{section.items.map((item) => renderItem(item, isCurrent(item.href), rail))}</div>
           </section>
-        ))}
+        )) : !rail && isSchoolPortal && normalizedQuery ? (
+          <p className="px-3 py-5 text-center text-[12px] leading-5 text-md-on-surface-variant" role="status">Menu tidak ditemukan.</p>
+        ) : null}
       </div>
-      {footer && <div className={`${rail ? "p-2" : "p-3"} shrink-0 border-t border-md-outline-variant`}>{footer}</div>}
+
+      {footer && !isSchoolPortal && <div className={`${rail ? "p-2" : "p-3"} shrink-0 border-t border-md-outline-variant`}>{footer}</div>}
     </div>
   );
 

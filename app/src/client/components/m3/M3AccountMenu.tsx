@@ -5,28 +5,22 @@ import { type AuthUser } from "wasp/auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { M3Icon } from "./M3Icon";
 
-function roleLabel(user: AuthUser) {
-  if (user.isAdmin || user.role === "SUPERADMIN") return "Super Admin";
-  if (user.role === "SCHOOL_ADMIN") return "Admin Sekolah";
-  if (user.role === "TEACHER") return "Guru";
-  if (user.role === "STUDENT") return "Siswa";
-  if (user.role === "DUDI_MENTOR") return "Pembimbing DUDI";
-  return "Pengguna";
-}
-
 export function M3AccountMenu({ user }: { user: AuthUser }) {
   const name = user.name || user.username || user.email || "Akun";
   const initial = name.charAt(0).toUpperCase();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="flex min-h-11 items-center gap-2 rounded-[9px] px-1.5 pr-2 text-left text-md-on-surface transition-colors hover:bg-black/[.045] focus-visible:ring-2 focus-visible:ring-md-primary/50 lg:min-h-8" aria-label="Buka menu akun">
-          <span className="flex size-8 items-center justify-center rounded-full bg-md-primary text-[12px] font-semibold text-md-on-primary lg:size-7" aria-hidden="true">{initial}</span>
-          <span className="hidden max-w-36 flex-col sm:flex">
-            <span className="truncate text-[12.5px] font-semibold">{name}</span>
-            <span className="truncate text-[10.5px] text-md-on-surface-variant">{roleLabel(user)}</span>
+        <button
+          type="button"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full text-md-on-surface transition-colors hover:bg-black/[.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/50 lg:size-8 dark:hover:bg-white/[.06]"
+          aria-label={`Buka menu akun ${name}`}
+          title={name}
+        >
+          <span className="flex size-8 items-center justify-center rounded-full bg-md-primary text-[12px] font-semibold text-md-on-primary shadow-[0_1px_2px_rgba(0,0,0,.12)] lg:size-7" aria-hidden="true">
+            {initial}
           </span>
-          <M3Icon name="expand_more" size={15} className="hidden text-md-on-surface-variant sm:block" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60 rounded-[14px] border-md-outline-variant bg-md-surface/96 p-1.5 text-md-on-surface shadow-[0_18px_48px_rgba(0,0,0,.18)] backdrop-blur-xl">
@@ -45,9 +39,15 @@ export function M3AccountMenu({ user }: { user: AuthUser }) {
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem asChild><Link to="/account" className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px]"><M3Icon name="person" size={17} />Akun Saya</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/account" className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px]">
+            <M3Icon name="person" size={17} />Akun Saya
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => logout()} className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px] text-md-error focus:text-md-error"><M3Icon name="logout" size={17} />Keluar</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => logout()} className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px] text-md-error focus:text-md-error">
+          <M3Icon name="logout" size={17} />Keluar
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
