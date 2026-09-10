@@ -50,6 +50,14 @@ function publicStatusWhere(now: Date) {
   };
 }
 
+function publicDepartments(items: Array<{ id: string; code: string; name: string }>) {
+  return items.filter((item) => {
+    const code = item.code.trim().toUpperCase();
+    const name = item.name.trim().toUpperCase();
+    return !code.startsWith("DEMO-") && !name.startsWith("[DEMO]");
+  });
+}
+
 async function requireTenantContent(id: string, schoolId: string) {
   const item = await prisma.schoolSiteContent.findUnique({ where: { id } });
   if (!item) throw new HttpError(404, "Konten website tidak ditemukan.");
@@ -410,7 +418,7 @@ export const getPublicSchoolSite = async (rawArgs: unknown) => {
   const nav = navItems.map((item: any) => ({ ...item, resolvedHref: resolveNavHref(item, school.slug, pageById) })).filter((item: any) => !!item.resolvedHref);
 
   return {
-    school: { id: school.id, name: school.name, slug: school.slug, logoUrl: school.logoUrl, address: school.address, city: school.city, province: school.province, departments: school.departments },
+    school: { id: school.id, name: school.name, slug: school.slug, logoUrl: school.logoUrl, address: school.address, city: school.city, province: school.province, departments: publicDepartments(school.departments) },
     site: school.site,
     pages: pages.map(serializeContent),
     news: news.map(serializeContent),
@@ -448,5 +456,5 @@ export const getSchoolWebsitePreview = async (_args: unknown, context: SchoolCon
     prisma.schoolSiteMedia.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "desc" }, take: 12 }),
   ]);
   if (!school) throw new HttpError(404, "Sekolah aktif tidak ditemukan.");
-  return { school, site, contents: contents.map(serializeContent), media };
+  return { school: { ...school, departments: publicDepartments(school.departments) }, site, contents: contents.map(serializeContent), media };
 };
