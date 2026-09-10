@@ -9,8 +9,9 @@ Dokumen ini adalah snapshot konteks operasional untuk melanjutkan pengembangan S
 - Repository utama: `/home/ubuntu/projects/SaaS_Satu`
 - Worktree pengembangan School OS saat ini: `/home/ubuntu/projects/SaaS_Satu-hardening`
 - Branch aktif: `redesign/apple-hig`
-- Implementasi dashboard terbaru: `10eb867` (`refine(dashboard): prioritize class attendance and decision icons`)
-- Jalur deployment bounded terbaru: `6f7fae9` (`ops: add bounded School OS deployment function`)
+- Implementasi fitur EWS/monitoring terbaru: `af4bf88` (`feat(school): add EWS hub and polish PKL monitoring`)
+- Refinement Kehadiran terbaru: `6f5d9b2` (`refine(dashboard): reverse attendance priority order`)
+- Jalur deployment bounded: `6f7fae9` (`ops: add bounded School OS deployment function`)
 - Branch `main` masih berada pada garis baseline yang lebih lama dan **bukan** tempat perubahan School OS terbaru ini dikembangkan.
 
 Jika melanjutkan pekerjaan School OS dari konteks ini, gunakan worktree `SaaS_Satu-hardening` kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -29,33 +30,39 @@ Refinement visual terbaru yang sudah menjadi bagian dari branch ini:
 - label menu sidebar diperkuat menjadi near-black agar sesuai referensi Finder/macOS;
 - navigation drawer kemudian disempurnakan lagi mengikuti komposisi sidebar jendela Settings macOS;
 - grouped surfaces, compact toolbar, thin separators, data-dense tables, dan real-data-only dashboard tetap menjadi prinsip utama;
-- panel Admin **Kehadiran per rombel** menampilkan maksimal 5 rombel prioritas berdasarkan persentase hadir terendah pada hari berjalan; nilai tanpa data tidak diperlakukan sebagai 0%;
-- ranking kehadiran dinormalisasi dengan persentase, bukan jumlah absen mentah, agar rombel dengan ukuran/jumlah sesi berbeda tetap dapat dibandingkan secara adil; jumlah ketidakhadiran dipakai sebagai tie-breaker;
-- rombel dengan record `ALPA` memakai aksen merah, sedangkan data kosong tetap netral;
-- panel **Perlu keputusan Anda** memakai icon tile bergaya macOS per jenis kondisi tanpa membuat kasus atau angka contoh baru.
+- panel Admin **Kehadiran per rombel** tetap memilih maksimal 5 rombel prioritas dengan persentase hadir terendah pada hari berjalan, tetapi menampilkannya dari persentase yang lebih tinggi ke yang lebih rendah; nilai tanpa data tidak diperlakukan sebagai 0%;
+- ranking kehadiran dinormalisasi dengan persentase, bukan jumlah absen mentah, agar rombel dengan ukuran/jumlah sesi berbeda tetap dapat dibandingkan secara adil; jumlah ketidakhadiran dipakai sebagai tie-breaker saat pemilihan prioritas;
+- tiga posisi teratas dari rombel terukur menggunakan biru, posisi kedua terbawah jingga, dan posisi terbawah merah; rombel tanpa data tetap netral agar tidak memberi sinyal risiko palsu;
+- panel **Perlu keputusan Anda** memakai icon tile bergaya macOS dan sekarang juga memuat ringkasan Early Warning System (EWS) PKL bila ada sinyal nyata;
+- halaman **`/school/ews`** menjadi hub EWS dengan ringkasan prioritas, siswa/penempatan terdampak, sumber sinyal, dan tautan tindak lanjut;
+- halaman **`/school/pkl/monitoring`** dipoles menjadi grouped surface/list-row Apple HIG-inspired yang lebih ringkas dan langsung mengarah ke bukti presensi/jurnal;
+- lifecycle fokus `M3Dialog` diperbaiki agar controlled input tidak kehilangan fokus/caret ketika dialog parent re-render saat pengguna mengetik.
 
-Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, dan `10eb867`.
+Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, dan `6f5d9b2`.
 
 ## 3. Snapshot production terakhir yang terverifikasi
 
 Domain School OS: `https://sekolah.suhendararyadi.com`.
 
-Pada 10 September 2026, release dashboard rombel telah dipromosikan dan diverifikasi sebagai production aktif:
+Pada 10 September 2026, release EWS + Apple monitoring terbaru telah dipromosikan dan diverifikasi sebagai production aktif:
 
-- static web: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`;
-- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
+- static web: `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`;
+- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
+- commit aplikasi yang dideploy: `6f5d9b27b48ede1881904f7cc9572dc32ff09c04`;
 - `saas-satu.service`: **active/running**;
-- localhost `/auth/me`: HTTP 200;
 - public `/school`: HTTP 200;
 - public `/login`: HTTP 200;
-- unauthenticated Admin Dashboard operation: HTTP 401;
-- bundle production memuat marker `Kehadiran per rombel`;
-- tidak ditemukan 5xx/error baru pada window verifikasi setelah cutover.
+- public `/school/ews`: HTTP 200;
+- public `/school/pkl/monitoring`: HTTP 200;
+- unauthenticated POST Admin Dashboard operation: HTTP 401;
+- unauthenticated POST EWS operation: HTTP 401;
+- bundle production memuat halaman `Early Warning System` dan refinement dua rombel terbawah;
+- deploy function dijalankan ulang dan mengembalikan `idempotent: true`.
 
 Rollback target yang dipertahankan:
 
-- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/107c2e8-dashboard-attendance`;
-- static: `/var/www/saas-satu/releases/ea99802-macos-settings-sidebar`.
+- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
+- static: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`.
 
 Schema/migrations tidak berubah dan deployment ini tidak melakukan mutation data.
 

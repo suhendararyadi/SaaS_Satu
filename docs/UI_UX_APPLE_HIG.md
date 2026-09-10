@@ -216,8 +216,8 @@ The original School OS baseline was promoted on 9 September 2026 and then refine
 
 Current pointers verified from the server on 10 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`;
-- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
+- active static release: `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`;
+- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
 - `saas-satu.service`: active/running.
 
 The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
@@ -241,3 +241,17 @@ Current sidebar contract:
 Related refinement commits: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`.
 
 Final principle: **toolbar memberi konteks; sidebar memberi orientasi; content area memberi pekerjaan dan data tanpa chrome yang berlebihan.**
+
+## 15. EWS, dialog focus, and PKL monitoring refinement — 10 September 2026
+
+The current production refinement extends the Apple HIG-inspired contract into operational monitoring and form behavior:
+
+- shared dialogs must preserve focus/caret while controlled form fields update; dialog lifecycle side effects run on open/close state rather than callback identity changes;
+- **Kehadiran per rombel** still selects the five lowest-attendance priority classes, then presents that set from higher to lower attendance so the visual hierarchy naturally ends with the most concerning rows;
+- among measured rows, the bottom two use Apple-like orange then red accents; unmeasured rows remain neutral;
+- **Perlu keputusan Anda** may include a real EWS PKL summary with a compact orange alert tile and navigation to `/school/ews`;
+- `/school/ews` is the overview/hub: concise status, counts, priority list, source context, and interpretation guidance;
+- `/school/pkl/monitoring` is the evidence/detail view: grouped surfaces, compact filters, thin separators, alert tiles, and direct navigation to attendance/journal evidence rather than generic outreach chrome;
+- EWS is a prioritization aid, not an automatic disciplinary decision. UI copy must keep the distinction between a detected signal and a verified school decision.
+
+Related implementation commits: `af4bf88` and `6f5d9b2`.

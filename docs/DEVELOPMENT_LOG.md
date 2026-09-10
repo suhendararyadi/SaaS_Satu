@@ -433,3 +433,52 @@ Post-cutover verification:
 - deploy function dipanggil kedua kali dan mengembalikan `idempotent: true` dengan smoke checks tetap PASS.
 
 Rollback target lama tetap tersedia (`107c2e8-dashboard-attendance` backend dan `ea99802-macos-settings-sidebar` static). Tidak ada schema migration atau mutation data dalam rollout ini.
+
+---
+
+## 10 September 2026 — EWS hub, dialog focus fix, Apple PKL monitoring, and attendance hierarchy
+
+Pengembangan lanjutan School OS mencakup empat permintaan utama dan satu refinement visual tambahan.
+
+Implementasi:
+
+- akar bug input modal ditemukan pada lifecycle `M3Dialog`: effect fokus sebelumnya bergantung pada identity `onClose`, sehingga controlled input dapat kehilangan fokus setiap parent re-render; callback sekarang disimpan pada ref dan lifecycle focus/escape bergantung pada `isOpen`;
+- ditambahkan regression test yang memastikan input tetap fokus setelah dialog re-render dengan callback `onClose` baru;
+- logika EWS PKL dikonsolidasikan di `app/src/pkl/ews.ts` agar dashboard admin, halaman EWS, dan Monitoring PKL menggunakan sumber aturan yang sama;
+- **Perlu keputusan Anda** menampilkan summary EWS nyata bila ada sinyal, dengan icon tile dan tautan ke `/school/ews`;
+- dibuat halaman `/school/ews` sebagai overview EWS dengan ringkasan prioritas, siswa dan penempatan terdampak, sumber sinyal, serta tautan ke bukti;
+- `/school/pkl/monitoring` dipoles menjadi grouped/list Apple HIG-inspired yang lebih ringkas dan memiliki direct action ke presensi atau jurnal;
+- akses EWS tetap tenant-scoped dan capability-scoped melalui `monitorPkl`; siswa tidak mendapat menu EWS;
+- panel **Kehadiran per rombel** tetap memilih lima rombel prioritas dengan persentase hadir terendah, lalu urutan tampil dibalik menjadi lebih tinggi -> lebih rendah; tiga rombel terukur atas biru, posisi kedua terbawah jingga, posisi terbawah merah, sedangkan data kosong netral.
+
+Commits aplikasi:
+
+- `af4bf88` — `feat(school): add EWS hub and polish PKL monitoring`;
+- `6f5d9b2` — `refine(dashboard): reverse attendance priority order`.
+
+Quality gate:
+
+- TypeScript `tsc --noEmit`: PASS;
+- regression/shared UI test: 33/33 PASS;
+- full Vitest: **68/68 PASS** pada 4 test files;
+- `git diff --check`: PASS;
+- Wasp 0.25.0 production build/compile: PASS;
+- Prisma Client 5.19.1 generation: PASS;
+- generated server bundle: PASS;
+- Vite SSR + client production build: PASS;
+- schema Prisma/migrations: tidak berubah.
+
+Rollout:
+
+- immutable release: `6f5d9b2-ews-apple-monitoring`;
+- preflight bounded deploy: PASS;
+- backend current -> `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
+- static current -> `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`;
+- `saas-satu.service`: active;
+- public `/school`, `/login`, `/school/ews`, `/school/pkl/monitoring`: HTTP 200;
+- unauthenticated POST Admin Dashboard operation: HTTP 401;
+- unauthenticated POST EWS operation: HTTP 401;
+- deploy function dipanggil ulang dan mengembalikan `idempotent: true`;
+- rollback target tetap `5fac63e-dashboard-rombel` untuk backend dan static.
+
+Tidak ada schema migration atau mutation data production pada rollout ini. NPM audit masih melaporkan dependency debt yang sudah ada; rollout tidak diklaim audit-clean.
