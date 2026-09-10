@@ -5,5 +5,25 @@ import { useRedirectIfLoggedIn } from "./hooks/useRedirectIfLoggedIn";
 
 export function SignupPage() {
   useRedirectIfLoggedIn();
-  return <AuthPageLayout><div className="mb-6"><p className="text-xs font-bold text-md-primary">AKUN BARU</p><h1 className="mt-2 text-2xl font-extrabold text-md-on-surface">Buat akun SaaS Satu</h1><p className="mt-2 text-sm leading-6 text-md-on-surface-variant">Setelah mendaftar, akun akan mengikuti proses verifikasi dan pengaturan sekolah.</p></div><SignupForm /><p className="mt-5 border-t border-md-outline-variant/50 pt-4 text-sm text-md-on-surface-variant">Sudah memiliki akun? <WaspRouterLink to={routes.LoginRoute.to} className="font-bold text-md-primary hover:underline">Masuk</WaspRouterLink></p></AuthPageLayout>;
+
+  return (
+    <AuthPageLayout>
+      <div className="mb-6 text-center">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-md-on-surface-variant">Akun baru</p>
+        <h1 className="mt-1.5 text-[25px] font-semibold tracking-[-0.025em] text-md-on-surface">Buat akun School OS</h1>
+        <p className="mx-auto mt-2 max-w-[330px] text-[13px] leading-5 text-md-on-surface-variant">
+          Daftarkan akun, lalu lanjutkan verifikasi dan pengaturan sekolah sesuai akses yang diberikan.
+        </p>
+      </div>
+
+      <SignupForm />
+
+      <p className="mt-5 border-t border-md-outline-variant pt-4 text-center text-[12.5px] leading-6 text-md-on-surface-variant">
+        Sudah memiliki akun?{" "}
+        <WaspRouterLink to={routes.LoginRoute.to} className="font-semibold text-md-primary hover:underline">
+          Masuk
+        </WaspRouterLink>
+      </p>
+    </AuthPageLayout>
+  );
 }

@@ -12,6 +12,7 @@ import {
   FileText,
   GraduationCap,
   Home,
+  Mail,
   MapPin,
   Network,
   NotebookPen,
@@ -50,11 +51,15 @@ const sidebarIconMap: Record<string, LucideIcon> = {
   settings: Settings,
   location_on: MapPin,
   school: GraduationCap,
+  mail: Mail,
 };
 
 export function M3NavigationDrawer({ sections, header, footer, isOpen = true, onClose, isCollapsed = false, isHidden = false, className = "" }: M3NavigationDrawerProps) {
   const location = useLocation();
-  const isCurrent = (href: string) => href === "/school" ? location.pathname === "/school" : location.pathname.startsWith(href);
+  const isCurrent = (href: string) => {
+    if (href === "/school" || href === "/admin") return location.pathname === href;
+    return location.pathname.startsWith(href);
+  };
   const isRail = isCollapsed && !isHidden;
   const desktopWidthClass = isHidden ? "w-0 opacity-0 pointer-events-none overflow-hidden" : isRail ? "w-[60px]" : "w-[240px]";
 
@@ -80,6 +85,7 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
     settings: "bg-[#AF52DE] dark:bg-[#BF5AF2]",
     location_on: "bg-[#FF453A]",
     school: "bg-[#0A84FF]",
+    mail: "bg-[#32ADE6] dark:bg-[#64D2FF]",
   };
 
   const renderDrawerIcon = (icon: M3DrawerItem["icon"], active: boolean) => {
