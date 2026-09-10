@@ -13,9 +13,11 @@ import {
   GraduationCap,
   Home,
   MapPin,
+  Network,
   NotebookPen,
   Settings,
   ShieldCheck,
+  TriangleAlert,
   Upload,
   UserRoundCheck,
   UsersRound,
@@ -32,6 +34,7 @@ const sidebarIconMap: Record<string, LucideIcon> = {
   badge: UserRoundCheck,
   calendar_month: CalendarDays,
   meeting_room: DoorOpen,
+  account_tree: Network,
   groups: UsersRound,
   upload_file: Upload,
   menu_book: BookOpen,
@@ -39,6 +42,7 @@ const sidebarIconMap: Record<string, LucideIcon> = {
   work: BriefcaseBusiness,
   edit_note: NotebookPen,
   monitor_heart: Activity,
+  warning: TriangleAlert,
   schedule: Clock3,
   supervisor_account: UserRoundCheck,
   verified_user: ShieldCheck,
@@ -60,25 +64,27 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
     badge: "bg-[#30B0C7]",
     calendar_month: "bg-[#FF9F0A]",
     meeting_room: "bg-[#64D2FF]",
+    account_tree: "bg-[#AF52DE] dark:bg-[#BF5AF2]",
     groups: "bg-[#34C759]",
     upload_file: "bg-[#0A84FF]",
     menu_book: "bg-[#5856D6]",
-    apartment: "bg-[#8E8E93]",
+    apartment: "bg-[#32ADE6] dark:bg-[#64D2FF]",
     work: "bg-[#FF9F0A]",
     edit_note: "bg-[#BF5AF2]",
     monitor_heart: "bg-[#FF375F]",
+    warning: "bg-[#FF9500] dark:bg-[#FF9F0A]",
     schedule: "bg-[#5E5CE6]",
     supervisor_account: "bg-[#30B0C7]",
     verified_user: "bg-[#34C759]",
-    description: "bg-[#8E8E93]",
-    settings: "bg-[#8E8E93]",
+    description: "bg-[#007AFF] dark:bg-[#0A84FF]",
+    settings: "bg-[#AF52DE] dark:bg-[#BF5AF2]",
     location_on: "bg-[#FF453A]",
     school: "bg-[#0A84FF]",
   };
 
   const renderDrawerIcon = (icon: M3DrawerItem["icon"], active: boolean) => {
     const iconName = typeof icon === "string" ? icon : null;
-    const tileTone = iconName ? (iconToneMap[iconName] ?? "bg-[#8E8E93]") : "bg-[#8E8E93]";
+    const tileTone = iconName ? (iconToneMap[iconName] ?? "bg-[#5E5CE6]") : "bg-[#5E5CE6]";
     const iconContent = (() => {
       if (iconName) {
         const SidebarIcon = sidebarIconMap[iconName];

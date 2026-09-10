@@ -134,17 +134,18 @@ function ClassAttendanceRow({ item, tone = "primary" }: { item: any; tone?: "pri
     error: "bg-md-error",
   };
   const barTone = hasData ? toneClasses[tone] : "bg-transparent";
-  const label = item.departmentCode && !item.className.toUpperCase().includes(item.departmentCode.toUpperCase())
-    ? `${item.className} · ${item.departmentCode}`
-    : item.className;
+  const label = String(item.className || "Rombel").replace(/\s+/g, " ").trim();
+  const fullLabel = item.departmentCode && !label.toUpperCase().includes(item.departmentCode.toUpperCase())
+    ? `${label} · ${item.departmentCode}`
+    : label;
 
   return (
-    <div className="grid min-h-9 grid-cols-[minmax(92px,auto)_minmax(90px,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(120px,auto)_1fr_54px]">
-      <span className="truncate text-[13px] font-medium text-md-on-surface-variant" title={label}>{label}</span>
+    <div className="grid min-h-9 grid-cols-[104px_minmax(0,1fr)_42px] items-center gap-3 sm:grid-cols-[132px_minmax(0,1fr)_48px]">
+      <span className="block w-full truncate text-[13px] font-medium text-md-on-surface-variant" title={fullLabel}>{label}</span>
       <div
         className="h-[7px] overflow-hidden rounded-full bg-md-surface-container-high"
         role={hasData ? "progressbar" : undefined}
-        aria-label={hasData ? `Kehadiran ${label} ${formatAttendanceRate(item.rate)} persen` : `Kehadiran ${label} belum tercatat`}
+        aria-label={hasData ? `Kehadiran ${fullLabel} ${formatAttendanceRate(item.rate)} persen` : `Kehadiran ${fullLabel} belum tercatat`}
         aria-valuemin={hasData ? 0 : undefined}
         aria-valuemax={hasData ? 100 : undefined}
         aria-valuenow={hasData ? item.rate : undefined}
@@ -303,13 +304,12 @@ function AdminDashboard() {
     ["Kelas & rombel", "/school/classes"],
     ["LMS & CBT", "/school/lms/courses"],
     ["Tahun ajaran", "/school/academic-years"],
-    ["Import data", "/school/import"],
     ...(isVocational ? [["Mitra DUDI", "/school/pkl/companies"], ["Penempatan PKL", "/school/pkl/placements"]] : []),
   ];
 
   return (
     <div className="space-y-5">
-      <DashboardIntro title="Ringkasan sekolah" note="Statistik operasional terkini berdasarkan data sekolah aktif." actions={<M3Button variant="text" href="/school/import" size="sm">Import data</M3Button>} />
+      <DashboardIntro title="Ringkasan sekolah" note="Statistik operasional terkini berdasarkan data sekolah aktif." />
 
       <div className={`grid gap-3 sm:grid-cols-2 md:grid-cols-3 ${statColumns}`}>
         <M3StatCard label="Siswa" value={data.counts.students} tone="blue" href="/school/students" />
