@@ -562,3 +562,44 @@ Deployment hardening commit `7231123`:
 - static-only deployment terhadap `d16662a-dashboard-sidebar-polish` PASS dan `idempotent: true`, dengan backend tetap `6f5d9b2-ews-apple-monitoring`.
 
 Tidak ada schema migration atau mutation data production pada recovery ini.
+
+---
+
+## 10 September 2026 — Sidebar school identity, panel toggle, and decision-card balance
+
+Refinement UI dilakukan berdasarkan referensi macOS Settings dan posisi panel toggle ChatGPT yang diberikan pemilik produk. Perubahan ini bersifat frontend-only.
+
+Implementasi:
+
+- header sidebar diubah menjadi **school identity row**: icon sekolah bulat, nama sekolah sebagai primary label, dan konteks `Unit sekolah aktif · <kota>` sebagai secondary label;
+- saat sidebar menjadi rail, identitas tetap direpresentasikan oleh icon sekolah bulat tanpa menampilkan nama terpotong;
+- kontrol hide/show desktop menggunakan satu icon split-panel `PanelLeft`, ditempatkan di trailing edge header sidebar agar secara spasial terhubung dengan panel yang dikontrol;
+- kontrol collapse desktop di top app bar dihapus, sementara tombol menu mobile tetap berada di top bar; shortcut `Ctrl+B`/`Cmd+B` tetap dipertahankan;
+- kartu **Perlu keputusan Anda** mendapat supplemental row `Buka pusat monitoring PKL` untuk konteks SMK (fallback non-SMK: laporan operasional), dipisahkan oleh separator dari attention list;
+- supplemental row tidak masuk `data.attention`, tidak menambah badge keputusan, dan tidak menciptakan kasus/metric palsu.
+
+Commits aplikasi:
+
+- `349ac7c` — `refine(shell): add school identity and sidebar toggle`;
+- `bcca333` — `fix(shell): use supported school icon weight`.
+
+Quality gate dan rollout:
+
+- TypeScript `tsc --noEmit`: PASS;
+- full Vitest: **68/68 PASS** pada 4 test files;
+- `git diff --check`: PASS;
+- Wasp 0.25.0 production build: PASS;
+- Prisma Client generation saat Wasp build: PASS;
+- Vite SSR + client production build dengan production API origin: PASS;
+- immutable static release: `bcca333-sidebar-identity`;
+- static-only preflight: PASS;
+- static-only deployment: PASS;
+- backend tetap `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring` dan tidak direstart/diganti;
+- static current -> `/var/www/saas-satu/releases/bcca333-sidebar-identity`;
+- rollback static -> `/var/www/saas-satu/releases/d16662a-dashboard-sidebar-polish`;
+- `saas-satu.service`: active;
+- public `/school` dan `/login`: HTTP 200; anonymous `/auth/me`: HTTP 200; unauthenticated Admin Dashboard operation tetap fail-closed HTTP 401;
+- bundle live terverifikasi memuat `Unit sekolah aktif`, `Sembunyikan sidebar`, dan `Buka pusat monitoring PKL`;
+- jumlah `/auth/me` 500 setelah static cutover pada window verifikasi: **0**.
+
+Tidak ada perubahan schema, migration, mutation data production, atau backend runtime pada rollout ini.

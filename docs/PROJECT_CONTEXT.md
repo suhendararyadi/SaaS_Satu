@@ -38,9 +38,12 @@ Refinement visual terbaru yang sudah menjadi bagian dari branch ini:
 - halaman **`/school/pkl/monitoring`** dipoles menjadi grouped surface/list-row Apple HIG-inspired yang lebih ringkas dan langsung mengarah ke bukti presensi/jurnal;
 - lifecycle fokus `M3Dialog` diperbaiki agar controlled input tidak kehilangan fokus/caret ketika dialog parent re-render saat pengguna mengetik;
 - tombol/shortcut **Import Data** dihilangkan dari Beranda Admin agar header dan area Kelola cepat lebih bersih; fitur Import Data tetap tersedia dari sidebar;
-- palette icon tile sidebar diperluas: `account_tree` dan `warning` tidak lagi jatuh ke fallback abu-abu, sedangkan Mitra DUDI, Laporan, Pengaturan, dan fallback memakai warna Apple-like yang lebih bervariasi namun tetap restrained.
+- palette icon tile sidebar diperluas: `account_tree` dan `warning` tidak lagi jatuh ke fallback abu-abu, sedangkan Mitra DUDI, Laporan, Pengaturan, dan fallback memakai warna Apple-like yang lebih bervariasi namun tetap restrained;
+- identitas sekolah di bagian atas sidebar sekarang mengikuti hierarki account row ala macOS Settings yang disesuaikan untuk School OS: avatar/icon sekolah bulat, nama sekolah sebagai primary label, serta `Unit sekolah aktif · <kota>` sebagai secondary context;
+- kontrol desktop hide/show sidebar memakai satu glyph split-panel (`PanelLeft`) yang ditempatkan sebagai trailing action di header sidebar; top app bar desktop tidak lagi memuat kontrol collapse, sedangkan tombol menu mobile tetap berada di top bar;
+- kartu **Perlu keputusan Anda** mempunyai supplemental operational row `Buka pusat monitoring PKL` (atau laporan operasional untuk non-SMK) yang dipisahkan dari attention list. Baris ini tidak dihitung sebagai keputusan dan tidak mengubah badge attention; seluruh attention utama tetap berasal dari DTO server nyata.
 
-Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, `6f5d9b2`, dan `d16662a`.
+Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, `6f5d9b2`, `d16662a`, `349ac7c`, dan `bcca333`.
 
 ## 3. Snapshot production terakhir yang terverifikasi
 
@@ -48,9 +51,9 @@ Domain School OS: `https://sekolah.suhendararyadi.com`.
 
 Pada 10 September 2026, setelah insiden autentikasi pada rollout frontend-only, production aktif memakai **split release yang disengaja**: static terbaru dengan backend sebelumnya yang telah terbukti sehat.
 
-- static web: `/var/www/saas-satu/releases/d16662a-dashboard-sidebar-polish`;
+- static web: `/var/www/saas-satu/releases/bcca333-sidebar-identity`;
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
-- static commit: `d16662a73b3b1f085bbf340247ec39caa276ac84`;
+- static commit: `bcca333f5a5d31b782e6d9d9406e85a5392f5482`;
 - backend commit: `6f5d9b27b48ede1881904f7cc9572dc32ff09c04`;
 - `saas-satu.service`: **active/running**;
 - public `/school`: HTTP 200;
@@ -60,7 +63,7 @@ Pada 10 September 2026, setelah insiden autentikasi pada rollout frontend-only, 
 - bundle dashboard memuat fixed-width attendance label lane sehingga progress bar rombel sejajar;
 - CSS production memuat palette sidebar tambahan Apple-like (purple/cyan/orange) untuk mengurangi fallback abu-abu;
 - authenticated `/auth/me` setelah recovery menghasilkan HTTP 200/304 dan tidak ada lagi error `Cannot read properties of undefined (reading 'name')`;
-- static-only deploy function dijalankan pada release terbaru dan mengembalikan `idempotent: true` sambil mempertahankan backend lama.
+- static-only deploy digunakan untuk refinement UI terbaru sambil mempertahankan backend sehat; bundle live memuat marker `Unit sekolah aktif`, `Sembunyikan sidebar`, dan `Buka pusat monitoring PKL`, serta tidak ada `/auth/me` 500 setelah cutover static.
 
 Insiden yang ditemukan: backend `d16662a-dashboard-sidebar-polish` membawa Prisma Client runtime tanpa delegate `auth` dan `session`. Lucia/Wasp menginisialisasi adapter dengan `prisma.session` dan `prisma.auth`, sehingga request dengan bearer/session valid menghasilkan HTTP 500 walaupun request anonim `/auth/me` tetap 200. Release tersebut **jangan dipromosikan sebagai backend**.
 

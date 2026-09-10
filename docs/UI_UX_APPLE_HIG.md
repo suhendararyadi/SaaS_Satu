@@ -216,8 +216,8 @@ The original School OS baseline was promoted on 9 September 2026 and then refine
 
 Current pointers verified from the server on 10 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/d16662a-dashboard-sidebar-polish`;
-- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/d16662a-dashboard-sidebar-polish`;
+- active static release: `/var/www/saas-satu/releases/bcca333-sidebar-identity`;
+- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
 - `saas-satu.service`: active/running.
 
 The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
@@ -269,3 +269,16 @@ The School OS shell applies the following refinement after production review:
 - `account_tree` and `warning` require explicit icon/tone mappings, and common system items such as reports/settings should also use deliberate tones instead of repeated gray fallback.
 
 Related implementation commit: `d16662a`.
+
+## 17. School identity row and sidebar toggle placement — 10 September 2026
+
+The desktop shell further refines the sidebar using the hierarchy seen in macOS Settings while keeping the content specific to a school system:
+
+- the active school is presented as a compact identity row with a circular school glyph, the school name as the primary label, and `Unit sekolah aktif · <kota>` as secondary context when city data exists;
+- the identity row is contextual UI, not an imitation of Apple Account branding; School OS remains the product identity;
+- the desktop collapse/expand control uses one restrained split-panel glyph and lives at the trailing edge of the sidebar header, keeping the action visually attached to the panel it controls;
+- the desktop top app bar no longer duplicates the sidebar collapse action; the mobile navigation button remains in the top bar because the mobile drawer is a different interaction;
+- keyboard `Ctrl+B` / `Cmd+B` remains available for precision-input workflows;
+- the Admin **Perlu keputusan Anda** card may include a separated supplemental navigation row such as `Buka pusat monitoring PKL`. This row is not part of `attention`, does not increment the attention badge, and must never be presented as a detected problem or fabricated decision.
+
+Related implementation commits: `349ac7c` and `bcca333`. Production static release: `bcca333-sidebar-identity`; backend remains `6f5d9b2-ews-apple-monitoring`.
