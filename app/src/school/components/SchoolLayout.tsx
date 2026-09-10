@@ -313,7 +313,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         aria-label={school.name}
         title={school.name}
       >
-        <M3Icon name="school" size={21} weight={350} />
+        <M3Icon name="school" size={21} weight={300} />
       </span>
       {sidebarToggleButton}
     </div>
@@ -323,7 +323,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#DDF3F5] text-[#287C83] shadow-[inset_0_0_0_1px_rgba(0,0,0,.035)] dark:bg-[#173C40] dark:text-[#6CD6DE]"
         aria-hidden="true"
       >
-        <M3Icon name="school" size={23} weight={350} />
+        <M3Icon name="school" size={23} weight={300} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14.5px] font-semibold leading-5 tracking-[-0.01em] text-md-on-surface" title={school.name}>{school.name}</p>
