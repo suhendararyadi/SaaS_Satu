@@ -362,22 +362,14 @@ function AdminDashboard() {
                 <span className="text-[22px] font-light leading-none text-md-on-surface-variant/45" aria-hidden="true">›</span>
               </a>
             ))}
-            {!data.attention.length && <M3EmptyState compact icon="verified" title="Tidak ada keputusan mendesak" description="Tidak ada kondisi utama yang memerlukan keputusan admin saat ini." />}
-          </div>
-          <div className="mt-3 border-t border-md-outline-variant pt-3">
-            <a
-              href={isVocational ? "/school/pkl/monitoring" : "/school/reports"}
-              className="group flex min-h-[48px] items-center gap-3 rounded-[10px] px-1.5 transition-colors hover:bg-black/[.028] dark:hover:bg-white/[.045]"
-            >
+            <a href={isVocational ? "/school/pkl/monitoring" : "/school/reports"} className="hig-list-row min-h-[52px]">
               <span className={`flex size-8 shrink-0 items-center justify-center rounded-[8px] text-white shadow-[0_1px_2px_rgba(0,0,0,.14)] ${isVocational ? "bg-[#30B0C7]" : "bg-[#5E5CE6]"}`} aria-hidden="true">
-                {isVocational ? <Activity size={17} strokeWidth={2.05} /> : <FileText size={17} strokeWidth={2.05} />}
+                {isVocational ? <Activity size={17} strokeWidth={2.1} /> : <FileText size={17} strokeWidth={2.1} />}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-medium text-md-on-surface">{isVocational ? "Buka pusat monitoring PKL" : "Buka laporan operasional"}</span>
-                <span className="mt-0.5 block truncate text-[11px] text-md-on-surface-variant">{isVocational ? "Tinjau presensi, jurnal, dan sinyal siswa" : "Tinjau ringkasan dan laporan sekolah"}</span>
-              </span>
-              <span className="text-[22px] font-light leading-none text-md-on-surface-variant/40 transition-transform group-hover:translate-x-0.5" aria-hidden="true">›</span>
+              <span className="min-w-0 flex-1 text-[13px] font-medium text-md-on-surface">{isVocational ? "Buka pusat monitoring PKL" : "Buka laporan operasional"}</span>
+              <span className="text-[22px] font-light leading-none text-md-on-surface-variant/45" aria-hidden="true">›</span>
             </a>
+            {!data.attention.length && <M3EmptyState compact icon="verified" title="Tidak ada keputusan mendesak" description="Tidak ada kondisi utama yang memerlukan keputusan admin saat ini." />}
           </div>
         </section>
       </div>
