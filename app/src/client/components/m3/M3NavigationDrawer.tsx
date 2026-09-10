@@ -54,21 +54,52 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
   const isRail = isCollapsed && !isHidden;
   const desktopWidthClass = isHidden ? "w-0 opacity-0 pointer-events-none overflow-hidden" : isRail ? "w-[60px]" : "w-[240px]";
 
+  const iconToneMap: Record<string, string> = {
+    home: "bg-[#0A84FF]",
+    corporate_fare: "bg-[#5E5CE6]",
+    badge: "bg-[#30B0C7]",
+    calendar_month: "bg-[#FF9F0A]",
+    meeting_room: "bg-[#64D2FF]",
+    groups: "bg-[#34C759]",
+    upload_file: "bg-[#0A84FF]",
+    menu_book: "bg-[#5856D6]",
+    apartment: "bg-[#8E8E93]",
+    work: "bg-[#FF9F0A]",
+    edit_note: "bg-[#BF5AF2]",
+    monitor_heart: "bg-[#FF375F]",
+    schedule: "bg-[#5E5CE6]",
+    supervisor_account: "bg-[#30B0C7]",
+    verified_user: "bg-[#34C759]",
+    description: "bg-[#8E8E93]",
+    settings: "bg-[#8E8E93]",
+    location_on: "bg-[#FF453A]",
+    school: "bg-[#0A84FF]",
+  };
+
   const renderDrawerIcon = (icon: M3DrawerItem["icon"], active: boolean) => {
-    const colorClass = active ? "text-md-primary" : "text-md-on-surface-variant/80";
-    if (typeof icon === "string") {
-      const SidebarIcon = sidebarIconMap[icon];
-      if (SidebarIcon) return <SidebarIcon size={16} strokeWidth={1.8} className={colorClass} aria-hidden="true" />;
-      return <M3Icon name={icon} size={17} weight={300} className={colorClass} />;
-    }
-    if (icon) return <span className={colorClass}>{icon}</span>;
-    return <span className="size-1.5 rounded-full bg-md-on-surface-variant/35" aria-hidden="true" />;
+    const iconName = typeof icon === "string" ? icon : null;
+    const tileTone = iconName ? (iconToneMap[iconName] ?? "bg-[#8E8E93]") : "bg-[#8E8E93]";
+    const iconContent = (() => {
+      if (iconName) {
+        const SidebarIcon = sidebarIconMap[iconName];
+        if (SidebarIcon) return <SidebarIcon size={15} strokeWidth={2} className="text-white" aria-hidden="true" />;
+        return <M3Icon name={iconName} size={16} weight={300} className="text-white" />;
+      }
+      if (icon) return <span className="flex text-white">{icon}</span>;
+      return <span className="size-1.5 rounded-full bg-white" aria-hidden="true" />;
+    })();
+
+    return (
+      <span className={`flex size-[22px] shrink-0 items-center justify-center rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,.18)] ${tileTone}`}>
+        {iconContent}
+      </span>
+    );
   };
 
   const renderItem = (item: M3DrawerItem, active: boolean, rail: boolean) => {
     if (rail) {
       return (
-        <Link key={item.href} to={item.href} title={item.label} onClick={onClose} aria-current={active ? "page" : undefined} className={`relative mx-auto flex h-9 w-9 items-center justify-center rounded-[8px] transition-colors ${active ? "bg-md-primary-container/70" : "hover:bg-black/[.04] dark:hover:bg-white/[.055]"}`}>
+        <Link key={item.href} to={item.href} title={item.label} onClick={onClose} aria-current={active ? "page" : undefined} className={`relative mx-auto flex h-9 w-9 items-center justify-center rounded-[9px] transition-colors ${active ? "bg-md-primary" : "hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
           {renderDrawerIcon(item.icon, active)}
           {item.badge !== undefined && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-md-error" aria-label={`${item.badge}`} />}
         </Link>
@@ -76,10 +107,10 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
     }
 
     return (
-      <Link key={item.href} to={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`mx-0.5 flex min-h-11 items-center gap-2.5 rounded-[8px] px-2.5 text-[14px] font-medium transition-colors lg:min-h-8 lg:text-[13px] ${active ? "bg-md-primary-container/65 text-md-on-surface" : "text-md-on-surface hover:bg-black/[.04] dark:hover:bg-white/[.055]"}`}>
-        <span className="flex size-[18px] shrink-0 items-center justify-center" aria-hidden="true">{renderDrawerIcon(item.icon, active)}</span>
+      <Link key={item.href} to={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`mx-0.5 flex min-h-11 items-center gap-2.5 rounded-[9px] px-2 text-[14px] font-medium transition-colors lg:min-h-9 lg:text-[13px] ${active ? "bg-md-primary text-white shadow-[0_1px_2px_rgba(0,0,0,.10)]" : "text-md-on-surface hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
+        <span className="flex size-[22px] shrink-0 items-center justify-center" aria-hidden="true">{renderDrawerIcon(item.icon, active)}</span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
-        {item.badge !== undefined && <span className="min-w-5 rounded-[6px] bg-black/[.055] px-1.5 py-0.5 text-center text-[10px] font-semibold text-md-on-surface-variant dark:bg-white/[.08]">{item.badge}</span>}
+        {item.badge !== undefined && <span className={`min-w-5 rounded-[6px] px-1.5 py-0.5 text-center text-[10px] font-semibold ${active ? "bg-white/20 text-white" : "bg-black/[.055] text-md-on-surface-variant dark:bg-white/[.08]"}`}>{item.badge}</span>}
       </Link>
     );
   };
@@ -87,10 +118,10 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
   const renderContent = (rail: boolean) => (
     <div className={`${rail ? "w-[60px]" : "w-[min(86vw,300px)] lg:w-[240px]"} hig-sidebar-material flex h-full flex-col border-r border-md-outline-variant transition-all duration-200 ${className}`}>
       {header && <div className={`${rail ? "p-2.5" : "px-3 py-4"} shrink-0`}>{header}</div>}
-      <div className={`${rail ? "space-y-2 px-1.5 py-2" : "space-y-4 px-2 py-1"} flex-1 overflow-y-auto`}>
+      <div className={`${rail ? "space-y-2 px-1.5 py-2" : "space-y-3 px-2 py-1"} flex-1 overflow-y-auto`}>
         {sections.filter((section) => section.items.length > 0).map((section, index) => (
           <section key={`${section.title ?? "section"}-${index}`} className="space-y-1">
-            {section.title && !rail && <h2 className="px-2.5 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/65">{section.title}</h2>}
+            {section.title && !rail && <h2 className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/60">{section.title}</h2>}
             {section.title && rail && index > 0 && <div className="mx-auto my-2 w-6 border-t border-md-outline-variant" />}
             <div className="space-y-0.5">{section.items.map((item) => renderItem(item, isCurrent(item.href), rail))}</div>
           </section>
