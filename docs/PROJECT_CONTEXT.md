@@ -46,11 +46,12 @@ Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`
 
 Domain School OS: `https://sekolah.suhendararyadi.com`.
 
-Pada 10 September 2026, release dashboard/sidebar polish terbaru telah dipromosikan dan diverifikasi sebagai production aktif:
+Pada 10 September 2026, setelah insiden autentikasi pada rollout frontend-only, production aktif memakai **split release yang disengaja**: static terbaru dengan backend sebelumnya yang telah terbukti sehat.
 
 - static web: `/var/www/saas-satu/releases/d16662a-dashboard-sidebar-polish`;
-- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/d16662a-dashboard-sidebar-polish`;
-- commit aplikasi yang dideploy: `d16662a73b3b1f085bbf340247ec39caa276ac84`;
+- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
+- static commit: `d16662a73b3b1f085bbf340247ec39caa276ac84`;
+- backend commit: `6f5d9b27b48ede1881904f7cc9572dc32ff09c04`;
 - `saas-satu.service`: **active/running**;
 - public `/school`: HTTP 200;
 - public `/login`: HTTP 200;
@@ -58,17 +59,16 @@ Pada 10 September 2026, release dashboard/sidebar polish terbaru telah dipromosi
 - bundle dashboard production tidak lagi memuat tombol/shortcut `Import data`;
 - bundle dashboard memuat fixed-width attendance label lane sehingga progress bar rombel sejajar;
 - CSS production memuat palette sidebar tambahan Apple-like (purple/cyan/orange) untuk mengurangi fallback abu-abu;
-- recent service log verification tidak menemukan 5xx/error baru;
-- deploy function dijalankan ulang dan mengembalikan `idempotent: true`.
+- authenticated `/auth/me` setelah recovery menghasilkan HTTP 200/304 dan tidak ada lagi error `Cannot read properties of undefined (reading 'name')`;
+- static-only deploy function dijalankan pada release terbaru dan mengembalikan `idempotent: true` sambil mempertahankan backend lama.
 
-Rollback target yang dipertahankan:
+Insiden yang ditemukan: backend `d16662a-dashboard-sidebar-polish` membawa Prisma Client runtime tanpa delegate `auth` dan `session`. Lucia/Wasp menginisialisasi adapter dengan `prisma.session` dan `prisma.auth`, sehingga request dengan bearer/session valid menghasilkan HTTP 500 walaupun request anonim `/auth/me` tetap 200. Release tersebut **jangan dipromosikan sebagai backend**.
 
-- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
-- static: `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`.
+Rollback/backend sehat yang dipertahankan: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`. Static sebelumnya tetap tersedia di `/var/www/saas-satu/releases/6f5d9b2-ews-apple-monitoring`.
 
-Schema/migrations tidak berubah dan deployment ini tidak melakukan mutation data.
+Schema/migrations tidak berubah dan recovery ini tidak melakukan mutation data.
 
-Jalur deployment project-scoped tersedia melalui `.mso/functions.json` dan `ops/deploy-school-os-release.mjs`. Gunakan `school_os_deploy_preflight` sebelum `school_os_deploy_release`; fungsi deploy hanya menerima release immutable yang sudah ada, memverifikasi commit/artifact, mengganti backend terlebih dahulu, me-restart service, menunggu health localhost, baru mengganti static, lalu menjalankan public smoke checks. Jika tahap setelah cutover gagal, fungsi mengembalikan backend/static ke pointer sebelumnya dan memulihkan backend rollback. Jalur ini sengaja dibuat untuk menghindari pelemahan global safety guard MSO.
+Jalur deployment project-scoped tersedia melalui `.mso/functions.json` dan `ops/deploy-school-os-release.mjs`. Untuk perubahan frontend-only gunakan `school_os_deploy_static_preflight` -> `school_os_deploy_static`; jalur ini tidak mengganti backend atau restart service. Untuk perubahan backend/full-stack gunakan `school_os_deploy_preflight` -> `school_os_deploy_release`; full preflight sekarang wajib membuktikan Prisma runtime memiliki delegate `user`, `auth`, dan `session` sebelum backend boleh dipromosikan. Jika tahap full cutover gagal, fungsi mengembalikan backend/static ke pointer sebelumnya dan memulihkan backend rollback. Jalur ini sengaja dibuat untuk menghindari pelemahan global safety guard MSO.
 
 ## 4. Demo dataset School OS
 

@@ -530,3 +530,35 @@ Rollout:
 - rollback target: `6f5d9b2-ews-apple-monitoring`.
 
 Tidak ada schema migration atau mutation data production. Dependency audit debt yang telah ada sebelumnya tetap dicatat dan rollout tidak diklaim audit-clean.
+
+---
+
+## 10 September 2026 — Auth `/auth/me` incident recovery and deploy hardening
+
+Sesudah release frontend-only `d16662a-dashboard-sidebar-polish` dipromosikan sebagai full backend+static release, pengguna dengan sesi login mendapat HTTP 500 pada `GET /auth/me`. Request anonim tetap HTTP 200 sehingga smoke check lama tidak menangkap kegagalan ini.
+
+Root cause terverifikasi dari runtime production:
+
+- Lucia/Wasp membuat `new PrismaAdapter(prisma.session, prisma.auth)`;
+- Prisma Client pada backend `d16662a-dashboard-sidebar-polish` memiliki delegate `user`, tetapi `auth` dan `session` bernilai `undefined`;
+- Prisma Client pada release sehat `6f5d9b2-ews-apple-monitoring` memiliki `user`, `auth`, `authIdentity`, dan `session`;
+- error production berasal dari `@lucia-auth/adapter-prisma` ketika membaca `this.userModel.name`, konsisten dengan `prisma.auth` yang undefined.
+
+Recovery:
+
+- full release di-rollback ke `6f5d9b2-ews-apple-monitoring` sehingga backend restart dari release sehat;
+- static kemudian dikembalikan ke `d16662a-dashboard-sidebar-polish` karena perubahan `d16662a` memang frontend-only;
+- production final: backend `6f5d9b2-ews-apple-monitoring`, static `d16662a-dashboard-sidebar-polish`;
+- `saas-satu.service`: active;
+- authenticated `/auth/me` sesudah recovery tercatat HTTP 200/304 dengan payload user, dan tidak ada lagi error auth 500 sejak process recovery aktif;
+- `/school`: HTTP 200.
+
+Deployment hardening commit `7231123`:
+
+- full preflight sekarang mem-probe Prisma runtime dan menolak release jika delegate `user`, `auth`, atau `session` hilang;
+- release rusak `d16662a-dashboard-sidebar-polish` terbukti ditolak full preflight dengan `missing Prisma auth delegates: auth,session`;
+- release sehat `6f5d9b2-ews-apple-monitoring` tetap lolos full preflight;
+- ditambahkan `school_os_deploy_static_preflight` dan `school_os_deploy_static` untuk frontend-only promotion tanpa mengganti/restart backend;
+- static-only deployment terhadap `d16662a-dashboard-sidebar-polish` PASS dan `idempotent: true`, dengan backend tetap `6f5d9b2-ews-apple-monitoring`.
+
+Tidak ada schema migration atau mutation data production pada recovery ini.

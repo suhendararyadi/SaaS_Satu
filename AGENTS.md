@@ -12,10 +12,12 @@ Do not assume `main` contains the latest School OS work. The current School OS d
 
 Do not bypass MSO service-control guards with forced process kills or unrestricted shell exceptions. School OS exposes bounded project functions in `.mso/functions.json`:
 
-- `school_os_deploy_preflight` validates an already-built immutable backend/static release and the current rollback pointers without changing production.
+- `school_os_deploy_preflight` validates an already-built full backend/static release, including a runtime Prisma guard that requires `user`, `auth`, and `session` delegates, plus the current rollback pointers without changing production.
 - `school_os_deploy_release` performs backend symlink cutover, bounded service restart, local health verification, static cutover, public smoke checks, and automatic rollback on failure.
+- `school_os_deploy_static_preflight` validates a staged static release for frontend-only work without requiring or changing its backend runtime.
+- `school_os_deploy_static` promotes static assets only, verifies public smoke checks, and asserts that the backend pointer remains unchanged.
 
-Build and verify the immutable release first; then call preflight, and only then call the deploy function with the exact release id, expected commit, and confirmation token.
+Choose the narrowest deployment scope. For frontend-only changes, use the static-only preflight/deploy path and do **not** restart or replace the backend. For backend/full-stack changes, build and verify the immutable release first, run the full preflight (including the Prisma auth-runtime guard), and only then call the full deploy function with the exact release id, expected commit, and confirmation token.
 
 ## Documentation
 
