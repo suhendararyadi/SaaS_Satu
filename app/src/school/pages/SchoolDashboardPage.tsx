@@ -1,5 +1,5 @@
 import React, { type ReactNode } from "react";
-import { BookOpen, CalendarX2, CircleAlert, ShieldAlert, UsersRound, type LucideIcon } from "lucide-react";
+import { Activity, BookOpen, CalendarX2, CircleAlert, FileText, ShieldAlert, UsersRound, type LucideIcon } from "lucide-react";
 import { type AuthUser } from "wasp/auth";
 import {
   useQuery,
@@ -363,6 +363,21 @@ function AdminDashboard() {
               </a>
             ))}
             {!data.attention.length && <M3EmptyState compact icon="verified" title="Tidak ada keputusan mendesak" description="Tidak ada kondisi utama yang memerlukan keputusan admin saat ini." />}
+          </div>
+          <div className="mt-3 border-t border-md-outline-variant pt-3">
+            <a
+              href={isVocational ? "/school/pkl/monitoring" : "/school/reports"}
+              className="group flex min-h-[48px] items-center gap-3 rounded-[10px] px-1.5 transition-colors hover:bg-black/[.028] dark:hover:bg-white/[.045]"
+            >
+              <span className={`flex size-8 shrink-0 items-center justify-center rounded-[8px] text-white shadow-[0_1px_2px_rgba(0,0,0,.14)] ${isVocational ? "bg-[#30B0C7]" : "bg-[#5E5CE6]"}`} aria-hidden="true">
+                {isVocational ? <Activity size={17} strokeWidth={2.05} /> : <FileText size={17} strokeWidth={2.05} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-medium text-md-on-surface">{isVocational ? "Buka pusat monitoring PKL" : "Buka laporan operasional"}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-md-on-surface-variant">{isVocational ? "Tinjau presensi, jurnal, dan sinyal siswa" : "Tinjau ringkasan dan laporan sekolah"}</span>
+              </span>
+              <span className="text-[22px] font-light leading-none text-md-on-surface-variant/40 transition-transform group-hover:translate-x-0.5" aria-hidden="true">›</span>
+            </a>
           </div>
         </section>
       </div>

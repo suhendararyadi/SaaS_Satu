@@ -1,5 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from "react";
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Menu, PanelLeft } from "lucide-react";
 import { type AuthUser } from "wasp/auth";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -293,15 +293,45 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     return [{ label: "Beranda", href: "/school", icon: "home" }, { label: "Jurnal", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Saya", href: "/account", icon: "person" }];
   })();
 
-  const drawerHeader = (
-    <div className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-2.5"}`}>
-      {isSidebarCollapsed ? (
-        <span className="flex size-7 items-center justify-center rounded-[8px] bg-md-surface-container-high text-[11px] font-semibold text-md-on-surface-variant" aria-label={school.name}>
-          {school.name.charAt(0).toUpperCase()}
-        </span>
-      ) : (
-        <div className="min-w-0"><p className="truncate text-[13px] font-semibold text-md-on-surface">{school.name}</p><p className="mt-0.5 truncate text-[10.5px] text-md-on-surface-variant">{school.city || "Portal Sekolah"}</p></div>
-      )}
+  const sidebarToggleLabel = isSidebarCollapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar";
+  const sidebarToggleButton = (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      aria-label={sidebarToggleLabel}
+      title={`${sidebarToggleLabel} (Ctrl+B)`}
+      className="hidden size-8 shrink-0 items-center justify-center rounded-[9px] text-[#7D7D82] transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/40 dark:text-[#A9A9AF] dark:hover:bg-white/[.075] lg:inline-flex"
+    >
+      <PanelLeft size={21} strokeWidth={1.7} aria-hidden="true" />
+    </button>
+  );
+
+  const drawerHeader = isSidebarCollapsed ? (
+    <div className="flex flex-col items-center gap-2">
+      <span
+        className="flex size-10 items-center justify-center rounded-full bg-[#DDF3F5] text-[#287C83] shadow-[inset_0_0_0_1px_rgba(0,0,0,.035)] dark:bg-[#173C40] dark:text-[#6CD6DE]"
+        aria-label={school.name}
+        title={school.name}
+      >
+        <M3Icon name="school" size={21} weight={350} />
+      </span>
+      {sidebarToggleButton}
+    </div>
+  ) : (
+    <div className="flex min-w-0 items-center gap-3">
+      <span
+        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#DDF3F5] text-[#287C83] shadow-[inset_0_0_0_1px_rgba(0,0,0,.035)] dark:bg-[#173C40] dark:text-[#6CD6DE]"
+        aria-hidden="true"
+      >
+        <M3Icon name="school" size={23} weight={350} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[14.5px] font-semibold leading-5 tracking-[-0.01em] text-md-on-surface" title={school.name}>{school.name}</p>
+        <p className="mt-0.5 truncate text-[11.5px] leading-4 text-md-on-surface-variant">
+          {school.city ? `Unit sekolah aktif · ${school.city}` : "Unit sekolah aktif"}
+        </p>
+      </div>
+      {sidebarToggleButton}
     </div>
   );
 
@@ -324,16 +354,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         <M3NavigationDrawer sections={drawerSections} header={drawerHeader} footer={drawerFooter} isOpen={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} isCollapsed={isSidebarCollapsed} />
         <div className="flex min-w-0 flex-1 flex-col">
           <M3TopAppBar
-            leading={(() => {
-              const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 1024;
-              const navigationLabel = isMobileViewport ? "Buka navigasi" : isSidebarCollapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar";
-              const navigationIcon = isMobileViewport
-                ? <Menu size={18} strokeWidth={1.8} aria-hidden="true" />
-                : isSidebarCollapsed
-                ? <PanelLeftOpen size={18} strokeWidth={1.75} aria-hidden="true" />
-                : <PanelLeftClose size={18} strokeWidth={1.75} aria-hidden="true" />;
-              return <M3Button variant="icon" size="icon-md" onClick={() => isMobileViewport ? setMobileDrawerOpen(true) : toggleSidebar()} aria-label={navigationLabel} title={`${navigationLabel} (Ctrl+B)`} icon={navigationIcon} className="text-md-on-surface-variant hover:text-md-on-surface" />;
-            })()}
+            leading={<M3Button variant="icon" size="icon-md" onClick={() => setMobileDrawerOpen(true)} aria-label="Buka navigasi" title="Buka navigasi" icon={<Menu size={18} strokeWidth={1.8} aria-hidden="true" />} className="text-md-on-surface-variant hover:text-md-on-surface lg:hidden" />}
             title={getPageTitle(location.pathname)}
             subtitle={topBarContext}
             actions={<>
