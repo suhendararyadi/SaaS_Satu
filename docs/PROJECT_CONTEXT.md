@@ -11,7 +11,8 @@ Dokumen ini adalah snapshot konteks operasional untuk melanjutkan pengembangan S
 - Branch aktif: `redesign/apple-hig`
 - Implementasi fitur EWS/monitoring terbaru: `af4bf88` (`feat(school): add EWS hub and polish PKL monitoring`)
 - Refinement Kehadiran terbaru: `6f5d9b2` (`refine(dashboard): reverse attendance priority order`)
-- Refinement auth + Super Admin HIG terbaru: `ef167b5` (`refine(ui): add mac login auth and HIG super admin`)
+- Refinement auth + Super Admin HIG: `ef167b5` (`refine(ui): add mac login auth and HIG super admin`)
+- Refinement tema + account chrome + sidebar search terbaru: `37754b3` (`refine(shell): fix theme and add sidebar search`)
 - Jalur deployment bounded: `6f7fae9` (`ops: add bounded School OS deployment function`)
 - Branch `main` masih berada pada garis baseline yang lebih lama dan **bukan** tempat perubahan School OS terbaru ini dikembangkan.
 
@@ -40,16 +41,20 @@ Refinement visual terbaru yang sudah menjadi bagian dari branch ini:
 - lifecycle fokus `M3Dialog` diperbaiki agar controlled input tidak kehilangan fokus/caret ketika dialog parent re-render saat pengguna mengetik;
 - tombol/shortcut **Import Data** dihilangkan dari Beranda Admin agar header dan area Kelola cepat lebih bersih; fitur Import Data tetap tersedia dari sidebar;
 - palette icon tile sidebar diperluas: `account_tree` dan `warning` tidak lagi jatuh ke fallback abu-abu, sedangkan Mitra DUDI, Laporan, Pengaturan, dan fallback memakai warna Apple-like yang lebih bervariasi namun tetap restrained;
-- identitas sekolah di bagian atas sidebar sekarang mengikuti hierarki account row ala macOS Settings yang disesuaikan untuk School OS: avatar/icon sekolah bulat, nama sekolah sebagai primary label, serta `Unit sekolah aktif · <kota>` sebagai secondary context;
+- identitas sekolah di bagian atas sidebar mengikuti hierarki account row ala macOS Settings yang disesuaikan untuk School OS: avatar/icon sekolah bulat, nama sekolah sebagai primary label, serta `Unit sekolah aktif · <kota>` sebagai secondary context;
 - kontrol desktop hide/show sidebar memakai satu glyph split-panel (`PanelLeft`) yang ditempatkan sebagai trailing action di header sidebar; top app bar desktop tidak lagi memuat kontrol collapse, sedangkan tombol menu mobile tetap berada di top bar;
 - kartu **Perlu keputusan Anda** menempatkan `Buka pusat monitoring PKL` (atau laporan operasional untuk non-SMK) sebagai baris navigasi di **list yang sama** dengan attention rows, menggunakan `hig-list-row`, tinggi, icon tile, tipografi, separator, hover, dan chevron yang konsisten. Baris ini tetap bukan keputusan nyata, tidak masuk `data.attention`, dan tidak menambah badge attention;
-- shared auth shell `/login` dan `/signup` sekarang terinspirasi layar masuk MacBook: wallpaper landscape **SVG original** buatan proyek (`app/public/school-os-auth-wallpaper.svg`, sekitar 2 KB), overlay gelap ringan untuk keterbacaan, identity glyph bulat, dan centered translucent auth surface. Wallpaper bukan salinan aset Apple/macOS dan tidak memakai foto berat;
+- shared auth shell `/login` dan `/signup` terinspirasi layar masuk MacBook: wallpaper landscape **SVG original** buatan proyek (`app/public/school-os-auth-wallpaper.svg`, sekitar 2 KB), overlay gelap ringan untuk keterbacaan, identity glyph bulat, dan centered translucent auth surface. Wallpaper bukan salinan aset Apple/macOS dan tidak memakai foto berat;
 - halaman auth lain yang memakai `AuthPageLayout` ikut mendapat background/surface yang sama, sementara isi form dan behavior autentikasi Wasp tetap dipertahankan;
 - shell **Super Admin `/admin`** tidak lagi memakai `Header`/`Sidebar` template Open SaaS lama. Shell sekarang memakai navigation drawer, translucent top toolbar, account menu, theme control, grouped canvas, dan compact navigation yang konsisten dengan School OS;
 - dashboard ringkasan Super Admin tidak lagi memakai kumpulan card/chart template ApexCharts. Ia menampilkan data nyata `getDailyStats` dalam compact stat strip, aktivitas 7 hari berbasis bar CSS ringan, dan grouped list sumber kunjungan, lengkap dengan loading/error/empty state yang jujur;
-- route `/admin` tetap hanya untuk `user.isAdmin === true`; redesign tidak mengubah server-side authorization atau memberi akses platform admin kepada role lain.
+- route `/admin` tetap hanya untuk `user.isAdmin === true`; redesign tidak mengubah server-side authorization atau memberi akses platform admin kepada role lain;
+- kontrak tema `/admin` sekarang disatukan dengan School OS: localStorage key `theme`, fallback system preference, dan class `dark` disinkronkan pada `document.documentElement` serta `document.body`. Legacy mismatch `color-theme`/body-only tidak lagi dipakai pada shell Super Admin;
+- footer identitas akun pada **sidebar School** dihapus karena duplikat dengan account control di top toolbar. Account trigger toolbar sekarang hanya berupa avatar/inisial bulat; nama, email, dan action tetap tersedia setelah dropdown dibuka;
+- sidebar School dalam mode expanded desktop dan mobile drawer memiliki search `Cari menu` yang benar-benar memfilter section/menu yang sudah diizinkan untuk role aktif. Search tidak membuat route baru, memiliki clear action, honest empty state `Menu tidak ditemukan.`, dan disembunyikan pada collapsed rail;
+- regression test khusus shell menambah coverage menjadi **70/70 test PASS** pada 5 test files.
 
-Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, `6f5d9b2`, `d16662a`, `349ac7c`, `bcca333`, `76395d0`, `9ae05d3`, dan `ef167b5`.
+Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, `10eb867`, `af4bf88`, `6f5d9b2`, `d16662a`, `349ac7c`, `bcca333`, `76395d0`, `9ae05d3`, `ef167b5`, dan `37754b3`.
 
 ## 3. Snapshot production terakhir yang terverifikasi
 
@@ -57,26 +62,24 @@ Domain School OS: `https://sekolah.suhendararyadi.com`.
 
 Pada 10 September 2026 production tetap memakai **split release yang disengaja**: static terbaru dengan backend sebelumnya yang telah terbukti sehat.
 
-- static web: `/var/www/saas-satu/releases/ef167b5-auth-admin-hig`;
+- static web: `/var/www/saas-satu/releases/37754b3-theme-sidebar-search`;
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
-- static commit: `ef167b55a85f4c2b1b97ea67c9298568220dbddd`;
+- static commit: `37754b3808569836e2488ff70643718e82f97837`;
 - backend commit: `6f5d9b27b48ede1881904f7cc9572dc32ff09c04`;
 - `saas-satu.service`: **active/running**;
 - public `/school`: HTTP 200;
 - public `/login`: HTTP 200;
-- public `/signup`: HTTP 200;
 - public `/admin`: HTTP 200 untuk shell route; halaman tetap menggunakan existing `user.isAdmin` authorization setelah aplikasi memuat user;
-- public `/school-os-auth-wallpaper.svg`: HTTP 200;
 - public `/auth/me` anonymous smoke: HTTP 200;
 - unauthenticated POST Admin Dashboard operation: HTTP 401;
-- live static bundle memuat marker auth wallpaper, `Kontrol platform SaaS Satu`, dan `Ringkasan SaaS Satu`;
+- live static bundle memuat marker `Cari menu sidebar`, honest search empty state, avatar-only account trigger, dan unified admin theme contract (`theme`, bukan legacy `color-theme`);
 - pemeriksaan log setelah cutover menemukan **0** error `/auth/me` 500 pada window verifikasi;
-- backend pointer dan service tidak berubah/restart dalam rollout auth + Super Admin ini;
-- rollback static langsung tersedia di `/var/www/saas-satu/releases/9ae05d3-login-superadmin`.
+- backend pointer dan service tidak berubah/restart dalam rollout theme/sidebar-search ini;
+- rollback static langsung tersedia di `/var/www/saas-satu/releases/ef167b5-auth-admin-hig`.
 
 Insiden historis yang harus diingat: backend `d16662a-dashboard-sidebar-polish` membawa Prisma Client runtime tanpa delegate `auth` dan `session`. Lucia/Wasp menginisialisasi adapter dengan `prisma.session` dan `prisma.auth`, sehingga request dengan bearer/session valid menghasilkan HTTP 500 walaupun request anonim `/auth/me` tetap 200. Release tersebut **jangan dipromosikan sebagai backend**.
 
-Rollback/backend sehat yang dipertahankan: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`. Static historis `6f5d9b2-ews-apple-monitoring`, `bcca333-sidebar-identity`, `76395d0-decision-row`, dan `9ae05d3-login-superadmin` tetap tersedia sebagai referensi/rollback sesuai kebutuhan.
+Rollback/backend sehat yang dipertahankan: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`. Static historis `6f5d9b2-ews-apple-monitoring`, `bcca333-sidebar-identity`, `76395d0-decision-row`, `9ae05d3-login-superadmin`, dan `ef167b5-auth-admin-hig` tetap tersedia sebagai referensi/rollback sesuai kebutuhan.
 
 Schema/migrations tidak berubah dan refinement UI ini tidak melakukan mutation data.
 
@@ -147,6 +150,8 @@ Jika pengujian role-based dashboard dilanjutkan, buat tiga akun uji melalui **fl
 - Untuk perubahan frontend-only, jangan menyentuh schema/database/backend tanpa kebutuhan fitur yang jelas.
 - Auth wallpaper/visual boleh terinspirasi pola platform, tetapi jangan menyalin wallpaper, SF Symbols, font, atau aset proprietary Apple.
 - Super Admin `/admin` tetap platform-only (`user.isAdmin`), terpisah dari role tenant `SUPERADMIN` bila flag platform admin tidak dimiliki.
+- Theme persistence untuk shell School dan Super Admin menggunakan key `theme`; jangan memperkenalkan kembali `color-theme` pada shell aktif tanpa migrasi eksplisit.
+- Sidebar search hanya boleh memfilter menu yang sudah tersedia untuk current authorization/role; jangan menjadikannya jalan pintas ke route tersembunyi.
 - Sebelum deployment, jalankan quality gate relevan: TypeScript/Wasp compile, client tests, `git diff --check`, build bila diperlukan, lalu smoke test sesuai dampak.
 - Backup database sebelum operasi production yang mengubah data/schema.
 - Pertahankan release sebelumnya sebagai rollback target saat melakukan cutover.
@@ -160,6 +165,7 @@ Jika pengujian role-based dashboard dilanjutkan, buat tiga akun uji melalui **fl
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — kronologi implementasi dan rollout.
 - [`RELEASE_2026-09-10_LOGIN_SUPERADMIN.md`](./RELEASE_2026-09-10_LOGIN_SUPERADMIN.md) — refinement awal login dan pemulihan navigasi Super Admin sebelum shell HIG penuh.
 - [`RELEASE_2026-09-10_AUTH_ADMIN_HIG.md`](./RELEASE_2026-09-10_AUTH_ADMIN_HIG.md) — auth wallpaper vector dan migrasi shell/dashboard Super Admin ke School OS HIG.
+- [`RELEASE_2026-09-10_THEME_SIDEBAR_SEARCH.md`](./RELEASE_2026-09-10_THEME_SIDEBAR_SEARCH.md) — penyatuan kontrak tema, account avatar-only, penghapusan footer akun sidebar School, dan search menu sidebar.
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — arsitektur dan security boundaries.
 - [`ANTI_SLOP_GUIDELINES.md`](./ANTI_SLOP_GUIDELINES.md) — quality/copy/UI guardrails.
 
