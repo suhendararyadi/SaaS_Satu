@@ -45,9 +45,19 @@ Pada 10 September 2026, pointer runtime yang dibaca dari server adalah:
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/107c2e8-dashboard-attendance`;
 - `saas-satu.service`: **active/running**.
 
+Staged release yang sudah lolos build/pre-cutover smoke tetapi belum aktif:
+
+- source/runtime worktree: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
+- static staged: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`;
+- Wasp build dengan production environment: PASS;
+- generated backend bundle: PASS;
+- Vite SSR + client production build: PASS;
+- pre-cutover backend port `3102`: `/auth/me` HTTP 200 dan unauthenticated Admin Dashboard operation HTTP 401;
+- schema/migrations: tidak berubah.
+
 Perubahan seed demo terakhir tidak membutuhkan schema migration, restart backend, atau deploy UI.
 
-Refinement dashboard commit `10eb867` sudah terverifikasi di source tree tetapi **belum dipromosikan ke production** pada snapshot ini. Deployment harus mengikuti quality gate dan immutable release/cutover yang berlaku.
+Refinement dashboard commit `10eb867` sudah terverifikasi di source tree tetapi **belum dipromosikan ke production** pada snapshot ini. Immutable release `5fac63e-dashboard-rombel` sudah berhasil dibangun dan distage untuk backend maupun static web, namun cutover sengaja tidak dipaksa karena kontrol MSO pada sesi ini menolak operasi pengendalian ulang service lokal. Production tetap memakai backend `107c2e8-dashboard-attendance` dan static `ea99802-macos-settings-sidebar`.
 
 ## 4. Demo dataset School OS
 

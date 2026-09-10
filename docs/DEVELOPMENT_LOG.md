@@ -367,3 +367,31 @@ Quality gate source tree:
 - database schema/migration: tidak berubah;
 - percobaan tambahan `wasp compile` tidak dijadikan bukti kelulusan karena environment dev lokal tidak memiliki kredensial database Wasp dan sempat menghasilkan SDK parsial; `.wasp/out` kemudian dipulihkan dari backend release aktif dan dependency development dipulihkan dari lockfile;
 - belum ada deployment/restart production pada tahap ini.
+
+---
+
+## 10 September 2026 — Staged release dashboard rombel
+
+Setelah implementasi commit `10eb867` dan dokumentasi commit `5fac63e`, disiapkan immutable release `5fac63e-dashboard-rombel` untuk rollout production.
+
+Hasil build dan pre-cutover:
+
+- worktree release: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
+- static release staged: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`;
+- `wasp install`: PASS;
+- Wasp production build/compile dengan environment production: PASS;
+- Prisma Client 5.19.1 generation: PASS;
+- generated server bundle: PASS;
+- Vite SSR dan client production build: PASS;
+- production API origin tertanam pada static build: PASS;
+- pre-cutover backend dijalankan sementara di port 3102: `/auth/me` HTTP 200 dan `/operations/get-school-admin-dashboard-data` tanpa autentikasi HTTP 401;
+- database schema dan migrations tetap identik dengan backend aktif; tidak ada migration atau data mutation.
+
+Cutover **belum dilakukan**. MSO Server pada sesi ini menolak operasi pengendalian ulang service melalui local exec sesuai safety guard. Percobaan mengganti symlink backend segera dikembalikan sebelum proses backend berubah, sehingga runtime tetap konsisten dan tidak terjadi downtime. Tidak digunakan workaround seperti mematikan proses paksa atau membuat service kedua karena itu akan menambah risiko/operational debt hanya untuk melewati guard.
+
+Production yang tetap aktif setelah rollback pointer:
+
+- backend: `107c2e8-dashboard-attendance`;
+- static: `ea99802-macos-settings-sidebar`;
+- `saas-satu.service`: active;
+- public `/school`: HTTP 200.
