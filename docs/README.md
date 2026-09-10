@@ -87,3 +87,5 @@ cd app && wasp test client --run
 # Menjalankan pengujian E2E otomatis Playwright
 node scratch/test_crud_manual.mjs
 ```
+
+- [School OS Demo Data](./DEMO_DATA.md) — synthetic, idempotent, reversible dataset for UI/workflow testing.

@@ -314,3 +314,9 @@ Final visual refinement setelah review produksi:
 - perubahan hanya pada frontend/shared visual components dan tests; backend, authorization, tenant scoping, schema, dan migration tidak berubah.
 
 Quality gate: Wasp/TypeScript compile PASS, client tests 67/67 PASS, `git diff --check` PASS.
+
+## 2026-09-10 — School OS demo dataset
+
+Added `app/scripts/school-os-demo-data.mjs`, an explicit operator-only seed/status/cleanup runner for SMKN 1 RONGGA. The runner uses `[DEMO]`, `DEMO-`, and `@schoolos-demo.invalid` markers, reuses existing school/year data without overwriting it, supports transactional dry-run, is idempotent, and requires an exact token before cleanup. It is intentionally not added to Wasp's default `db.seeds` list.
+
+Production seeding was preceded by a fresh verified database backup. A full dry-run rolled back to zero demo records, the persisted seed was run twice with unchanged counts, and cleanup was verified in rollback-only mode. Seeded coverage includes school master data, class rooms, teachers/students, DUDI/PKL, LMS content, submissions, attendance, CBT results, Waka/Wali/Piket workflows, reports, and deliberate attention/EWS cases.
