@@ -11,10 +11,4 @@ export const head: App["head"] = [
   `<meta name='description' content='${description}' />`,
   "<meta name='author' content='SaaS Satu' />",
   "<meta name='keywords' content='sistem informasi sekolah, LMS, PKL, akademik, sekolah, multi-tenant' />",
-  "<meta property='og:type' content='website' />",
-  "<meta property='og:title' content='SaaS Satu Smart School' />",
-  "<meta property='og:site_name' content='SaaS Satu Smart School' />",
-  "<meta property='og:url' content='https://sekolah.suhendararyadi.com' />",
-  `<meta property='og:description' content='${description}' />`,
-  "<meta name='twitter:card' content='summary' />",
 ];
