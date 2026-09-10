@@ -411,3 +411,25 @@ Artefak baru:
 Function `school_os_deploy_preflight` hanya memvalidasi release, commit, generated backend bundle, static index/assets, current pointers, dan state service. Function `school_os_deploy_release` membutuhkan confirmation token eksplisit, melakukan backend cutover -> restart service -> localhost health -> static cutover -> public smoke (`/school` 200, `/auth/me` 200, unauthenticated admin dashboard operation 401), kemudian memverifikasi symlink final. Kegagalan setelah cutover memicu rollback backend/static ke pointer awal dan restart release sebelumnya.
 
 Project capability discovery telah memvalidasi manifest sebagai version 1 dengan 2 functions. Preflight terhadap release `5fac63e-dashboard-rombel` PASS dan memastikan current production masih backend `107c2e8-dashboard-attendance`, static `ea99802-macos-settings-sidebar`, service active sebelum promotion.
+
+
+---
+
+## 10 September 2026 — Dashboard rombel promoted to production
+
+Immutable release `5fac63e-dashboard-rombel` berhasil dipromosikan menggunakan project function `school_os_deploy_release`, setelah `school_os_deploy_preflight` memvalidasi commit, backend bundle, static assets, current pointers, dan service state.
+
+Post-cutover verification:
+
+- backend current -> `5fac63e-dashboard-rombel`;
+- static current -> `5fac63e-dashboard-rombel`;
+- `saas-satu.service`: active;
+- localhost `/auth/me`: HTTP 200;
+- public `/school`: HTTP 200;
+- public `/login`: HTTP 200;
+- unauthenticated `/operations/get-school-admin-dashboard-data`: HTTP 401;
+- static dashboard bundle memuat `Kehadiran per rombel`;
+- recent service log check tidak menemukan 5xx/error baru;
+- deploy function dipanggil kedua kali dan mengembalikan `idempotent: true` dengan smoke checks tetap PASS.
+
+Rollback target lama tetap tersedia (`107c2e8-dashboard-attendance` backend dan `ea99802-macos-settings-sidebar` static). Tidak ada schema migration atau mutation data dalam rollout ini.

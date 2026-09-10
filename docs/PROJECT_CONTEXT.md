@@ -9,7 +9,8 @@ Dokumen ini adalah snapshot konteks operasional untuk melanjutkan pengembangan S
 - Repository utama: `/home/ubuntu/projects/SaaS_Satu`
 - Worktree pengembangan School OS saat ini: `/home/ubuntu/projects/SaaS_Satu-hardening`
 - Branch aktif: `redesign/apple-hig`
-- Implementasi dashboard terbaru yang tercatat: `10eb867` (`refine(dashboard): prioritize class attendance and decision icons`)
+- Implementasi dashboard terbaru: `10eb867` (`refine(dashboard): prioritize class attendance and decision icons`)
+- Jalur deployment bounded terbaru: `6f7fae9` (`ops: add bounded School OS deployment function`)
 - Branch `main` masih berada pada garis baseline yang lebih lama dan **bukan** tempat perubahan School OS terbaru ini dikembangkan.
 
 Jika melanjutkan pekerjaan School OS dari konteks ini, gunakan worktree `SaaS_Satu-hardening` kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -39,27 +40,26 @@ Commit refinement terkait: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`, dan `10eb
 
 Domain School OS: `https://sekolah.suhendararyadi.com`.
 
-Pada 10 September 2026, pointer runtime yang dibaca dari server adalah:
+Pada 10 September 2026, release dashboard rombel telah dipromosikan dan diverifikasi sebagai production aktif:
 
-- static web: `/var/www/saas-satu/releases/ea99802-macos-settings-sidebar`;
+- static web: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`;
+- backend: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
+- `saas-satu.service`: **active/running**;
+- localhost `/auth/me`: HTTP 200;
+- public `/school`: HTTP 200;
+- public `/login`: HTTP 200;
+- unauthenticated Admin Dashboard operation: HTTP 401;
+- bundle production memuat marker `Kehadiran per rombel`;
+- tidak ditemukan 5xx/error baru pada window verifikasi setelah cutover.
+
+Rollback target yang dipertahankan:
+
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/107c2e8-dashboard-attendance`;
-- `saas-satu.service`: **active/running**.
+- static: `/var/www/saas-satu/releases/ea99802-macos-settings-sidebar`.
 
-Staged release yang sudah lolos build/pre-cutover smoke tetapi belum aktif:
+Schema/migrations tidak berubah dan deployment ini tidak melakukan mutation data.
 
-- source/runtime worktree: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
-- static staged: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`;
-- Wasp build dengan production environment: PASS;
-- generated backend bundle: PASS;
-- Vite SSR + client production build: PASS;
-- pre-cutover backend port `3102`: `/auth/me` HTTP 200 dan unauthenticated Admin Dashboard operation HTTP 401;
-- schema/migrations: tidak berubah.
-
-Perubahan seed demo terakhir tidak membutuhkan schema migration, restart backend, atau deploy UI.
-
-Refinement dashboard commit `10eb867` sudah terverifikasi di source tree tetapi **belum dipromosikan ke production** pada snapshot ini. Immutable release `5fac63e-dashboard-rombel` sudah berhasil dibangun dan distage untuk backend maupun static web, namun cutover sengaja tidak dipaksa karena kontrol MSO pada sesi ini menolak operasi pengendalian ulang service lokal. Production tetap memakai backend `107c2e8-dashboard-attendance` dan static `ea99802-macos-settings-sidebar`.
-
-Jalur deployment project-scoped sekarang tersedia melalui `.mso/functions.json` dan `ops/deploy-school-os-release.mjs`. Gunakan `school_os_deploy_preflight` sebelum `school_os_deploy_release`; fungsi deploy hanya menerima release immutable yang sudah ada, memverifikasi commit/artifact, mengganti backend terlebih dahulu, me-restart `saas-satu.service`, menunggu health localhost, baru mengganti static, lalu menjalankan public smoke checks. Jika tahap setelah cutover gagal, fungsi mengembalikan backend/static ke pointer sebelumnya dan me-restart backend rollback. Jalur ini sengaja dibuat untuk menghindari pelemahan global safety guard MSO.
+Jalur deployment project-scoped tersedia melalui `.mso/functions.json` dan `ops/deploy-school-os-release.mjs`. Gunakan `school_os_deploy_preflight` sebelum `school_os_deploy_release`; fungsi deploy hanya menerima release immutable yang sudah ada, memverifikasi commit/artifact, mengganti backend terlebih dahulu, me-restart service, menunggu health localhost, baru mengganti static, lalu menjalankan public smoke checks. Jika tahap setelah cutover gagal, fungsi mengembalikan backend/static ke pointer sebelumnya dan memulihkan backend rollback. Jalur ini sengaja dibuat untuk menghindari pelemahan global safety guard MSO.
 
 ## 4. Demo dataset School OS
 

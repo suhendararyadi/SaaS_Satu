@@ -216,8 +216,8 @@ The original School OS baseline was promoted on 9 September 2026 and then refine
 
 Current pointers verified from the server on 10 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/ea99802-macos-settings-sidebar`;
-- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/107c2e8-dashboard-attendance`;
+- active static release: `/var/www/saas-satu/releases/5fac63e-dashboard-rombel`;
+- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/5fac63e-dashboard-rombel`;
 - `saas-satu.service`: active/running.
 
 The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
