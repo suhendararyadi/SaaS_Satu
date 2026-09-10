@@ -1,32 +1,57 @@
-# Website Sekolah CMS — Product & Architecture Plan
+# Website Sekolah CMS — Product, Architecture & Implementation Status
 
 Last updated: **10 September 2026 (Asia/Jakarta)**.
 
-Dokumen ini adalah rancangan production-ready untuk modul besar **Website Sekolah** di School OS. Modul ini belum dianggap aktif hanya karena dokumen ini ada. Implementasi harus dilakukan bertahap, dengan schema migration, authorization, public rendering, dan deployment yang diverifikasi sebelum menu publikasi dinyatakan siap digunakan.
+Dokumen ini adalah contract produk/arsitektur modul **Website Sekolah** di School OS. Status penting: **CMS foundation sudah aktif di production**. Bagian yang belum tersedia harus diperlakukan sebagai roadmap, bukan placeholder UI.
 
 ## 1. Tujuan produk
 
-Website Sekolah harus menjadi CMS multi-tenant yang memungkinkan setiap sekolah mengelola situs publiknya dari School OS tanpa perlu mengedit source code. Modul harus cukup sederhana untuk operator sekolah, tetapi memiliki workflow editorial, SEO, media, aksesibilitas, dan keamanan yang layak untuk production.
+Website Sekolah adalah CMS multi-tenant agar setiap sekolah dapat mengelola situs publik dari School OS tanpa mengedit source code.
 
 Prinsip utama:
 
-- satu sekolah = satu website publik yang terisolasi tenant;
-- konten publik tidak boleh mengambil data sensitif siswa/guru secara otomatis;
-- editor tidak menulis HTML/JavaScript bebas;
-- draft, preview, publish, schedule, archive adalah state yang eksplisit;
-- halaman publik ringan, mobile-first, SEO-friendly, dan accessible;
-- admin School OS tidak dibanjiri banyak menu CMS; gunakan satu entry point besar **Website Sekolah**;
-- desain admin tetap Apple HIG-inspired School OS, sedangkan desain situs publik menggunakan theme/preset sekolah yang aman dan konsisten.
+- satu sekolah = satu website publik tenant-scoped;
+- public data hanya yang eksplisit aman;
+- tidak ada arbitrary HTML/JavaScript editor;
+- draft, review, schedule, publish, archive adalah state eksplisit;
+- public site ringan, responsive, accessible, SEO-ready;
+- admin memakai satu entry point besar **Website Sekolah**, bukan banyak menu sidebar;
+- admin CMS tetap mengikuti Apple HIG-inspired School OS, sedangkan public site memakai preset sekolah yang terkontrol.
 
-## 2. Information architecture admin
+## 2. Status production saat ini
 
-Sidebar School OS menambah satu section:
+**LIVE** pada 10 September 2026.
 
-**PUBLIKASI**
+Admin:
 
-- **Website Sekolah** → `/school/website`
+- sidebar: `PUBLIKASI → Website Sekolah`
+- `/school/website`
+- preview authenticated: `/school/website/preview`
 
-Jangan membuat tujuh item CMS langsung di sidebar utama. Setelah masuk ke Website Sekolah, gunakan secondary navigation/segmented tabs di dalam modul:
+Public:
+
+- `/site/:schoolSlug`
+- `/site/:schoolSlug/:pageSlug`
+- `/site/:schoolSlug/berita`
+- `/site/:schoolSlug/berita/:postSlug`
+- `/site/:schoolSlug/agenda`
+- `/site/:schoolSlug/pengumuman`
+
+SMKN 1 RONGGA:
+
+`https://sekolah.suhendararyadi.com/site/smkn-1-rongga`
+
+Production starter content:
+
+- `Profil Sekolah` — PUBLISHED
+- `Website Sekolah Mulai Tersedia` — PUBLISHED
+- Header nav: Profil, Berita, Agenda, Pengumuman
+- Website status: PUBLISHED
+- `robotsIndex=false` / `noindex,nofollow` selama tahap verifikasi konten awal.
+
+## 3. Information architecture admin
+
+Workspace menggunakan secondary navigation:
 
 1. **Ringkasan**
 2. **Halaman**
@@ -35,103 +60,24 @@ Jangan membuat tujuh item CMS langsung di sidebar utama. Setelah masuk ke Websit
 5. **Galeri & Media**
 6. **Navigasi**
 7. **Identitas & SEO**
-8. **Pengaturan Publikasi**
 
-### Ringkasan
+Ringkasan menampilkan status website, URL publik, jumlah konten terbit, draft/review, scheduled, kesiapan SEO, serta shortcut pembuatan konten/preview.
 
-Menampilkan status website, URL publik, terakhir dipublikasikan, jumlah draft, konten terjadwal, konten yang perlu review, shortcut `Buat berita`, `Buat halaman`, `Pratinjau`, dan `Buka website`.
+Halaman menangani konten statis seperti Profil, Visi & Misi, Sejarah, Fasilitas, Program Keahlian, TEFA, Hubin, Ekstrakurikuler, Kontak, dan halaman custom.
 
-Tidak boleh menampilkan angka palsu. Jika modul belum diinisialisasi, gunakan setup state yang eksplisit.
+Berita menangani judul, slug, excerpt, structured body blocks, cover HTTPS, kategori, status editorial, jadwal publikasi, dan SEO metadata.
 
-### Halaman
+Agenda menangani waktu mulai/selesai, lokasi, ringkasan, body, dan status editorial. Pengumuman memiliki prioritas serta masa tayang.
 
-Untuk konten statis seperti:
+Galeri & Media saat ini menggunakan explicit public HTTPS image entry dengan alt text wajib. Tidak ada blob DB atau implicit publishing file tenant.
 
-- Profil Sekolah;
-- Visi & Misi;
-- Sejarah;
-- Program Keahlian/Jurusan;
-- Fasilitas;
-- Teaching Factory;
-- Hubungan Industri;
-- Ekstrakurikuler;
-- Kontak;
-- halaman khusus lain yang dibuat sekolah.
+Navigasi hanya dapat menuju halaman tenant yang sama, route publik resmi (`berita`, `agenda`, `pengumuman`), atau HTTPS external link.
 
-### Berita
-
-Konten dinamis dengan cover image, kategori, author, excerpt, body blocks, status editorial, tanggal publikasi, scheduled publication, dan SEO metadata.
-
-### Agenda & Pengumuman
-
-Agenda memiliki waktu mulai/selesai, lokasi, deskripsi, dan optional cover. Pengumuman memiliki masa tayang mulai/berakhir dan prioritas. Pengumuman yang kedaluwarsa tidak perlu dihapus; cukup tidak lagi ditampilkan publik.
-
-### Galeri & Media
-
-Satu library media sekolah untuk gambar yang dipakai halaman, berita, hero, agenda, dan galeri. Setiap gambar wajib mendukung alt text; caption opsional. Upload harus memakai jalur object storage/file upload resmi yang sudah ada, bukan menyimpan blob di database.
-
-### Navigasi
-
-Admin menyusun menu header/footer dari halaman internal, berita/agenda index, atau external link. Batasi kedalaman menu agar navigasi publik tetap sederhana.
-
-### Identitas & SEO
-
-Mengelola:
-
-- site title;
-- tagline;
-- logo/favicon;
-- hero headline/subheadline;
-- alamat/kontak publik;
-- social links;
-- default SEO title/description;
-- Open Graph image;
-- indexing toggle untuk fase staging.
-
-### Pengaturan Publikasi
-
-Mengelola status website (`DRAFT` / `PUBLISHED`), preview, domain/path publik, theme preset, publication policy, dan optional custom domain pada fase lanjutan.
-
-## 3. Rancangan public site
-
-### URL fase awal
-
-Gunakan namespace yang tidak berbenturan dengan School OS:
-
-- `/site/:schoolSlug`
-- `/site/:schoolSlug/berita`
-- `/site/:schoolSlug/berita/:postSlug`
-- `/site/:schoolSlug/agenda`
-- `/site/:schoolSlug/pengumuman`
-- `/site/:schoolSlug/:pageSlug`
-
-Contoh:
-
-`https://sekolah.suhendararyadi.com/site/smkn-1-rongga`
-
-Custom domain seperti `www.smkn1rongga.sch.id` dapat ditambahkan kemudian melalui mapping domain yang tervalidasi. Jangan menjadikan custom domain sebagai dependency MVP.
-
-### Struktur landing page default
-
-Landing page menggunakan block/preset yang dapat diaktifkan/nonaktifkan:
-
-1. Header + navigasi
-2. Hero sekolah
-3. Pengumuman penting
-4. Sambutan / profil singkat
-5. Program keahlian / jurusan
-6. Berita terbaru
-7. Agenda terdekat
-8. Prestasi / highlight
-9. Galeri
-10. CTA PPDB / kontak sesuai kebutuhan sekolah
-11. Footer dengan alamat, kontak, social link, dan navigasi sekunder
-
-Tidak semua section harus muncul jika datanya kosong. Empty section harus dihilangkan dari public site, bukan menampilkan placeholder produksi.
+Identitas & SEO mengelola site title, tagline, hero, email/telepon publik, default SEO title/description, theme preset, dan robots indexing toggle.
 
 ## 4. Editorial workflow
 
-Gunakan state yang jelas untuk konten:
+Status aktif:
 
 - `DRAFT`
 - `IN_REVIEW`
@@ -139,286 +85,207 @@ Gunakan state yang jelas untuk konten:
 - `PUBLISHED`
 - `ARCHIVED`
 
-Workflow minimum:
+Workflow UI:
 
-`Draft → Preview → Publish`
+`Draft → Kirim review → Terbitkan / Jadwalkan → Arsipkan`
 
-Workflow lanjutan:
+Aturan:
 
-`Draft → Review → Scheduled/Published → Archive`
+- Save editor tidak otomatis publish.
+- Action `Kirim review` hanya tampil untuk Draft.
+- Scheduled content baru dianggap public ketika `scheduledAt <= now`.
+- Future-scheduled content tetap private.
+- `publishedAt` dipertahankan sebagai histori publikasi.
+- Konten yang pernah/masih public tidak boleh di-hard-delete melalui flow normal; gunakan archive.
 
-Best practice:
+## 5. Data model production
 
-- `publishedAt` hanya terisi ketika benar-benar publik;
-- scheduled content memiliki `scheduledAt` dan worker/job yang fail-safe;
-- publish action harus idempotent;
-- konten yang diedit setelah publish tidak langsung mengganti publik jika sekolah memilih workflow review;
-- simpan revision/audit trail minimal untuk mengetahui siapa yang mengubah/publish.
+Migration:
 
-## 5. Data model yang direkomendasikan
+`20260910194000_add_school_website_cms`
 
-Gunakan relasi tenant eksplisit `schoolId` pada semua record CMS dan composite uniqueness untuk slug.
+Model utama:
 
 ### `SchoolSite`
 
-Satu record per sekolah:
+Satu record per sekolah, membawa `schoolId`, publication status, identity/hero/SEO fields, preset tema, robotsIndex, dan timestamps.
 
-- `id`
-- `schoolId` unique
-- `status`
-- `siteTitle`
-- `tagline`
-- `heroTitle`
-- `heroSubtitle`
-- `heroMediaId?`
-- `defaultSeoTitle?`
-- `defaultSeoDescription?`
-- `ogMediaId?`
-- `themePreset`
-- `robotsIndex` boolean
-- `publishedAt?`
-- `createdAt`, `updatedAt`
+### `SchoolSiteContent`
 
-### `SchoolSitePage`
+Satu content model dengan discriminator type:
 
-- `id`
-- `schoolId`
-- `title`
-- `slug`
-- `excerpt?`
-- `contentBlocks Json`
-- `status`
-- `showInNavigation`
-- `navigationLabel?`
-- `navigationOrder?`
-- `seoTitle?`
-- `seoDescription?`
-- `publishedAt?`
-- `scheduledAt?`
-- `createdById`
-- `updatedById`
-- timestamps
-- `@@unique([schoolId, slug])`
+- `PAGE`
+- `NEWS`
+- `EVENT`
+- `ANNOUNCEMENT`
 
-### `SchoolNewsPost`
+Membawa tenant `schoolId`, title, slug, excerpt, validated `contentBlocks`, optional cover/category/event fields, priority, status, scheduled/published timestamps, SEO fields, dan author/update references.
 
-- `id`
-- `schoolId`
-- `title`
-- `slug`
-- `excerpt`
-- `contentBlocks Json`
-- `coverMediaId?`
-- `category?`
-- `status`
-- `authorId`
-- `publishedAt?`
-- `scheduledAt?`
-- SEO fields
-- timestamps
-- `@@unique([schoolId, slug])`
-
-### `SchoolEvent`
-
-- `id`
-- `schoolId`
-- `title`
-- `slug`
-- `summary?`
-- `contentBlocks Json`
-- `startsAt`
-- `endsAt?`
-- `location?`
-- `coverMediaId?`
-- `status`
-- `publishedAt?`
-- timestamps
-- `@@unique([schoolId, slug])`
-
-### `SchoolAnnouncement`
-
-- `id`
-- `schoolId`
-- `title`
-- `contentBlocks Json`
-- `priority`
-- `startsAt?`
-- `endsAt?`
-- `status`
-- timestamps
-
-### `SchoolSiteMedia`
-
-Jangan mengubah file upload menjadi storage CMS khusus. Bungkus file yang sudah diupload dengan metadata tenant:
-
-- `id`
-- `schoolId`
-- `fileId` unique
-- `altText`
-- `caption?`
-- `width?`, `height?`
-- `createdById`
-- timestamps
-
-Sebelum file ditautkan, server wajib memverifikasi pemilik file berada pada `schoolId` yang sama. Jika pipeline image variants ditambahkan, hasil turunan dapat disimpan sebagai metadata/keys terpisah.
+Slug unik bersifat tenant + content-type scoped.
 
 ### `SchoolSiteNavItem`
 
-- `id`
-- `schoolId`
-- `location` (`HEADER` / `FOOTER`)
-- `label`
-- `type` (`PAGE` / `ROUTE` / `EXTERNAL`)
-- `pageId?`
-- `href?`
-- `order`
-- `isVisible`
+Membawa `schoolId`, location (`HEADER`/`FOOTER`), label, type (`PAGE`/`ROUTE`/`EXTERNAL`), destination, order, visibility.
 
-Batasi satu level dropdown pada MVP; jangan membangun recursive menu tree tanpa kebutuhan nyata.
+### `SchoolSiteMedia`
 
-### `SchoolSiteRevision` (fase 2)
+Membawa tenant ownership metadata untuk explicit public HTTPS image: URL, alt text, caption, dimensions, creator, timestamps.
 
-Untuk audit/recovery konten:
-
-- `id`
-- `schoolId`
-- `resourceType`
-- `resourceId`
-- `snapshot Json`
-- `createdById`
-- `createdAt`
+Revision/audit snapshot yang lebih lengkap belum menjadi model tersendiri dan tetap roadmap.
 
 ## 6. Content block contract
 
-Jangan menyimpan arbitrary HTML/script. `contentBlocks` adalah JSON yang divalidasi Zod/server dengan allowlist block:
+Body tidak menyimpan arbitrary HTML/script. Input teks diubah server-side menjadi allowlisted block JSON.
 
-- `richText`
-- `heading`
-- `image`
-- `gallery`
-- `quote`
-- `callout`
-- `button/cta`
-- `divider`
-- `videoEmbed` hanya dari provider allowlist
-- `stats` untuk data editorial, bukan data siswa internal
+Block aktif minimum mencakup paragraph, heading, quote, dan callout. Renderer tidak menjalankan custom script, iframe bebas, inline JS, atau custom CSS dari editor.
 
-Rich text disanitasi dan tidak boleh menyimpan `<script>`, inline JS, arbitrary iframe, atau custom CSS.
+Future enhancement dapat menambah image/gallery/CTA/video provider allowlist setelah schema + validator + renderer diuji.
 
-## 7. Authorization
+## 7. Authorization & tenant isolation
 
-### Admin Sekolah
+MVP admin CMS memakai existing `requireSchoolAdmin` dan `schoolId` current user.
 
-MVP: memiliki permission create/edit/publish/archive website sekolahnya sendiri.
+- Admin Sekolah dapat mengelola website tenant sendiri.
+- Platform Super Admin tidak mendapat bypass tenant generik dari CMS.
+- Guru tidak otomatis mendapat publish right.
+- Siswa dan Pembimbing DUDI tidak mendapat admin CMS.
+- UI visibility bukan security boundary; seluruh mutation/query private tetap server-enforced.
 
-### Super Admin platform
-
-Boleh mengakses tenant hanya melalui konteks sekolah aktif dan existing platform authorization. Jangan membuat bypass tenant untuk CMS.
-
-### Guru
-
-Fase lanjutan dapat diberi role editorial seperti `AUTHOR` atau `EDITOR`, tetapi jangan otomatis memberi semua guru hak publish.
-
-### Siswa / Pembimbing DUDI
-
-Tidak memiliki akses admin CMS secara default.
-
-Semua query/action mutasi harus memverifikasi `schoolId` server-side. Menyembunyikan menu di frontend bukan security boundary.
+Public query tidak memerlukan login, tetapi hanya mengembalikan site `PUBLISHED` dan content yang benar-benar public.
 
 ## 8. Public data boundary
 
-Website publik **tidak boleh** otomatis mengekspos:
+Public website **tidak boleh otomatis mengekspos**:
 
-- daftar siswa;
-- NIS/NISN;
+- siswa / NIS / NISN;
 - presensi;
 - nilai;
 - EWS;
 - jurnal PKL;
-- nomor telepon/email personal guru/siswa;
-- data internal Dapodik;
-- decision/attention dashboard.
+- email/telepon personal guru/siswa;
+- data Dapodik internal;
+- attention/decision dashboard.
 
-Data existing yang aman untuk digunakan hanya setelah dipilih secara eksplisit, misalnya nama sekolah, logo, alamat sekolah, email/telepon publik, dan nama program keahlian. Profil staf/guru publik harus menjadi fitur opt-in dengan field publik terpisah, bukan membaca semua user tenant.
+Safe existing school data dapat digunakan hanya bila memang publik: nama sekolah, logo, alamat sekolah, kontak publik, nama program keahlian.
 
-## 9. SEO, performance, dan accessibility
+Record QA dengan marker `[DEMO]` atau code `DEMO-` difilter dari public site dan preview. Verification production membuktikan public SMKN 1 RONGGA hanya mengembalikan program nyata `RPL` dan tidak mengandung marker DEMO.
 
-- SSR/public rendering untuk halaman yang perlu diindeks.
-- Unique `<title>` dan meta description per page/post.
-- canonical URL.
-- Open Graph/Twitter metadata.
-- sitemap.xml per school site.
-- robots.txt / indexing toggle pada site draft.
-- structured data `EducationalOrganization`, `NewsArticle`, `Event` bila valid.
-- images memiliki intrinsic dimensions dan lazy loading di bawah fold.
-- generate WebP/AVIF variants pada fase media pipeline; jangan melayani foto asli multi-megabyte tanpa optimasi.
-- alt text wajib untuk gambar editorial bermakna.
-- keyboard navigation, visible focus, semantic heading order, contrast minimum WCAG AA.
-- public landing tidak boleh mengunduh bundle admin School OS.
+## 9. Public rendering & theme
 
-## 10. Theme strategy
-
-Jangan memberikan arbitrary CSS editor. Berikan preset terkontrol, misalnya:
+Preset aktif:
 
 - `Clean School`
 - `Editorial`
 - `Campus`
 
-Setiap preset menggunakan token untuk typography, radius, spacing, dan warna aksen. Sekolah dapat memilih logo, hero image, dan primary accent dari pilihan aman, tetapi layout tetap responsive dan accessible.
+Public site tidak harus terlihat seperti macOS. Prioritasnya adalah identitas sekolah, readability, performance, responsiveness, dan accessibility.
 
-Admin CMS tetap menggunakan Apple HIG-inspired School OS. Public website tidak harus meniru macOS; prioritasnya adalah identitas sekolah, readability, dan performa.
+Empty section tidak dirender sebagai placeholder produksi. Berita/agenda/pengumuman yang kosong menggunakan honest empty state pada index page.
 
-## 11. Preview & publication safety
+## 10. SEO, performance, accessibility
 
-Preview draft harus memakai URL bertoken/authorized session dan **tidak** dapat diindeks search engine.
+Sudah tersedia:
 
-Publish action:
+- per-page title/meta dasar;
+- robots `index,follow` / `noindex,nofollow` berdasarkan site setting;
+- lazy-loaded gallery images;
+- alt text wajib untuk media entry;
+- responsive header/mobile menu;
+- public route tidak membutuhkan admin CMS bundle;
+- desktop/iPhone browser smoke tanpa horizontal overflow dan tanpa console/request error.
 
-1. validasi content schema;
-2. validasi slug unik tenant;
-3. validasi media ownership;
-4. validasi required SEO/basic identity;
-5. persist publication state;
-6. invalidate public cache;
-7. return public URL.
+Belum selesai dan menjadi roadmap:
 
-Archive tidak menghapus record. Delete hard hanya untuk draft yang belum pernah published atau melalui admin confirmation yang eksplisit.
+- canonical URL;
+- Open Graph/Twitter metadata lengkap;
+- sitemap.xml;
+- structured data `EducationalOrganization`, `NewsArticle`, `Event`;
+- image variants WebP/AVIF;
+- CDN/cache tuning.
 
-## 12. Recommended delivery phases
+## 11. Publication safety
 
-### Phase 1 — CMS foundation
+Preview draft hanya tersedia di authenticated School OS route dan tidak menjadi public content endpoint.
 
-Schema + migration, authorization helpers, Website Sekolah admin hub, Site identity/settings, Halaman CRUD, Berita CRUD, draft/preview/publish, satu public landing route, public page/news rendering.
+Public content gate:
 
-Ini adalah minimum yang sudah memberi nilai nyata dan tidak terasa seperti placeholder.
+- site harus `PUBLISHED`;
+- content harus `PUBLISHED`, atau `SCHEDULED` dengan jadwal yang sudah tiba;
+- pengumuman harus berada di display window aktif;
+- tenant slug/content lookup harus cocok;
+- DEMO program data disaring dari payload public.
 
-### Phase 2 — editorial operations
+Production boundary test telah membuat draft/future-scheduled QA sementara dan public API mengembalikan HTTP 404 untuk keduanya, lalu record QA dibersihkan.
 
-Agenda, Pengumuman, Media Library wrapper, navigation editor, scheduled publication, revision history, sitemap/structured data.
+## 12. Starter data contract
 
-### Phase 3 — advanced publishing
+Runner:
 
-Gallery composition, custom domain verification, image variants pipeline, analytics, author/editor workflow, reusable section presets, cache/CDN tuning.
+`app/scripts/school-website-starter-data.mjs`
 
-## 13. Acceptance criteria Phase 1
+Starter hanya membuat data publik yang aman dan faktual jika belum ada:
 
-Phase 1 baru boleh disebut selesai jika:
+- site identity dasar;
+- satu Profil Sekolah;
+- satu berita bahwa kanal Website Sekolah mulai tersedia;
+- empat navigation item utama.
 
-- Admin Sekolah dapat membuka `/school/website`;
-- dapat membuat/edit Halaman dan Berita sebagai draft;
-- draft tidak dapat diakses publik tanpa preview authorization;
-- publish membuat konten tersedia di URL publik school slug;
-- slug unik per tenant dan tidak cross-school;
-- user tenant lain tidak dapat membaca draft atau mengubah konten sekolah lain;
-- public site tidak menampilkan data sensitif internal;
-- halaman publik responsive, keyboard accessible, dan metadata SEO terisi;
-- no arbitrary HTML/script injection;
-- migration/rollback plan terdokumentasi;
-- automated tests mencakup tenant isolation, draft/published boundary, slug uniqueness, dan publish authorization;
-- production rollout memiliki backup DB sebelum migration dan smoke test public/admin setelah cutover.
+Tidak membuat agenda, prestasi, pengumuman, kontak, atau informasi lain yang tidak diketahui.
 
-## 14. Keputusan implementasi saat dokumen ini dibuat
+Run kedua telah diverifikasi idempotent: tidak membuat record baru dan tidak menimpa konten existing.
 
-Pada 10 September 2026 schema aktif hanya memiliki identitas dasar `School` (`name`, `slug`, `npsn`, `address`, `city`, `province`, `phone`, `email`, `logoUrl`, dll.) dan belum memiliki model CMS page/news/gallery/event.
+## 13. Delivery status
 
-Karena itu **jangan** menambahkan menu Website Sekolah yang terlihat fully functional sebelum Phase 1 memiliki persistence dan public rendering nyata. Lebih baik mengaktifkan satu entry point CMS setelah fondasi Phase 1 lolos test daripada mengirim banyak tombol yang hanya placeholder.
+### Phase 1 — CMS foundation: **SELESAI / LIVE**
+
+Mencakup schema + migration, tenant authorization, CMS hub, identity/settings, Halaman, Berita, draft/preview/publish, public landing/page/news routes, backup + production rollout.
+
+### Phase 2 — editorial operations: **SEBAGIAN BESAR SELESAI / LIVE**
+
+Sudah tersedia Agenda, Pengumuman, media metadata library, navigation editor, scheduled publication, review status/action.
+
+Belum tersedia revision history khusus CMS dan object-storage image pipeline yang terintegrasi.
+
+### Phase 3 — advanced publishing: **ROADMAP**
+
+- object storage upload + ownership verification + variants;
+- revision/audit history;
+- sitemap/structured data/canonical/OG;
+- custom domain verification;
+- AUTHOR/EDITOR role granular;
+- analytics publik privacy-safe;
+- reusable section presets;
+- cache/CDN tuning.
+
+## 14. Acceptance verification production
+
+Verified pada 10 September 2026:
+
+- `/school/website` route tersedia;
+- Halaman/Berita persistence aktif;
+- draft dan future scheduled tidak public;
+- published content tersedia di public URL;
+- tenant key eksplisit pada CMS model;
+- public payload tidak memuat internal student/attendance/EWS/PKL data;
+- DEMO department filter aktif;
+- no arbitrary HTML/script storage;
+- migration additive applied dan status schema up-to-date;
+- backup pra-migration tersedia;
+- backup pasca-migration/pra-starter tersedia;
+- TypeScript PASS;
+- Vitest **75/75 PASS**;
+- Wasp build PASS;
+- Vite SSR/client PASS;
+- browser desktop/iPhone PASS tanpa overflow/error;
+- admin CMS operation tanpa login HTTP 401;
+- deployment static review-flow idempotent PASS.
+
+## 15. Deployment safety
+
+Frontend-only CMS polish gunakan `school_os_deploy_static_preflight` → `school_os_deploy_static`.
+
+Full-stack/backend change gunakan `school_os_deploy_preflight` → `school_os_deploy_release`.
+
+Full preflight kini memvalidasi runtime dependency utama (`lucia`, adapter Prisma, `pg-boss`) serta Prisma delegates `user/auth/session` sebelum restart production. Ini adalah hardening setelah satu staged CMS release sempat gagal start karena runtime package `lucia` tidak tersedia; rollback otomatis bekerja dan production dipulihkan sebelum retry sukses.
+
+Lihat release record lengkap: [`RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md`](./RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md).
