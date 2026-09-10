@@ -19,7 +19,7 @@ function isoDate(value?: Date | string | null) {
   return date.toISOString();
 }
 
-export const schoolSiteSitemapApi = async (req: any, res: any) => {
+export const schoolSiteSitemapApi = async (req: any, res: any, _context?: unknown) => {
   const schoolSlug = String(req.params?.schoolSlug || "").trim();
   if (!/^[a-z0-9-]{1,120}$/.test(schoolSlug)) {
     return res.status(404).send("Not found");
