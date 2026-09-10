@@ -1,9 +1,9 @@
 # SaaS Satu — School OS UI System
 
-Status: implemented baseline
+Status: active / implemented
 Design direction: Apple HIG-inspired web interface
 Official design reference: https://developer.apple.com/design/human-interface-guidelines
-Golden prototypes: user-provided `School OS.zip`
+Golden prototypes: user-provided `School OS.zip` plus subsequent production visual reviews
 
 ## 1. Purpose
 
@@ -24,10 +24,10 @@ The supplied School OS prototypes define two target modes.
 
 ### Desktop
 
-The desktop admin prototype is the reference for:
+The desktop admin prototype and later production reviews are the reference for:
 
-- 240px translucent sidebar;
-- compact navigation rows;
+- approximately 240px translucent sidebar;
+- compact navigation rows with restrained stroke icons;
 - approximately 58px toolbar;
 - grouped white surfaces over a neutral background;
 - 16px panels and dialogs;
@@ -77,7 +77,7 @@ Light mode core values:
 - Apple reference green: `#34C759`; web filled-success token: `#237A36` pada light mode;
 - Apple reference orange: `#FF9500`; web filled-warning token: `#A05A00` pada light mode;
 - Apple reference red: `#FF3B30`; web filled-destructive token: `#D70015` pada light mode;
-- pada dark mode, system colors Apple yang lebih terang dipertahankan dengan foreground gelap yang kontras.
+- pada dark mode, system colors Apple yang lebih terang dipertahankan dengan foreground gelap yang kontras;
 - grouped background: `#F2F2F7`;
 - primary surface: `#FFFFFF`;
 - primary label: `rgba(0,0,0,.85)`;
@@ -104,11 +104,15 @@ Avoid oversized floating cards, decorative gradients, and heavy multi-layer shad
 ### Desktop
 
 - translucent sidebar material;
-- compact top-level navigation;
+- compact top-level navigation with restrained stroke icons;
+- navigation labels use strong near-black primary text rather than low-contrast gray;
+- sidebar show/hide control follows macOS toolbar conventions;
 - translucent toolbar separated from content by a thin line;
 - content canvas remains neutral and spacious;
 - keyboard/precision-input workflows remain first class;
 - dense tables use the available screen width rather than converting everything into cards.
+
+The sidebar composition should feel closer to macOS Settings/Finder than to a Material navigation drawer: low-chrome grouping, clear labels, modest active-state treatment, and no decorative blue status dot beside the school identity.
 
 ### Mobile
 
@@ -129,7 +133,7 @@ Key mappings:
 - `M3TextField`, `M3Select` → system form controls;
 - `M3Switch` → iOS-like switch geometry;
 - `M3Tabs` → segmented control;
-- `M3NavigationDrawer` → macOS-like sidebar;
+- `M3NavigationDrawer` → macOS-like Settings/Finder sidebar;
 - `M3TopAppBar` → toolbar material;
 - `M3BottomNavigation` → iOS-like bottom navigation;
 - `M3Dialog` → centered desktop dialog / mobile bottom sheet;
@@ -139,9 +143,14 @@ A future internal rename can remove the historical `M3` prefix, but it is not re
 
 ## 8. Icons
 
-Material Symbols remain a cross-platform web fallback because SF Symbols are not bundled with this web application. The default rendering is outlined and restrained to approximate system-symbol visual weight. Feature-specific React icons can still be supplied through the shared icon API.
+Primary desktop sidebar navigation uses restrained Lucide stroke icons to approximate the visual weight of macOS/SF Symbols without bundling Apple assets. Material Symbols remain available as a cross-platform fallback in existing shared APIs and screens where replacement is not justified.
 
-Do not use emoji as interface icons.
+Rules:
+
+- icons must be simple, outlined/stroked, and visually quiet;
+- do not use decorative icon tiles unless the information hierarchy genuinely needs them;
+- do not use emoji as interface icons;
+- do not bundle or redistribute SF Symbols or proprietary Apple font/icon assets.
 
 ## 9. Role Dashboards
 
@@ -149,10 +158,17 @@ Existing role-specific server DTOs remain authoritative.
 
 - Student: next learning priority, tasks/CBT, classes, own PKL state.
 - Teacher: work requiring attention, teaching rooms, supervised PKL, extra assignments.
-- Admin: school summary, real attention conditions, capacity, quick management.
+- Admin: school summary, real attention conditions, attendance, quick management.
 - DUDI Mentor: assigned students and journal review work.
 
 Visual redesign must not introduce fake progress, invented metrics, or cross-role data.
+
+Admin dashboard refinement includes:
+
+- compact stat strip using real tenant data;
+- Kehadiran derived from LMS attendance records for the relevant day/context;
+- `Perlu Keputusan Anda` backed by server-side attention data rather than placeholder cards;
+- honest empty states when operational records do not exist.
 
 ## 10. Accessibility
 
@@ -176,6 +192,8 @@ It must not modify:
 - integration feature flags;
 - production secrets.
 
+Demo/synthetic records used for QA must remain explicitly marked and must not be presented as genuine school data. See [`DEMO_DATA.md`](./DEMO_DATA.md).
+
 ## 12. Quality Gate
 
 Before production promotion:
@@ -183,30 +201,42 @@ Before production promotion:
 1. `git diff --check` passes;
 2. Wasp/TypeScript compilation passes;
 3. the full client test suite passes;
-4. production Wasp build passes;
-5. production Vite SSR/client build passes;
-6. no database/schema diff exists;
+4. production Wasp build passes when runtime code changed;
+5. production Vite SSR/client build passes for static release work;
+6. no unintended database/schema diff exists;
 7. production URLs are correct in the static bundle;
-8. `/`, `/login`, and `/school` return 200 after static cutover;
-9. backend release remains unchanged for a frontend-only rollout;
-10. the previous static release remains available for rollback.
+8. `/`, `/login`, and `/school` return 200 after cutover;
+9. backend remains unchanged for genuinely frontend-only rollout;
+10. the previous static/runtime release remains available for rollback.
 
-## Status produksi
+## 13. Production status — 10 September 2026
 
-School OS dipromosikan ke production pada 9 September 2026 dari source commit `818d1c7a89dc64b81b5cfdc78a52cd1211136146` melalui static release `818d1c7-school-os-hig`. Backend tetap menggunakan release `678181a-dashboard-fix`; tidak ada perubahan schema database.
+The original School OS baseline was promoted on 9 September 2026 and then refined through several production-reviewed commits.
 
-## Refinement final — sidebar dots dan dashboard macOS
+Current pointers verified from the server on 10 September 2026:
 
-Setelah review visual production, School OS dikunci dengan refinement berikut:
+- active static release: `/var/www/saas-satu/releases/ea99802-macos-settings-sidebar`;
+- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/107c2e8-dashboard-attendance`;
+- `saas-satu.service`: active/running.
 
-- sidebar desktop tidak lagi memakai ikon per menu; navigasi menggunakan dot marker kecil seperti mockup `dashboard.html`;
-- hero/header besar di dashboard dihapus; nama sekolah dan tahun ajaran aktif tampil ringkas di toolbar;
-- dashboard memakai stat strip compact, grouped panels, thin separators, dan real-data-only metrics;
-- Admin menampilkan siswa, guru, rombel, ruang LMS, mitra DUDI, dan PKL aktif sesuai data tenant;
-- dashboard Student, Teacher, dan DUDI Mentor memakai pola statistik dan grouped list yang sama;
-- breadcrumb redundan di halaman sekolah/PKL/governance/reports dihapus karena toolbar sudah menjadi sumber konteks navigasi;
-- hard-coded rainbow utility colors dinormalisasi ke semantic School OS colors;
-- data contoh yang tampak seperti data nyata pada form laporan dihapus dari default state dan hanya boleh hadir sebagai placeholder contoh;
-- `getSchoolInfo` menambahkan `activeAcademicYear` sebagai data read-only untuk toolbar. Perubahan ini tidak mengubah schema, authorization, tenant scoping, atau business rules.
+The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
 
-Prinsip final: **toolbar memberi konteks, content area memberi pekerjaan dan data; bukan mengulang identitas halaman dalam hero besar.**
+## 14. Current refinement — macOS Settings/Finder sidebar
+
+The dot-only sidebar experiment is historical and **not** the final active contract. Subsequent production review intentionally restored icons and refined the shell further.
+
+Current sidebar contract:
+
+- navigation uses restrained stroke icons plus text labels;
+- labels use strong near-black text for Finder/macOS-like readability;
+- the blue dot beside the school identity is removed;
+- `Ganti Sekolah` is treated as a compact toolbar/action control rather than an oversized button;
+- hide/show sidebar control follows a macOS-style sidebar toggle;
+- navigation grouping and active states take inspiration from macOS Settings/Finder;
+- grouped empty states and inline notices remain low-chrome and content-first;
+- dashboard keeps compact stat strips, grouped panels, thin separators, and real-data-only metrics;
+- breadcrumb/hero duplication stays removed where the toolbar already provides sufficient context.
+
+Related refinement commits: `70108d1`, `5b66eb1`, `0adb095`, `ea99802`.
+
+Final principle: **toolbar memberi konteks; sidebar memberi orientasi; content area memberi pekerjaan dan data tanpa chrome yang berlebihan.**

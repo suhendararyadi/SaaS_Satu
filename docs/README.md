@@ -6,36 +6,42 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
 
 ## 📚 Daftar Isi Dokumentasi
 
-1. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
+1. [**Konteks Proyek Aktif (`PROJECT_CONTEXT.md`)**](./PROJECT_CONTEXT.md)
+   - Snapshot lintas chat/sesi yang harus dibaca sebelum melanjutkan School OS.
+   - Mencatat worktree/branch aktif, pointer production terakhir, status seed demo, guardrails, dan pekerjaan berikutnya yang belum selesai.
+
+2. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
    - Spesifikasi stack teknologi (Wasp v0.25, React 19, Node.js 24, Prisma, PostgreSQL).
    - Arsitektur multi-tenant berbasis `schoolId` dan skema database relasional.
    - Sistem otentikasi, perizinan (*Auth Guards*), dan hierarki peran pengguna (*User Roles*).
    - Konfigurasi router, queries, dan actions terdistribusi (`*.wasp.ts`).
 
-2. [**School OS — Apple HIG-inspired UI (`UI_UX_APPLE_HIG.md`)**](./UI_UX_APPLE_HIG.md)
+3. [**School OS — Apple HIG-inspired UI (`UI_UX_APPLE_HIG.md`)**](./UI_UX_APPLE_HIG.md)
    - Source of truth visual aktif untuk desktop dan mobile.
    - System typography, semantic colors, translucent sidebar/toolbar, grouped surfaces, tables, sheets, and touch targets.
    - Adaptasi dari Apple HIG dan prototipe `School OS.zip` tanpa menyalin data contoh ke production.
    - Nama komponen `M3*` dipertahankan sementara sebagai API compatibility layer.
 
-3. [**Legacy Material 3 Reference (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
+4. [**School OS Demo Data (`DEMO_DATA.md`)**](./DEMO_DATA.md)
+   - Runner synthetic seed/status/cleanup yang eksplisit, idempotent, dan reversible.
+   - Marker data DEMO, safety contract, coverage dataset, serta catatan rollout production 10 September 2026.
+
+5. [**Legacy Material 3 Reference (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
    - Referensi historis implementasi UI awal; bukan source of truth visual aktif.
 
-4. [**Rencana Redesign UI/UX v2: Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
-   - Source of truth untuk redesign antarmuka SaaS Satu v2.
-   - Arah visual pendidikan tingkat menengah: modern, playful, fun, tetapi tetap profesional.
+6. [**Rencana Redesign UI/UX v2: Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
+   - Referensi historis fase redesign sebelum School OS menjadi arah visual aktif.
    - Design tokens v2, role-based UX, app shell, dashboard, responsive/mobile, accessibility, dan roadmap sprint.
-   - Quality gate dan aturan agar redesign tidak melemahkan tenant isolation atau data honesty.
    - Phase 0: [`UX_AUDIT_PHASE0_V2.md`](./UX_AUDIT_PHASE0_V2.md) dan [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md).
-   - Implementasi aktual dan quality gate: [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md).
+   - Implementasi aktual fase tersebut: [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md).
 
-5. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
+7. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
    - Penerapan aturan Anti-Slop (R-01 s/d R-38).
    - Standar salinan bahasa Indonesia baku edukasi (Kemdikbudristek).
    - Standar aksesibilitas (kontras warna WCAG AA >= 4.5:1, target sentuh 44px).
    - Rekap temuan audit pasca pengerjaan dan solusinya.
 
-6. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
+8. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
    - **Modul 1: Dasbor & Master Data** (Tahun Ajaran, Rombel Kelas, Jurusan, Pengaturan Sekolah, Super Admin).
    - **Modul 2: Kepegawaian & Kesiswaan (CRUD Manual & CSV)** (Manajemen Guru & Tendik, Data Siswa, Proteksi Kuota).
    - **Modul 3: Pembelajaran LMS & Kurikulum Merdeka** (Silabus otomatis Fase A-F, Materi, Tugas, Agenda KBM, Presensi, CBT).
@@ -43,7 +49,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - **Modul 5: Tata Kelola & Supervisi** (Guru Piket, Wali Kelas, Waka Kurikulum).
    - **Modul 6: Laporan & Cetak Dokumen Kedinasan** (KOP surat resmi berjenjang, Print stylesheet).
 
-7. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
+9. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
    - Kronologi lengkap setiap tahapan pengembangan dari awal hingga saat ini.
    - Detail keputusan teknis dan penyelesaian kendala implementasi.
    - Hasil pengujian otomatis per tahap, termasuk TypeScript, Wasp Unit Tests, dan riwayat E2E terdahulu bila tersedia.
@@ -81,11 +87,11 @@ Aplikasi frontend akan aktif di `http://localhost:3000` dan backend server API d
 # Menjalankan type check ketat TypeScript
 cd app && npx tsc --noEmit
 
-# Menjalankan client unit test suite komponen M3
+# Menjalankan client unit test suite
 cd app && wasp test client --run
 
-# Menjalankan pengujian E2E otomatis Playwright
+# Menjalankan pengujian E2E otomatis Playwright bila relevan
 node scratch/test_crud_manual.mjs
 ```
 
-- [School OS Demo Data](./DEMO_DATA.md) — synthetic, idempotent, reversible dataset for UI/workflow testing.
+Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DEMO_DATA.md) dan jangan menjalankan cleanup ad-hoc di database production.

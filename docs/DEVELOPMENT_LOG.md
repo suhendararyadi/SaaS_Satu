@@ -320,3 +320,23 @@ Quality gate: Wasp/TypeScript compile PASS, client tests 67/67 PASS, `git diff -
 Added `app/scripts/school-os-demo-data.mjs`, an explicit operator-only seed/status/cleanup runner for SMKN 1 RONGGA. The runner uses `[DEMO]`, `DEMO-`, and `@schoolos-demo.invalid` markers, reuses existing school/year data without overwriting it, supports transactional dry-run, is idempotent, and requires an exact token before cleanup. It is intentionally not added to Wasp's default `db.seeds` list.
 
 Production seeding was preceded by a fresh verified database backup. A full dry-run rolled back to zero demo records, the persisted seed was run twice with unchanged counts, and cleanup was verified in rollback-only mode. Seeded coverage includes school master data, class rooms, teachers/students, DUDI/PKL, LMS content, submissions, attendance, CBT results, Waka/Wali/Piket workflows, reports, and deliberate attention/EWS cases.
+
+
+---
+
+## 10 September 2026 — Persistent project context snapshot
+
+Untuk memastikan kelanjutan School OS tidak kehilangan konteks ketika percakapan ChatGPT mencapai batas panjang, ditambahkan snapshot lintas sesi `docs/PROJECT_CONTEXT.md` dan petunjuk startup di `AGENTS.md`.
+
+Snapshot mencatat:
+
+- worktree aktif `/home/ubuntu/projects/SaaS_Satu-hardening`, branch `redesign/apple-hig`, HEAD `edafa20`;
+- pointer production yang diverifikasi pada 10 September 2026: static `ea99802-macos-settings-sidebar`, backend `107c2e8-dashboard-attendance`, service active/running;
+- kontrak visual aktif School OS dan penegasan bahwa nama `M3*` hanyalah compatibility layer;
+- status lengkap seed DEMO production SMKN 1 RONGGA, backup, idempotency, cleanup dry-run, coverage, dan verification snapshot;
+- pekerjaan yang sengaja belum dilakukan: login uji Guru, Siswa, dan Pembimbing DUDI melalui flow autentikasi resmi;
+- guardrails agar sesi berikutnya tidak mengubah production data, schema, authorization, atau tenant isolation tanpa kebutuhan eksplisit.
+
+`docs/UI_UX_APPLE_HIG.md` juga diperbarui agar tidak lagi menyebut eksperimen dot-only sidebar sebagai kontrak final. Kontrak terbaru memakai restrained stroke icons, near-black labels, macOS-style sidebar toggle, dan komposisi navigation drawer yang mengambil inspirasi dari macOS Settings/Finder.
+
+Tidak ada perubahan runtime application, schema database, seed execution, service restart, atau deployment dalam pekerjaan dokumentasi ini.
