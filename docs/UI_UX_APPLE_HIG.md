@@ -350,11 +350,12 @@ Client-side menu filtering is convenience only; server-side scope remains author
 ### Visual contract
 
 - centered glass/material surface with restrained blur and shadow;
+- search focus is rendered by the rounded search-field wrapper, never by the app-wide 3px focus outline on the full-width input; the current desktop field is 46px high with 12px radius and a restrained 2px translucent system-blue ring;
 - approximately 720px maximum desktop width, responsive down to phone width;
-- compact 58–66px search/header geometry and list rows;
-- blue selection state for the active row, neutral inactive rows;
+- compact 64px header geometry, 46px search field, and approximately 52px selected-result rows on desktop;
+- blue selection state for the active row (`#007AFF` light, `#0A84FF` dark), neutral inactive rows;
 - system typography, thin separators, no oversized promotional artwork;
 - dark mode uses the same semantic hierarchy with a `#1C1C1E`-like material;
 - error/loading/empty states remain low-chrome and do not displace the keyboard workflow.
 
-Related runtime commit: `4e50fd5`. Regression interaction test commit: `3188ae8`. Production release: `4e50fd5-school-spotlight`.
+Related runtime commit: `4e50fd5`. Regression interaction test commit: `3188ae8`. Production release: `4e50fd5-school-spotlight`. HIG focus refinement: `0699046`; active static release: `0699046-spotlight-hig-focus`.
