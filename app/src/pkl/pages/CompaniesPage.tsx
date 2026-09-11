@@ -29,7 +29,7 @@ export function CompaniesPage({ user }: { user: AuthUser }) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Search & Pagination
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("spotlight") ?? "" : "");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 6;
 

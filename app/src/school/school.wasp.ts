@@ -76,6 +76,7 @@ import {
   getSchoolWebsitePreview,
 } from "./websiteOperations" with { type: "ref" };
 import { schoolSiteSitemapApi } from "./websitePublicApi" with { type: "ref" };
+import { getSchoolSpotlightSearch } from "./spotlightOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
 
@@ -98,6 +99,9 @@ export const schoolSpec: Spec = [
   }),
   query(getMentorDashboardData, {
     entities: ["User", "Placement", "Company", "DailyJournal"],
+  }),
+  query(getSchoolSpotlightSearch, {
+    entities: ["User", "StudentProfile", "TeacherProfile", "ClassRoom", "Department", "AcademicYear", "LmsCourse", "Company", "Placement", "SchoolSiteContent"],
   }),
 
   query(getSchoolWebsiteAdmin, { entities: [...websiteEntities] }),

@@ -31,7 +31,7 @@ import {
 
 export function StudentsPage({ user }: { user: AuthUser }) {
   const [selectedClass, setSelectedClass] = useState<string>("ALL");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("spotlight") ?? "" : "");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";

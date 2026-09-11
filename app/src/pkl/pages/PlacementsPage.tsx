@@ -51,7 +51,7 @@ export function PlacementsPage({ user }: { user: AuthUser }) {
   const [submitting, setSubmitting] = useState(false);
 
   // Filters & Pagination
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("spotlight") ?? "" : "");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;

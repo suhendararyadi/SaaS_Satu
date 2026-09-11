@@ -56,7 +56,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   }, [schoolLevel]);
 
   // Filters & Search & Pagination
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("spotlight") ?? "" : "");
   const [selectedGrade, setSelectedGrade] = useState("ALL");
   const [selectedDept, setSelectedDept] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
