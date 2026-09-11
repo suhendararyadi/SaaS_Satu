@@ -273,44 +273,47 @@ export function SchoolSpotlight({
         aria-label="Spotlight Search School OS"
         className="flex max-h-[min(720px,88vh)] w-full max-w-[720px] flex-col overflow-hidden rounded-[22px] border border-black/[.10] bg-white/95 shadow-[0_28px_90px_rgba(0,0,0,.25),0_2px_10px_rgba(0,0,0,.10)] backdrop-blur-3xl dark:border-white/[.12] dark:bg-[#1C1C1E]/96 dark:shadow-[0_30px_100px_rgba(0,0,0,.58)]"
       >
-        <div className="flex min-h-[66px] items-center gap-3 border-b border-black/[.07] px-4 sm:px-5 dark:border-white/[.08]">
-          <Search
-            size={21}
-            strokeWidth={1.8}
-            className="shrink-0 text-[#7A7A80] dark:text-[#98989D]"
-            aria-hidden="true"
-          />
-          <input
-            ref={inputRef}
-            type="search"
-            role="searchbox"
-            aria-label="Cari di School OS"
-            placeholder="Cari menu, siswa, rombel, LMS, DUDI..."
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setActiveIndex(0);
-            }}
-            className="min-w-0 flex-1 bg-transparent py-4 text-[18px] font-medium tracking-[-.02em] text-[#1D1D1F] outline-none placeholder:text-[#8E8E93] dark:text-[#F5F5F7] dark:placeholder:text-[#8E8E93]"
-            autoComplete="off"
-            spellCheck={false}
-          />
-          {query ? (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                setDebouncedQuery("");
+        <div className="flex min-h-[64px] items-center gap-2.5 border-b border-black/[.07] px-3 sm:px-4 dark:border-white/[.08]">
+          <div className="flex h-[46px] min-w-0 flex-1 items-center gap-2.5 rounded-[12px] bg-black/[.035] px-3 ring-1 ring-inset ring-black/[.055] transition-[background-color,box-shadow] duration-150 focus-within:bg-black/[.045] focus-within:ring-2 focus-within:ring-[#007AFF]/35 dark:bg-white/[.055] dark:ring-white/[.065] dark:focus-within:bg-white/[.075] dark:focus-within:ring-[#0A84FF]/45">
+            <Search
+              size={19}
+              strokeWidth={1.75}
+              className="shrink-0 text-[#74747A] dark:text-[#A0A0A6]"
+              aria-hidden="true"
+            />
+            <input
+              ref={inputRef}
+              type="search"
+              role="searchbox"
+              aria-label="Cari di School OS"
+              placeholder="Cari menu, siswa, rombel, LMS, DUDI..."
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
                 setActiveIndex(0);
-                inputRef.current?.focus();
               }}
-              aria-label="Hapus pencarian"
-              className="flex size-7 items-center justify-center rounded-full bg-black/[.055] text-[#6E6E73] hover:bg-black/[.09] dark:bg-white/[.09] dark:text-[#B7B7BC] dark:hover:bg-white/[.14]"
-            >
-              <X size={15} strokeWidth={2} />
-            </button>
-          ) : (
-            <kbd className="hidden rounded-[7px] border border-black/[.08] bg-black/[.035] px-2 py-1 text-[11px] font-semibold text-[#77777C] sm:inline-flex dark:border-white/[.09] dark:bg-white/[.06] dark:text-[#AFAFB5]">
+              className="min-w-0 flex-1 bg-transparent py-2 text-[16.5px] font-medium tracking-[-.015em] text-[#1D1D1F] outline-none focus:outline-none focus-visible:outline-none placeholder:text-[#8E8E93] dark:text-[#F5F5F7] dark:placeholder:text-[#8E8E93]"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setDebouncedQuery("");
+                  setActiveIndex(0);
+                  inputRef.current?.focus();
+                }}
+                aria-label="Hapus pencarian"
+                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-black/[.055] text-[#6E6E73] transition-colors hover:bg-black/[.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/30 dark:bg-white/[.09] dark:text-[#B7B7BC] dark:hover:bg-white/[.14] dark:focus-visible:ring-[#0A84FF]/40"
+              >
+                <X size={13.5} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+          {!query && (
+            <kbd className="hidden shrink-0 rounded-[7px] border border-black/[.08] bg-black/[.035] px-2 py-1 text-[10.5px] font-semibold text-[#77777C] sm:inline-flex dark:border-white/[.09] dark:bg-white/[.06] dark:text-[#AFAFB5]">
               ⌘K
             </kbd>
           )}
@@ -341,22 +344,22 @@ export function SchoolSpotlight({
                       key={item.key}
                       onMouseEnter={() => setActiveIndex(index)}
                       onClick={() => choose(item)}
-                      className={`flex min-h-[58px] w-full items-center gap-3 rounded-[13px] px-3 py-2.5 text-left transition-colors ${
+                      className={`flex min-h-[52px] w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-[background-color,color] duration-100 ${
                         active
-                          ? "bg-[#007AFF] text-white"
+                          ? "bg-[#007AFF] text-white dark:bg-[#0A84FF]"
                           : "text-[#1D1D1F] hover:bg-black/[.045] dark:text-[#F5F5F7] dark:hover:bg-white/[.07]"
                       }`}
                     >
                       <span
-                        className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] ${
+                        className={`flex size-8 shrink-0 items-center justify-center rounded-[9px] ${
                           active
-                            ? "bg-white/18 text-white"
+                            ? "bg-white/15 text-white"
                             : "bg-[#EEF1F5] text-[#4E5968] dark:bg-white/[.08] dark:text-[#D3D3D8]"
                         }`}
                       >
                         <M3Icon
                           name={item.icon || (item.source === "recent" ? "history" : "search")}
-                          size={18}
+                          size={17}
                           weight={300}
                         />
                       </span>
