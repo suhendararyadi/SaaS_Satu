@@ -15,6 +15,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Website Sekolah Phase 2: `ba863b9` — `feat(website): deliver phase 2 publishing experience`
 - Sitemap API signature fix: `5b16861` — `fix(website): align sitemap api signature`
 - Route-specific social metadata polish: `f142e94` — `fix(website): prefer school social metadata`
+- School OS Spotlight runtime: `4e50fd5` — `feat(school): add Spotlight search`
+- Spotlight interaction regression tests: `3188ae8` — `test(school): cover Spotlight interactions`
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -31,6 +33,7 @@ Kontrak shell yang harus dipertahankan:
 - toggle sidebar berupa split-panel glyph di header sidebar;
 - account trigger top bar hanya avatar/inisial bulat; footer akun sidebar School tidak digunakan;
 - sidebar search `Cari menu` memfilter hanya menu yang memang diizinkan untuk role aktif;
+- global **School OS Spotlight** dibuka melalui `Cmd+K` / `Ctrl+K` atau tombol `Cari` di top bar; menu dicari hanya dari navigation items role aktif, sedangkan data sekolah dicari server-side dengan tenant/role scope yang eksplisit;
 - auth `/login` dan `/signup` memakai centered translucent auth surface dengan wallpaper SVG original proyek, bukan aset Apple proprietary;
 - Super Admin `/admin` memakai HIG shell yang sama dan tetap hanya untuk `user.isAdmin === true`;
 - tema School + Super Admin memakai localStorage key `theme` dan sinkron class `dark` pada `html` + `body`;
@@ -44,23 +47,69 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production memakai split release setelah metadata polish frontend-only:
+Production sudah memakai unified Spotlight release:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`
-- **static current**: `/var/www/saas-satu/releases/f142e94-website-phase2-meta`
-- backend source commit: `5b1686189824aeccb54b4c28633cf835cd340307`
-- static source commit: `f142e947d723c041f019da84eb5a608574e5af15`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/4e50fd5-school-spotlight`
+- **static current**: `/var/www/saas-satu/releases/4e50fd5-school-spotlight`
+- runtime source commit: `4e50fd56e44acc95077a7695990efb34ec6299b7`
+- previous backend rollback: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`
+- previous static rollback: `/var/www/saas-satu/releases/f142e94-website-phase2-meta`
 - `saas-satu.service`: active
 - `/school`: HTTP 200
 - `/school/website`: HTTP 200
 - `/login`: HTTP 200
 - `/admin`: HTTP 200 shell route
 - `/auth/me`: HTTP 200 anonymous smoke
-- unauthenticated admin dashboard operation: HTTP 401
-- unauthenticated Website Sekolah admin operation: HTTP 401
-- recent CMS/auth 500 count pada final verification window: 0
+- unauthenticated Spotlight operation: HTTP 401
+- recent `/auth/me` / Spotlight operation 500 count pada verification window: 0
 
-Static deployment final `f142e94-website-phase2-meta` dipanggil ulang dan menghasilkan `idempotent: true`; backend Phase 2 tetap `5b16861-website-phase2` dan tidak direstart pada metadata polish.
+Spotlight full-stack cutover memakai bounded release promotion setelah full preflight dan blue-green startup pada port 3102. Tidak ada schema migration atau seed pada rollout Spotlight.
+
+## 3.1 School OS Spotlight Search — LIVE
+
+Entry point:
+
+- keyboard: `Cmd+K` pada macOS, `Ctrl+K` pada Windows/Linux;
+- top bar: tombol `Cari` dengan search glyph; mobile tetap icon-first;
+- modal menggunakan command-palette material yang ringan, keyboard-first, dan responsive.
+
+Interaction contract:
+
+- `Esc` menutup palette;
+- `Arrow Up/Down` memindahkan pilihan;
+- `Enter` membuka hasil aktif;
+- menu difilter instan dari item navigation yang memang sudah diizinkan untuk role aktif;
+- data search mulai setelah minimal 2 karakter dan memakai debounce sekitar 160 ms;
+- recent destinations disimpan lokal pada browser di key `school_spotlight_recent_v1`; tidak disimpan di database;
+- hasil Siswa/Guru/Rombel/DUDI dapat membuka list page dengan parameter `?spotlight=` sehingga daftar langsung terfilter; LMS membuka course detail langsung.
+
+Server-side scope:
+
+- `SCHOOL_ADMIN` / platform admin pada tenant aktif: siswa, guru/tendik, rombel, LMS, DUDI, penempatan PKL, dan konten Website Sekolah;
+- `TEACHER`: siswa, rombel, LMS miliknya, dan PKL yang menjadi tanggung jawabnya;
+- `STUDENT`: LMS untuk rombelnya dan PKL miliknya;
+- `DUDI_MENTOR`: hanya penempatan PKL yang ditugaskan kepadanya.
+
+Search operation selalu memanggil `ensureSchoolUser`, memakai `schoolId` tenant aktif, dan menerapkan assignment filter untuk Teacher/Student/DUDI Mentor. UI visibility bukan security boundary.
+
+Quality gate Spotlight:
+
+- dedicated policy tests: 5/5 PASS;
+- dedicated interaction tests: 3/3 PASS;
+- full suite setelah test baru: **84/84 PASS** pada 8 test files;
+- TypeScript: PASS;
+- Wasp production build: PASS;
+- Vite SSR/client: PASS;
+- backend bundle: PASS;
+- full deploy preflight: PASS;
+- blue-green backend startup port 3102: PASS;
+- blue-green `/auth/me`: 200;
+- blue-green unauthenticated Spotlight operation: 401;
+- live unauthenticated Spotlight operation: 401;
+- Website Sekolah/public sitemap regression smoke: PASS.
+
+Authenticated browser smoke tidak dibuat dengan synthetic password/session; rollout sengaja tidak membuat atau memodifikasi credential production hanya untuk test. Authorization policy, compiled server operation, blue-green runtime, and unauthenticated boundary are covered automatically.
+
 
 ## 4. Website Sekolah CMS — LIVE
 
@@ -244,6 +293,7 @@ Jangan menambah capability infra tersebut sebagai placeholder visual sebelum per
 - [`WEBSITE_SEKOLAH_CMS_PLAN.md`](./WEBSITE_SEKOLAH_CMS_PLAN.md) — architecture/product contract + implementation status
 - [`RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md`](./RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md) — release record CMS foundation
 - [`RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md`](./RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md) — release record Phase 2 + public redesign
+- [`RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md`](./RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md) — release record global Spotlight Search `Cmd/Ctrl+K`
 - [`DEMO_DATA.md`](./DEMO_DATA.md) — demo seed safety
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — historical development chronology
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — architecture/security boundaries

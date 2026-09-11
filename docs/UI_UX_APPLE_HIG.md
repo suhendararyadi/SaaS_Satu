@@ -110,6 +110,7 @@ Avoid oversized floating cards, decorative gradients, and heavy multi-layer shad
 - translucent toolbar separated from content by a thin line;
 - content canvas remains neutral and spacious;
 - keyboard/precision-input workflows remain first class;
+- global Spotlight-style quick open is available through `Cmd+K` / `Ctrl+K`, with a compact top-bar search affordance and no duplication of unauthorized navigation;
 - dense tables use the available screen width rather than converting everything into cards.
 
 The sidebar composition should feel closer to macOS Settings/Finder than to a Material navigation drawer: low-chrome grouping, clear labels, modest active-state treatment, and no decorative blue status dot beside the school identity.
@@ -212,16 +213,17 @@ Before production promotion:
 9. backend remains unchanged for genuinely frontend-only rollout;
 10. the previous static/runtime release remains available for rollback.
 
-## 13. Production status — 10 September 2026
+## 13. Production status — 11 September 2026
 
-The original School OS baseline was promoted on 9 September 2026 and then refined through several production-reviewed commits.
+The original School OS baseline was promoted on 9 September 2026 and has since been refined through production-reviewed releases including Website Sekolah and Spotlight Search.
 
-Current pointers verified from the server on 10 September 2026:
+Current pointers verified from the server on 11 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/ef167b5-auth-admin-hig`;
-- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/6f5d9b2-ews-apple-monitoring`;
+- active static release: `/var/www/saas-satu/releases/4e50fd5-school-spotlight`;
+- active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/4e50fd5-school-spotlight`;
 - `saas-satu.service`: active/running;
-- rollback static langsung: `/var/www/saas-satu/releases/9ae05d3-login-superadmin`.
+- immediate backend rollback: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`;
+- immediate static rollback: `/var/www/saas-satu/releases/f142e94-website-phase2-meta`.
 
 The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
 
@@ -309,4 +311,50 @@ Auth and platform administration use the same School OS design language, but eac
 - no fake revenue, user counts, visitors, or sources may be introduced for visual balance;
 - the active root `/admin` must match exactly so child routes such as `/admin/users` do not highlight both root and child navigation items.
 
-Related implementation commit: `ef167b5`. Production static release: `ef167b5-auth-admin-hig`; backend remains `6f5d9b2-ews-apple-monitoring`.
+Related implementation commit: `ef167b5`. Historical rollout at introduction used static `ef167b5-auth-admin-hig` with backend `6f5d9b2-ews-apple-monitoring`; current production pointers are maintained in section 13 and `PROJECT_CONTEXT.md`.
+
+
+## 19. School OS Spotlight Search — 11 September 2026
+
+Spotlight is the global quick-open/search surface for authenticated School OS. It borrows the calm, keyboard-first interaction model of macOS Spotlight without copying Apple assets or expanding authorization.
+
+### Entry and interaction
+
+- `Cmd+K` on macOS and `Ctrl+K` on Windows/Linux open or close Spotlight from anywhere in the School OS shell;
+- the top bar exposes a restrained search glyph + `Cari` label and a small `⌘K` hint on wide desktop screens;
+- mobile keeps the trigger compact and touch-friendly;
+- `Escape` closes; arrow keys move selection; `Enter` opens the active result;
+- recent destinations are browser-local convenience state, not school records.
+
+### Search hierarchy
+
+- navigation results are instant and are derived only from the role-aware drawer sections already rendered for the active user;
+- data results begin after two characters and are fetched from one tenant-scoped server query;
+- result groups use plain institutional labels such as Siswa, Guru & Tendik, Rombel, Pembelajaran, Mitra DUDI, PKL, and Website Sekolah;
+- deep links should preserve useful context: list-type results may pass `?spotlight=` to prefill the destination page's own search; LMS courses open their detail route directly.
+
+### Security contract
+
+Spotlight is never an alternate authorization path. The server search operation must:
+
+- require an authenticated School OS user with an active `schoolId`;
+- apply `schoolId` to every searchable model;
+- derive allowed searchable categories from role/capability policy;
+- keep Teacher LMS results to the teacher's courses;
+- keep Student LMS results to the student's class room;
+- keep Teacher, Student, and DUDI Mentor PKL results to their assigned placements;
+- expose Website Sekolah content search only to school-management roles.
+
+Client-side menu filtering is convenience only; server-side scope remains authoritative.
+
+### Visual contract
+
+- centered glass/material surface with restrained blur and shadow;
+- approximately 720px maximum desktop width, responsive down to phone width;
+- compact 58–66px search/header geometry and list rows;
+- blue selection state for the active row, neutral inactive rows;
+- system typography, thin separators, no oversized promotional artwork;
+- dark mode uses the same semantic hierarchy with a `#1C1C1E`-like material;
+- error/loading/empty states remain low-chrome and do not displace the keyboard workflow.
+
+Related runtime commit: `4e50fd5`. Regression interaction test commit: `3188ae8`. Production release: `4e50fd5-school-spotlight`.
