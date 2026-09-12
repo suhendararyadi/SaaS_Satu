@@ -86,10 +86,14 @@ describe("SchoolSpotlight", () => {
     ).toBeInTheDocument();
 
     const input = screen.getByRole("searchbox", { name: "Cari di School OS" });
-    expect(input).toHaveClass("focus-visible:outline-none");
+    expect(input).toHaveAttribute("placeholder", "Cari di School OS");
+    expect(input).toHaveClass(
+      "spotlight-search-input",
+      "focus-visible:outline-none",
+    );
     expect(input.parentElement).toHaveClass(
-      "rounded-[12px]",
-      "focus-within:ring-2",
+      "rounded-[10px]",
+      "bg-[rgba(118,118,128,.12)]",
     );
 
     fireEvent.change(input, { target: { value: "website" } });

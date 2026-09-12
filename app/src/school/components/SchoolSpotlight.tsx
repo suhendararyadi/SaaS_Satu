@@ -273,12 +273,12 @@ export function SchoolSpotlight({
         aria-label="Spotlight Search School OS"
         className="flex max-h-[min(720px,88vh)] w-full max-w-[720px] flex-col overflow-hidden rounded-[22px] border border-black/[.10] bg-white/95 shadow-[0_28px_90px_rgba(0,0,0,.25),0_2px_10px_rgba(0,0,0,.10)] backdrop-blur-3xl dark:border-white/[.12] dark:bg-[#1C1C1E]/96 dark:shadow-[0_30px_100px_rgba(0,0,0,.58)]"
       >
-        <div className="flex min-h-[64px] items-center gap-2.5 border-b border-black/[.07] px-3 sm:px-4 dark:border-white/[.08]">
-          <div className="flex h-[46px] min-w-0 flex-1 items-center gap-2.5 rounded-[12px] bg-black/[.035] px-3 ring-1 ring-inset ring-black/[.055] transition-[background-color,box-shadow] duration-150 focus-within:bg-black/[.045] focus-within:ring-2 focus-within:ring-[#007AFF]/35 dark:bg-white/[.055] dark:ring-white/[.065] dark:focus-within:bg-white/[.075] dark:focus-within:ring-[#0A84FF]/45">
+        <div className="flex min-h-[58px] items-center border-b border-black/[.07] px-3 py-2.5 sm:min-h-[56px] sm:px-4 sm:py-2 dark:border-white/[.08]">
+          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-[rgba(118,118,128,.12)] px-2.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,.025)] transition-[background-color,box-shadow] duration-150 focus-within:bg-[rgba(118,118,128,.16)] focus-within:shadow-[inset_0_0_0_1px_rgba(0,122,255,.22),0_0_0_2px_rgba(0,122,255,.10)] sm:h-9 dark:bg-[rgba(118,118,128,.24)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)] dark:focus-within:bg-[rgba(118,118,128,.28)] dark:focus-within:shadow-[inset_0_0_0_1px_rgba(10,132,255,.30),0_0_0_2px_rgba(10,132,255,.12)]">
             <Search
-              size={19}
-              strokeWidth={1.75}
-              className="shrink-0 text-[#74747A] dark:text-[#A0A0A6]"
+              size={16}
+              strokeWidth={1.9}
+              className="shrink-0 text-[#8E8E93] dark:text-[#98989D]"
               aria-hidden="true"
             />
             <input
@@ -286,13 +286,14 @@ export function SchoolSpotlight({
               type="search"
               role="searchbox"
               aria-label="Cari di School OS"
-              placeholder="Cari menu, siswa, rombel, LMS, DUDI..."
+              aria-keyshortcuts="Meta+K Control+K"
+              placeholder="Cari di School OS"
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
                 setActiveIndex(0);
               }}
-              className="min-w-0 flex-1 bg-transparent py-2 text-[16.5px] font-medium tracking-[-.015em] text-[#1D1D1F] outline-none focus:outline-none focus-visible:outline-none placeholder:text-[#8E8E93] dark:text-[#F5F5F7] dark:placeholder:text-[#8E8E93]"
+              className="spotlight-search-input min-w-0 flex-1 appearance-none bg-transparent py-1.5 text-[15px] font-normal tracking-[-.01em] text-[#1D1D1F] outline-none focus:outline-none focus-visible:outline-none placeholder:text-[#8E8E93] dark:text-[#F5F5F7] dark:placeholder:text-[#98989D]"
               autoComplete="off"
               spellCheck={false}
             />
@@ -306,17 +307,12 @@ export function SchoolSpotlight({
                   inputRef.current?.focus();
                 }}
                 aria-label="Hapus pencarian"
-                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-black/[.055] text-[#6E6E73] transition-colors hover:bg-black/[.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/30 dark:bg-white/[.09] dark:text-[#B7B7BC] dark:hover:bg-white/[.14] dark:focus-visible:ring-[#0A84FF]/40"
+                className="flex size-[18px] shrink-0 items-center justify-center rounded-full bg-[#8E8E93]/75 text-white transition-opacity hover:bg-[#7D7D82] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/25 dark:bg-[#98989D]/75 dark:hover:bg-[#A5A5AA] dark:focus-visible:ring-[#0A84FF]/30"
               >
-                <X size={13.5} strokeWidth={2} />
+                <X size={10.5} strokeWidth={2.4} />
               </button>
             )}
           </div>
-          {!query && (
-            <kbd className="hidden shrink-0 rounded-[7px] border border-black/[.08] bg-black/[.035] px-2 py-1 text-[10.5px] font-semibold text-[#77777C] sm:inline-flex dark:border-white/[.09] dark:bg-white/[.06] dark:text-[#AFAFB5]">
-              ⌘K
-            </kbd>
-          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2.5 sm:px-3">

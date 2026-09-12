@@ -469,6 +469,14 @@
     outline-offset: 2px;
   }
 
+  .spotlight-search-input::-webkit-search-decoration,
+  .spotlight-search-input::-webkit-search-cancel-button,
+  .spotlight-search-input::-webkit-search-results-button,
+  .spotlight-search-input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       scroll-behavior: auto !important;
