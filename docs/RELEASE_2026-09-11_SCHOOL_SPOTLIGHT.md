@@ -34,12 +34,12 @@ Production release:
 Live pointers after cutover:
 
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/4e50fd5-school-spotlight`
-- static: `/var/www/saas-satu/releases/0699046-spotlight-hig-focus`
+- static: `/var/www/saas-satu/releases/5f20bdc-spotlight-apple-searchfield`
 
 Immediate rollback:
 
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`
-- static: `/var/www/saas-satu/releases/4e50fd5-school-spotlight`
+- static: `/var/www/saas-satu/releases/0699046-spotlight-hig-focus`
 
 No Prisma schema change, migration, seed, or school-data mutation was required.
 
@@ -47,7 +47,7 @@ No Prisma schema change, migration, seed, or school-data mutation was required.
 
 The Spotlight surface uses the active School OS HIG-inspired design contract:
 
-Latest HIG focus refinement (`0699046`) removes the oversized global input outline seen during visual review. The search field now owns its focus ring, with a 46px rounded control and restrained translucent system-blue ring. Selected result rows are reduced to 52px minimum height with 10px radius, and dark mode uses `#0A84FF`.
+The latest Apple-style search-field refinement (`5f20bdc`) replaces the remaining web-form feel with a single filled search control: 40px on mobile, 36px on desktop, 10px radius, translucent system-gray fill, 16px search glyph, 15px text, concise `Cari di School OS` placeholder, and a small circular trailing clear control. Native WebKit search decorations are suppressed. Focus remains accessible but is expressed as a very subtle wrapper halo rather than a prominent blue border. The selected result row remains 52px minimum height with 10px radius, and dark mode uses `#0A84FF`.
 
 - centered translucent/material command palette;
 - system search glyph and typography;

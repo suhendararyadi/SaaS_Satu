@@ -219,11 +219,11 @@ The original School OS baseline was promoted on 9 September 2026 and has since b
 
 Current pointers verified from the server on 11 September 2026:
 
-- active static release: `/var/www/saas-satu/releases/4e50fd5-school-spotlight`;
+- active static release: `/var/www/saas-satu/releases/5f20bdc-spotlight-apple-searchfield`;
 - active backend release: `/home/ubuntu/deployments/SaaS_Satu/releases/4e50fd5-school-spotlight`;
 - `saas-satu.service`: active/running;
 - immediate backend rollback: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`;
-- immediate static rollback: `/var/www/saas-satu/releases/f142e94-website-phase2-meta`.
+- immediate static rollback: `/var/www/saas-satu/releases/0699046-spotlight-hig-focus`.
 
 The current development branch/worktree snapshot is documented in [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
 
@@ -350,12 +350,12 @@ Client-side menu filtering is convenience only; server-side scope remains author
 ### Visual contract
 
 - centered glass/material surface with restrained blur and shadow;
-- search focus is rendered by the rounded search-field wrapper, never by the app-wide 3px focus outline on the full-width input; the current desktop field is 46px high with 12px radius and a restrained 2px translucent system-blue ring;
+- search is a single filled Apple-style control: 40px on mobile and 36px on desktop, 10px radius, system-gray translucent fill, 16px leading search glyph, 15px text, trailing circular clear affordance, and only a very subtle system-blue focus halo on the wrapper; the app-wide 3px focus outline never applies to the input;
 - approximately 720px maximum desktop width, responsive down to phone width;
-- compact 64px header geometry, 46px search field, and approximately 52px selected-result rows on desktop;
+- compact 56–58px header geometry, 36–40px search field, and approximately 52px selected-result rows on desktop;
 - blue selection state for the active row (`#007AFF` light, `#0A84FF` dark), neutral inactive rows;
 - system typography, thin separators, no oversized promotional artwork;
 - dark mode uses the same semantic hierarchy with a `#1C1C1E`-like material;
 - error/loading/empty states remain low-chrome and do not displace the keyboard workflow.
 
-Related runtime commit: `4e50fd5`. Regression interaction test commit: `3188ae8`. Production release: `4e50fd5-school-spotlight`. HIG focus refinement: `0699046`; active static release: `0699046-spotlight-hig-focus`.
+Related runtime commit: `4e50fd5`. Regression interaction test commit: `3188ae8`. Production backend release: `4e50fd5-school-spotlight`. HIG focus refinement: `0699046`. Apple-style search-field refinement: `5f20bdc`; active static release: `5f20bdc-spotlight-apple-searchfield`.
