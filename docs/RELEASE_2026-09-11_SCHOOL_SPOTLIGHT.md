@@ -34,12 +34,12 @@ Production release:
 Live pointers after cutover:
 
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/4e50fd5-school-spotlight`
-- static: `/var/www/saas-satu/releases/5f20bdc-spotlight-apple-searchfield`
+- static: `/var/www/saas-satu/releases/5eb8b87-spotlight-input-chrome-fix`
 
 Immediate rollback:
 
 - backend: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`
-- static: `/var/www/saas-satu/releases/0699046-spotlight-hig-focus`
+- static: `/var/www/saas-satu/releases/5f20bdc-spotlight-apple-searchfield`
 
 No Prisma schema change, migration, seed, or school-data mutation was required.
 
@@ -47,7 +47,7 @@ No Prisma schema change, migration, seed, or school-data mutation was required.
 
 The Spotlight surface uses the active School OS HIG-inspired design contract:
 
-The latest Apple-style search-field refinement (`5f20bdc`) replaces the remaining web-form feel with a single filled search control: 40px on mobile, 36px on desktop, 10px radius, translucent system-gray fill, 16px search glyph, 15px text, concise `Cari di School OS` placeholder, and a small circular trailing clear control. Native WebKit search decorations are suppressed. Focus remains accessible but is expressed as a very subtle wrapper halo rather than a prominent blue border. The selected result row remains 52px minimum height with 10px radius, and dark mode uses `#0A84FF`.
+The Apple-style search-field refinement (`5f20bdc`) established the single filled search control. Follow-up fix `5eb8b87` removes the remaining rectangular inner-input chrome seen in Safari by making the wrapper the only visual frame (`overflow-hidden`) and forcing the internal search input to zero border, radius, ring, shadow, and outline in normal/focus states. WebKit search decoration/cancel/results controls are also disabled with `!important`. The selected result row remains 52px minimum height with 10px radius, and dark mode uses `#0A84FF`.
 
 - centered translucent/material command palette;
 - system search glyph and typography;

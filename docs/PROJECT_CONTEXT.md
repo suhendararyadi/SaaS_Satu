@@ -19,6 +19,7 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Spotlight interaction regression tests: `3188ae8` — `test(school): cover Spotlight interactions`
 - Spotlight HIG focus refinement: `0699046` — `refine(school): polish Spotlight HIG focus state`
 - Apple-style search field refinement: `5f20bdc` — `refine(school): align Spotlight search field with Apple HIG`
+- Inner input chrome fix: `5eb8b87` — `fix(school): remove Spotlight inner input chrome`
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -52,11 +53,11 @@ Domain: `https://sekolah.suhendararyadi.com`.
 Production sudah memakai unified Spotlight release:
 
 - **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/4e50fd5-school-spotlight`
-- **static current**: `/var/www/saas-satu/releases/5f20bdc-spotlight-apple-searchfield`
+- **static current**: `/var/www/saas-satu/releases/5eb8b87-spotlight-input-chrome-fix`
 - runtime source commit: `4e50fd56e44acc95077a7695990efb34ec6299b7`
 - previous backend rollback: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`
-- immediate static rollback: `/var/www/saas-satu/releases/0699046-spotlight-hig-focus`
-- previous static rollback: `/var/www/saas-satu/releases/4e50fd5-school-spotlight`
+- immediate static rollback: `/var/www/saas-satu/releases/5f20bdc-spotlight-apple-searchfield`
+- previous static rollback: `/var/www/saas-satu/releases/0699046-spotlight-hig-focus`
 - `saas-satu.service`: active
 - `/school`: HTTP 200
 - `/school/website`: HTTP 200
@@ -75,7 +76,7 @@ Entry point:
 - keyboard: `Cmd+K` pada macOS, `Ctrl+K` pada Windows/Linux;
 - top bar: tombol `Cari` dengan search glyph; mobile tetap icon-first;
 - modal menggunakan command-palette material yang ringan, keyboard-first, dan responsive.
-- Spotlight search field memakai Apple-style system fill: tinggi 40px mobile / 36px desktop, radius 10px, search icon 16px, placeholder `Cari di School OS`, clear affordance bulat kecil, dan focus halo sangat tipis pada wrapper; native WebKit search decorations disembunyikan agar tampilan konsisten.
+- Spotlight search field memakai Apple-style system fill: tinggi 40px mobile / 36px desktop, radius 10px, search icon 16px, placeholder `Cari di School OS`, clear affordance bulat kecil, dan focus halo sangat tipis pada wrapper. Wrapper adalah satu-satunya visual frame (`overflow-hidden`); elemen input internal dipaksa `border:0`, `border-radius:0`, `box-shadow:none`, `outline:0`, serta native WebKit search chrome disembunyikan.
 
 Interaction contract:
 
