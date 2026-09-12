@@ -89,9 +89,14 @@ describe("SchoolSpotlight", () => {
     expect(input).toHaveAttribute("placeholder", "Cari di School OS");
     expect(input).toHaveClass(
       "spotlight-search-input",
+      "rounded-none",
+      "border-0",
+      "shadow-none",
+      "ring-0",
       "focus-visible:outline-none",
     );
     expect(input.parentElement).toHaveClass(
+      "overflow-hidden",
       "rounded-[10px]",
       "bg-[rgba(118,118,128,.12)]",
     );

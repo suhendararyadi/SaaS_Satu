@@ -274,7 +274,7 @@ export function SchoolSpotlight({
         className="flex max-h-[min(720px,88vh)] w-full max-w-[720px] flex-col overflow-hidden rounded-[22px] border border-black/[.10] bg-white/95 shadow-[0_28px_90px_rgba(0,0,0,.25),0_2px_10px_rgba(0,0,0,.10)] backdrop-blur-3xl dark:border-white/[.12] dark:bg-[#1C1C1E]/96 dark:shadow-[0_30px_100px_rgba(0,0,0,.58)]"
       >
         <div className="flex min-h-[58px] items-center border-b border-black/[.07] px-3 py-2.5 sm:min-h-[56px] sm:px-4 sm:py-2 dark:border-white/[.08]">
-          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-[rgba(118,118,128,.12)] px-2.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,.025)] transition-[background-color,box-shadow] duration-150 focus-within:bg-[rgba(118,118,128,.16)] focus-within:shadow-[inset_0_0_0_1px_rgba(0,122,255,.22),0_0_0_2px_rgba(0,122,255,.10)] sm:h-9 dark:bg-[rgba(118,118,128,.24)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)] dark:focus-within:bg-[rgba(118,118,128,.28)] dark:focus-within:shadow-[inset_0_0_0_1px_rgba(10,132,255,.30),0_0_0_2px_rgba(10,132,255,.12)]">
+          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-[10px] bg-[rgba(118,118,128,.12)] px-2.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,.025)] transition-[background-color,box-shadow] duration-150 focus-within:bg-[rgba(118,118,128,.16)] focus-within:shadow-[inset_0_0_0_1px_rgba(0,122,255,.22),0_0_0_2px_rgba(0,122,255,.10)] sm:h-9 dark:bg-[rgba(118,118,128,.24)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)] dark:focus-within:bg-[rgba(118,118,128,.28)] dark:focus-within:shadow-[inset_0_0_0_1px_rgba(10,132,255,.30),0_0_0_2px_rgba(10,132,255,.12)]">
             <Search
               size={16}
               strokeWidth={1.9}
@@ -293,7 +293,7 @@ export function SchoolSpotlight({
                 setQuery(event.target.value);
                 setActiveIndex(0);
               }}
-              className="spotlight-search-input min-w-0 flex-1 appearance-none bg-transparent py-1.5 text-[15px] font-normal tracking-[-.01em] text-[#1D1D1F] outline-none focus:outline-none focus-visible:outline-none placeholder:text-[#8E8E93] dark:text-[#F5F5F7] dark:placeholder:text-[#98989D]"
+              className="spotlight-search-input min-w-0 flex-1 appearance-none rounded-none border-0 bg-transparent px-0 py-1.5 text-[15px] font-normal tracking-[-.01em] text-[#1D1D1F] shadow-none outline-none ring-0 focus:border-0 focus:shadow-none focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-[#8E8E93] dark:text-[#F5F5F7] dark:placeholder:text-[#98989D]"
               autoComplete="off"
               spellCheck={false}
             />
