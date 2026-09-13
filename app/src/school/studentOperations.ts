@@ -358,7 +358,7 @@ export const getSchoolStudentDetail = async (
           id: true,
           name: true,
           department: { select: { code: true, name: true } },
-          academicYear: { select: { id: true, name: true, isActive: true } },
+          academicYear: { select: { id: true, yearName: true, semester: true, isActive: true } },
         },
       },
       studentProfile: true,
