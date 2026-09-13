@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import {
   createStudent,
   getClassRooms,
+  getSchoolInfo,
   getSchoolStudentDetail,
   updateStudent,
   useQuery,
@@ -25,6 +26,7 @@ import {
   type StudentFieldConfig,
   type StudentFormState,
 } from "../studentProfileUi";
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 function toDateInput(value: unknown): string {
   if (!value) return "";
@@ -152,6 +154,8 @@ export function StudentFormPage({ user }: { user: AuthUser }) {
     user.role === "SCHOOL_ADMIN";
 
   const { data: classes } = useQuery(getClassRooms);
+  const { data: school } = useQuery(getSchoolInfo);
+  const usesDepartments = school ? getSchoolCapabilities(school.level).usesDepartments : false;
   const detailQuery = useQuery(
     getSchoolStudentDetail,
     { id: id || "00000000-0000-0000-0000-000000000000" },
@@ -179,10 +183,10 @@ export function StudentFormPage({ user }: { user: AuthUser }) {
         value: room.id,
         label:
           room.name +
-          (room.department ? " (" + room.department.code + ")" : ""),
+          (usesDepartments && room.department ? " (" + room.department.code + ")" : ""),
       })) || []),
     ],
-    [classes],
+    [classes, usesDepartments],
   );
 
   const setValue = (key: string, value: string) => {

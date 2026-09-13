@@ -28,6 +28,7 @@ import {
   type M3DrawerSection,
 } from "../../client/components/m3";
 import { SchoolSpotlight } from "./SchoolSpotlight";
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 interface SchoolLayoutProps { user: AuthUser; children: ReactNode }
 
@@ -217,23 +218,23 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     );
   }
 
-  const isVocationalOrHighSchool = !school.level || school.level === "SMA_SMK";
-  const teacherHasPkl = !!teacherDashboard?.pkl;
-  const studentHasPkl = !!studentDashboard?.pkl;
+  const { usesDepartments, usesPkl } = getSchoolCapabilities(school.level);
+  const teacherHasPkl = usesPkl && !!teacherDashboard?.pkl;
+  const studentHasPkl = usesPkl && !!studentDashboard?.pkl;
 
   const drawerSections: M3DrawerSection[] = (() => {
     const sections: M3DrawerSection[] = [{ title: "UTAMA", items: [{ label: "Beranda", href: "/school", icon: "home" }] }];
     if (isSchoolAdmin) {
       sections.push({ title: "AKADEMIK", items: [
         { label: "Tahun Ajaran", href: "/school/academic-years", icon: "calendar_month" },
-        ...(isVocationalOrHighSchool ? [{ label: "Jurusan & Konsentrasi", href: "/school/departments", icon: "account_tree" }] : []),
+        ...(usesDepartments ? [{ label: "Jurusan & Konsentrasi", href: "/school/departments", icon: "account_tree" }] : []),
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Guru & Tendik", href: "/school/teachers", icon: "badge" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
         { label: "Import Data", href: "/school/import", icon: "upload_file" },
       ] });
       sections.push({ title: "PEMBELAJARAN", items: [{ label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" }] });
-      if (isVocationalOrHighSchool) sections.push({ title: "PKL", items: [
+      if (usesPkl) sections.push({ title: "PKL", items: [
         { label: "Mitra DUDI", href: "/school/pkl/companies", icon: "apartment" },
         { label: "Penempatan", href: "/school/pkl/placements", icon: "work" },
         { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },
@@ -304,7 +305,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       { label: "Beranda", href: "/school", icon: "home" },
       { label: "Siswa", href: "/school/students", icon: "groups" },
       { label: "LMS", href: "/school/lms/courses", icon: "menu_book" },
-      ...(isVocationalOrHighSchool ? [{ label: "PKL", href: "/school/pkl/placements", icon: "work" }] : []),
+      ...(usesPkl ? [{ label: "PKL", href: "/school/pkl/placements", icon: "work" }] : []),
       { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
     ];
     return [{ label: "Beranda", href: "/school", icon: "home" }, { label: "Jurnal", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Saya", href: "/account", icon: "person" }];

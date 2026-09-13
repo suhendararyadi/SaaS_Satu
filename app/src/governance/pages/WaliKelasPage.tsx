@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { type AuthUser } from "wasp/auth";
-import { useQuery, getHomeroomDashboardData } from "wasp/client/operations";
+import { useQuery, getHomeroomDashboardData, getSchoolInfo } from "wasp/client/operations";
 import { Link } from "wasp/client/router";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
@@ -21,10 +21,14 @@ import {
   M3Icon,
   M3StatCard,
 } from "../../client/components/m3";
-
+import { getSchoolCapabilities } from "../../school/schoolCapabilities";
 
 export function WaliKelasPage({ user }: { user: AuthUser }) {
   const { data: homeroomClass, isLoading, error } = useQuery(getHomeroomDashboardData);
+  const { data: school } = useQuery(getSchoolInfo);
+  const capabilities = school ? getSchoolCapabilities(school.level) : null;
+  const usesDepartments = capabilities?.usesDepartments ?? false;
+  const usesPkl = capabilities?.usesPkl ?? false;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [pklFilter, setPklFilter] = useState("ALL");
@@ -47,13 +51,13 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
 
       const hasPlacement = s.studentPlacements && s.studentPlacements.length > 0;
       const matchPkl =
-        pklFilter === "ALL" ||
+        !usesPkl || pklFilter === "ALL" ||
         (pklFilter === "PLACED" && hasPlacement) ||
         (pklFilter === "UNPLACED" && !hasPlacement);
 
       return matchSearch && matchPkl;
     });
-  }, [students, searchQuery, pklFilter]);
+  }, [students, searchQuery, pklFilter, usesPkl]);
 
   const paginatedStudents = useMemo(() => {
     return filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -97,15 +101,15 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">Kelas {homeroomClass.name}</h2>
-            <p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{homeroomClass.department?.name || "Rombongan belajar"} · {homeroomClass.academicYear?.yearName} · {homeroomClass.academicYear?.semester}</p>
+            <p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{usesDepartments && homeroomClass.department?.name ? `${homeroomClass.department.name} · ` : ""}{homeroomClass.academicYear?.yearName} · {homeroomClass.academicYear?.semester}</p>
           </div>
           <M3Button variant="text" href="/school/reports" size="sm">Cetak rekap</M3Button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className={`grid gap-3 ${usesPkl ? "sm:grid-cols-3" : "sm:grid-cols-1"}`}>
           <M3StatCard label="Siswa aktif" value={totalStudents} tone="blue" />
-          <M3StatCard label="Sudah terplot PKL" value={activePklStudents} tone="green" />
-          <M3StatCard label="Belum terplot PKL" value={Math.max(0, totalStudents - activePklStudents)} tone="orange" />
+          {usesPkl && <M3StatCard label="Sudah terplot PKL" value={activePklStudents} tone="green" />}
+          {usesPkl && <M3StatCard label="Belum terplot PKL" value={Math.max(0, totalStudents - activePklStudents)} tone="orange" />}
         </div>
 
         {/* Filter Toolbar Card */}
@@ -123,7 +127,7 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                   leadingIcon="search"
                 />
               </div>
-              <div className="w-full sm:w-56">
+              {usesPkl && <div className="w-full sm:w-56">
                 <M3Select
                   value={pklFilter}
                   onChange={(e) => {
@@ -136,7 +140,7 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                     { value: "UNPLACED", label: "Belum Ditempatkan" },
                   ]}
                 />
-              </div>
+              </div>}
             </div>
             <div className="flex items-center">
               <M3Badge variant="outline">
@@ -154,7 +158,7 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                 Daftar Siswa Bimbingan Rombel
               </h2>
               <p className="text-body-small text-md-on-surface-variant">
-                Progres PKL, presensi terkini, dan aktivitas jurnal harian
+                {usesPkl ? "Progres PKL, presensi terkini, dan aktivitas jurnal harian" : "Daftar peserta didik pada rombongan belajar aktif"}
               </p>
             </div>
             <M3Badge variant="primary">
@@ -168,10 +172,10 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                 <M3Icon name="groups" size={24} />
               </div>
               <h3 className="text-title-medium font-semibold text-md-on-surface">
-                {searchQuery || pklFilter !== "ALL" ? "Tidak Ditemukan" : "Belum Ada Siswa"}
+                {searchQuery || (usesPkl && pklFilter !== "ALL") ? "Tidak Ditemukan" : "Belum Ada Siswa"}
               </h3>
               <p className="text-body-medium text-md-on-surface-variant mt-1">
-                {searchQuery || pklFilter !== "ALL"
+                {searchQuery || (usesPkl && pklFilter !== "ALL")
                   ? "Tidak ada siswa yang sesuai dengan filter pencarian yang diterapkan."
                   : "Belum ada data siswa di rombongan belajar ini."}
               </p>
@@ -183,10 +187,10 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                   <M3TableHeader>
                     <M3TableRow>
                       <M3TableHead>Nama &amp; Identitas Siswa</M3TableHead>
-                      <M3TableHead>Penempatan PKL</M3TableHead>
-                      <M3TableHead>Presensi Terkini</M3TableHead>
-                      <M3TableHead>Jurnal Harian</M3TableHead>
-                      <M3TableHead className="text-right">Tindakan</M3TableHead>
+                      {usesPkl && <M3TableHead>Penempatan PKL</M3TableHead>}
+                      {usesPkl && <M3TableHead>Presensi Terkini</M3TableHead>}
+                      {usesPkl && <M3TableHead>Jurnal Harian</M3TableHead>}
+                      {usesPkl && <M3TableHead className="text-right">Tindakan</M3TableHead>}
                     </M3TableRow>
                   </M3TableHeader>
                   <M3TableBody>
@@ -208,72 +212,76 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                             </div>
                           </M3TableCell>
 
-                          <M3TableCell>
-                            {placement ? (
-                              <div className="space-y-0.5">
-                                <div className="flex items-center gap-1.5 text-md-primary font-semibold text-body-medium">
-                                  <M3Icon name="apartment" size={14} className="shrink-0" />
-                                  <span>{placement.company.name}</span>
+                          {usesPkl && (
+                            <>
+                            <M3TableCell>
+                              {placement ? (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-1.5 text-md-primary font-semibold text-body-medium">
+                                    <M3Icon name="apartment" size={14} className="shrink-0" />
+                                    <span>{placement.company.name}</span>
+                                  </div>
+                                  <span className="text-body-small text-md-on-surface-variant block">
+                                    PIC: {placement.company.picName || "-"} ({placement.company.picPhone || "-"})
+                                  </span>
                                 </div>
-                                <span className="text-body-small text-md-on-surface-variant block">
-                                  PIC: {placement.company.picName || "-"} ({placement.company.picPhone || "-"})
-                                </span>
-                              </div>
-                            ) : (
-                              <M3Badge variant="warning">
-                                Belum Ditempatkan
-                              </M3Badge>
-                            )}
-                          </M3TableCell>
-
-                          <M3TableCell>
-                            {lastAttendance ? (
-                              <div className="space-y-0.5">
-                                <M3Badge variant={lastAttendance.status === "HADIR" ? "success" : "error"}>
-                                  {lastAttendance.status} ({lastAttendance.type})
+                              ) : (
+                                <M3Badge variant="warning">
+                                  Belum Ditempatkan
                                 </M3Badge>
-                                <span className="text-label-small font-mono text-md-on-surface-variant block">
-                                  {new Date(lastAttendance.timestamp).toLocaleTimeString("id-ID", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
+                              )}
+                            </M3TableCell>
+
+                            <M3TableCell>
+                              {lastAttendance ? (
+                                <div className="space-y-0.5">
+                                  <M3Badge variant={lastAttendance.status === "HADIR" ? "success" : "error"}>
+                                    {lastAttendance.status} ({lastAttendance.type})
+                                  </M3Badge>
+                                  <span className="text-label-small font-mono text-md-on-surface-variant block">
+                                    {new Date(lastAttendance.timestamp).toLocaleTimeString("id-ID", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="italic text-body-small text-md-on-surface-variant">
+                                  Belum ada catatan
                                 </span>
-                              </div>
-                            ) : (
-                              <span className="italic text-body-small text-md-on-surface-variant">
-                                Belum ada catatan
-                              </span>
-                            )}
-                          </M3TableCell>
+                              )}
+                            </M3TableCell>
 
-                          <M3TableCell>
-                            {lastJournal ? (
-                              <div className="space-y-0.5 max-w-[260px]">
-                                <M3Badge variant={lastJournal.status === "APPROVED" ? "success" : "warning"}>
-                                  {lastJournal.status}{lastJournal.score ? ` (Nilai: ${lastJournal.score})` : ""}
-                                </M3Badge>
-                                <p className="text-body-small text-md-on-surface-variant truncate">
-                                  {lastJournal.activityDescription}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="italic text-body-small text-md-on-surface-variant">
-                                Belum ada jurnal
-                              </span>
-                            )}
-                          </M3TableCell>
+                            <M3TableCell>
+                              {lastJournal ? (
+                                <div className="space-y-0.5 max-w-[260px]">
+                                  <M3Badge variant={lastJournal.status === "APPROVED" ? "success" : "warning"}>
+                                    {lastJournal.status}{lastJournal.score ? ` (Nilai: ${lastJournal.score})` : ""}
+                                  </M3Badge>
+                                  <p className="text-body-small text-md-on-surface-variant truncate">
+                                    {lastJournal.activityDescription}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="italic text-body-small text-md-on-surface-variant">
+                                  Belum ada jurnal
+                                </span>
+                              )}
+                            </M3TableCell>
 
-                          <M3TableCell className="text-right">
-                            <Link to="/school/pkl/monitoring">
-                              <M3Button
-                                variant="text"
-                                size="sm"
-                                trailingIcon="open_in_new"
-                              >
-                                Monitoring
-                              </M3Button>
-                            </Link>
-                          </M3TableCell>
+                            <M3TableCell className="text-right">
+                              <Link to="/school/pkl/monitoring">
+                                <M3Button
+                                  variant="text"
+                                  size="sm"
+                                  trailingIcon="open_in_new"
+                                >
+                                  Monitoring
+                                </M3Button>
+                              </Link>
+                            </M3TableCell>
+                            </>
+                          )}
                         </M3TableRow>
                       );
                     })}

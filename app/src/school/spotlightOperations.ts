@@ -9,6 +9,7 @@ import {
   normalizeSpotlightQuery,
   type SpotlightScope,
 } from "./spotlightPolicy";
+import { getSchoolCapabilities } from "./schoolCapabilities";
 
 const spotlightSearchSchema = z.object({
   query: z.string().max(80),
@@ -76,6 +77,8 @@ export const getSchoolSpotlightSearch = async (
   }
 
   const scopes = getSpotlightScopes(user.role, user.isAdmin);
+  const school = await prisma.school.findUnique({ where: { id: user.schoolId }, select: { level: true } });
+  const capabilities = getSchoolCapabilities(school?.level);
   const items: SchoolSpotlightResult[] = [];
 
   if (hasScope(scopes, "STUDENTS")) {
@@ -113,7 +116,7 @@ export const getSchoolSpotlightSearch = async (
 
     for (const student of students) {
       const classLabel = student.classRoom
-        ? `${student.classRoom.name}${student.classRoom.department?.code ? ` · ${student.classRoom.department.code}` : ""}`
+        ? `${student.classRoom.name}${capabilities.usesDepartments && student.classRoom.department?.code ? ` · ${student.classRoom.department.code}` : ""}`
         : "Belum memiliki rombel";
       const nisLabel = student.studentProfile?.nis
         ? ` · NIS ${student.studentProfile.nis}`
@@ -184,8 +187,10 @@ export const getSchoolSpotlightSearch = async (
         academicYear: { isActive: true },
         OR: [
           { name: insensitive(query) },
-          { department: { is: { code: insensitive(query) } } },
-          { department: { is: { name: insensitive(query) } } },
+          ...(capabilities.usesDepartments ? [
+            { department: { is: { code: insensitive(query) } } },
+            { department: { is: { name: insensitive(query) } } },
+          ] : []),
           { homeroomTeacher: { is: { name: insensitive(query) } } },
         ],
       },
@@ -203,7 +208,9 @@ export const getSchoolSpotlightSearch = async (
 
     for (const room of classes) {
       const subtitle = [
-        room.department?.code || room.department?.name || `Kelas ${room.gradeLevel}`,
+        capabilities.usesDepartments
+          ? (room.department?.code || room.department?.name || `Kelas ${room.gradeLevel}`)
+          : `Kelas ${room.gradeLevel}`,
         `${room._count.students} siswa`,
         room.homeroomTeacher?.name ? `Wali: ${room.homeroomTeacher.name}` : null,
       ]
@@ -266,7 +273,7 @@ export const getSchoolSpotlightSearch = async (
     }
   }
 
-  if (hasScope(scopes, "COMPANIES")) {
+  if (capabilities.usesPkl && hasScope(scopes, "COMPANIES")) {
     const companies = await prisma.company.findMany({
       where: {
         schoolId: user.schoolId,
@@ -306,7 +313,7 @@ export const getSchoolSpotlightSearch = async (
     }
   }
 
-  if (hasScope(scopes, "PLACEMENTS")) {
+  if (capabilities.usesPkl && hasScope(scopes, "PLACEMENTS")) {
     const placementScope =
       user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN"
         ? {}

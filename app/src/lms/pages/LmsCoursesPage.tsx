@@ -29,6 +29,7 @@ import {
   KURIKULUM_MERDEKA_PRESETS,
   type CurriculumSubjectPreset,
 } from "../lmsCurriculumPresets";
+import { getSchoolCapabilities } from "../../school/schoolCapabilities";
 
 export function LmsCoursesPage({ user }: { user: AuthUser }) {
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -44,6 +45,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
   const { data: teachers } = useQuery(getSchoolTeachers, undefined, { enabled: canManage });
   const { data: academicYears } = useQuery(getAcademicYears, undefined, { enabled: canManage });
   const { data: schoolInfo } = useQuery(getSchoolInfo, undefined, { enabled: canManage });
+  const usesDepartments = schoolInfo ? getSchoolCapabilities(schoolInfo.level).usesDepartments : false;
 
   // Single Course Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -221,7 +223,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
     { value: "", label: "Semua Rombel Kelas" },
     ...(classes?.map((c) => ({
       value: c.id,
-      label: `${c.name}${c.department ? ` (${c.department.code})` : ""}`,
+      label: `${c.name}${usesDepartments && c.department ? ` (${c.department.code})` : ""}`,
     })) || []),
   ];
 
@@ -229,7 +231,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
     { value: "", label: "Pilih Rombel Kelas" },
     ...(classes?.map((c) => ({
       value: c.id,
-      label: `${c.name}${c.department ? ` (${c.department.code})` : ""}`,
+      label: `${c.name}${usesDepartments && c.department ? ` (${c.department.code})` : ""}`,
     })) || []),
   ];
 

@@ -25,7 +25,7 @@ import {
   M3Text,
   M3Icon,
 } from "../../client/components/m3";
-
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const { data: school } = useQuery(getSchoolInfo);
@@ -35,7 +35,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const { data: teachers } = useQuery(getSchoolTeachers);
 
   const schoolLevel = school?.level || "SMA_SMK";
-  const isVocationalOrHighSchool = schoolLevel === "SMA_SMK";
+  const { usesDepartments } = getSchoolCapabilities(schoolLevel);
   const isElementary = schoolLevel === "SD_MI";
   const isJuniorHigh = schoolLevel === "SMP_MTS";
 
@@ -65,7 +65,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const openAddModal = () => {
     setName("");
     setGradeLevel(defaultGrade);
-    setDepartmentId(isVocationalOrHighSchool ? (departments?.[0]?.id || "") : "");
+    setDepartmentId(usesDepartments ? (departments?.[0]?.id || "") : "");
     const activeYear = academicYears?.find((y) => y.isActive);
     setAcademicYearId(activeYear?.id || academicYears?.[0]?.id || "");
     setHomeroomTeacherId("");
@@ -89,7 +89,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
       await createClassRoom({
         name: name.trim(),
         gradeLevel: Number(gradeLevel),
-        departmentId: isVocationalOrHighSchool && departmentId ? departmentId : undefined,
+        departmentId: usesDepartments && departmentId ? departmentId : undefined,
         academicYearId,
         homeroomTeacherId: homeroomTeacherId || null,
       });
@@ -115,15 +115,16 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const filteredClasses = classes?.filter((c) => {
     if (selectedGrade !== "ALL" && String(c.gradeLevel) !== selectedGrade)
       return false;
-    if (isVocationalOrHighSchool && selectedDept !== "ALL" && c.departmentId !== selectedDept)
+    if (usesDepartments && selectedDept !== "ALL" && c.departmentId !== selectedDept)
       return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = c.name.toLowerCase().includes(q);
-      const matchDept =
+      const matchDept = usesDepartments && (
         c.department?.name?.toLowerCase().includes(q) ||
-        c.department?.code?.toLowerCase().includes(q);
-      return matchName || matchDept;
+        c.department?.code?.toLowerCase().includes(q)
+      );
+      return matchName || Boolean(matchDept);
     }
     return true;
   });
@@ -247,7 +248,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <div className="flex-1 w-full">
               <M3TextField
-                placeholder="Cari nama kelas atau jurusan..."
+                placeholder={usesDepartments ? "Cari nama kelas atau jurusan..." : "Cari nama kelas..."}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -270,7 +271,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
               />
             </div>
 
-            {isVocationalOrHighSchool && (
+            {usesDepartments && (
               <div className="w-full sm:w-56">
                 <M3Select
                   options={departmentOptions}
@@ -319,7 +320,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
                       <div className="space-y-1">
                         <M3Badge variant="primary" size="sm">
                           Tingkat {c.gradeLevel}
-                          {c.department ? ` • ${c.department.code}` : ""}
+                          {usesDepartments && c.department ? ` • ${c.department.code}` : ""}
                         </M3Badge>
                         <h3 className="text-lg font-semibold text-md-on-surface">
                           {c.name}
@@ -395,7 +396,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           title="Tambah Rombel Kelas"
-          subtitle="Tentukan nama rombel, tingkat, jurusan, dan wali kelas."
+          subtitle={usesDepartments ? "Tentukan nama rombel, tingkat, jurusan, dan wali kelas." : "Tentukan nama rombel, tingkat, dan wali kelas."}
           icon={<M3Icon name="meeting_room" size={24} className="text-md-primary" />}
           actions={
             <>
@@ -448,7 +449,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
               onChange={(e) => setGradeLevel(e.target.value)}
             />
 
-            {isVocationalOrHighSchool && (
+            {usesDepartments && (
               <M3Select
                 label="Konsentrasi Keahlian / Jurusan (Opsional)"
                 options={modalDepartmentOptions}

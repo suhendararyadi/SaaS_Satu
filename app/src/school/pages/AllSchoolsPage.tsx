@@ -19,7 +19,7 @@ import {
   M3Icon,
   M3EmptyState,
 } from "../../client/components/m3";
-
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 export function AllSchoolsPage({ user }: { user: AuthUser }) {
   const { data: schools, isLoading, refetch } = useQuery(getAllSchools);
@@ -39,6 +39,7 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [tier, setTier] = useState<string>("PRO");
+  const [schoolLevel, setSchoolLevel] = useState<"SD_MI" | "SMP_MTS" | "SMA_SMK">("SMA_SMK");
   const [studentQuota, setStudentQuota] = useState("500");
   const [switchImmediately, setSwitchImmediately] = useState(true);
 
@@ -107,6 +108,7 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         tier: tier as "FREE_TRIAL" | "STARTER" | "PRO" | "ENTERPRISE",
+        level: schoolLevel,
         studentQuota: Number(studentQuota) || 500,
         switchImmediately,
       });
@@ -118,6 +120,7 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
       setAddress("");
       setPhone("");
       setEmail("");
+      setSchoolLevel("SMA_SMK");
 
       await refetch();
       if (switchImmediately) {
@@ -130,6 +133,12 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
       setIsSubmitting(false);
     }
   };
+
+  const schoolLevelOptions = [
+    { value: "SD_MI", label: "SD / MI" },
+    { value: "SMP_MTS", label: "SMP / MTs" },
+    { value: "SMA_SMK", label: "SMA / SMK / MA" },
+  ];
 
   const tierOptions = [
     { value: "FREE_TRIAL", label: "Free Trial (100 Siswa)" },
@@ -196,10 +205,11 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
             <div className="divide-y divide-md-outline-variant">
               {paginatedSchools.map((schoolItem: any) => {
                 const isCurrent = currentSchool?.id === schoolItem.id;
+                const capabilities = getSchoolCapabilities(schoolItem.level);
                 const stats = [
                   `${schoolItem._count?.users || 0} pengguna`,
-                  `${schoolItem._count?.departments || 0} jurusan`,
-                  `${schoolItem._count?.companies || 0} DUDI`,
+                  ...(capabilities.usesDepartments ? [`${schoolItem._count?.departments || 0} jurusan`] : []),
+                  ...(capabilities.usesPkl ? [`${schoolItem._count?.companies || 0} DUDI`] : []),
                 ].join(" · ");
                 return (
                   <div key={schoolItem.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
@@ -274,11 +284,18 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
             )}
 
             <M3TextField
-              label="Nama Sekolah (SMK / SMA / MA) *"
-              placeholder="Contoh: SMK Negeri 1 Garut"
+              label="Nama Sekolah *"
+              placeholder="Contoh: SMP Negeri 1 Rongga"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+            />
+
+            <M3Select
+              label="Jenjang Sekolah *"
+              options={schoolLevelOptions}
+              value={schoolLevel}
+              onChange={(e) => setSchoolLevel(e.target.value as typeof schoolLevel)}
             />
 
             <div className="grid grid-cols-2 gap-3">

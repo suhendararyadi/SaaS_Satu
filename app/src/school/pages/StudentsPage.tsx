@@ -5,6 +5,7 @@ import {
   useQuery,
   getSchoolStudents,
   getClassRooms,
+  getSchoolInfo,
   deleteStudent,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
@@ -25,6 +26,7 @@ import {
   M3TableRow,
   M3TextField,
 } from "../../client/components/m3";
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 export function StudentsPage({ user }: { user: AuthUser }) {
   const [selectedClass, setSelectedClass] = useState("ALL");
@@ -49,6 +51,10 @@ export function StudentsPage({ user }: { user: AuthUser }) {
     classRoomId: selectedClass === "ALL" ? undefined : selectedClass,
   });
   const { data: classes } = useQuery(getClassRooms);
+  const { data: school } = useQuery(getSchoolInfo);
+  const capabilities = school ? getSchoolCapabilities(school.level) : null;
+  const usesDepartments = capabilities?.usesDepartments ?? false;
+  const usesPkl = capabilities?.usesPkl ?? false;
 
   const filteredStudents = students?.filter((student) => {
     const term = searchTerm.trim().toLocaleLowerCase("id-ID");
@@ -74,7 +80,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
       value: room.id,
       label:
         room.name +
-        (room.department ? " (" + room.department.code + ")" : ""),
+        (usesDepartments && room.department ? " (" + room.department.code + ")" : ""),
     })) || []),
   ];
 
@@ -206,7 +212,7 @@ export function StudentsPage({ user }: { user: AuthUser }) {
                   <M3TableHead>Peserta Didik</M3TableHead>
                   <M3TableHead>L/P</M3TableHead>
                   <M3TableHead>Rombel</M3TableHead>
-                  <M3TableHead>Status PKL</M3TableHead>
+                  {usesPkl && <M3TableHead>Status PKL</M3TableHead>}
                   <M3TableHead>Status</M3TableHead>
                   {canManage && (
                     <M3TableHead className="text-right">Aksi</M3TableHead>
@@ -261,17 +267,19 @@ export function StudentsPage({ user }: { user: AuthUser }) {
                         )}
                       </M3TableCell>
 
-                      <M3TableCell>
-                        {activePlacement ? (
-                          <M3Badge variant="success" size="sm">
-                            {activePlacement.company?.name || "Mitra DUDI"}
-                          </M3Badge>
-                        ) : (
-                          <M3Badge variant="outline" size="sm">
-                            Belum Plotting
-                          </M3Badge>
-                        )}
-                      </M3TableCell>
+                      {usesPkl && (
+                        <M3TableCell>
+                          {activePlacement ? (
+                            <M3Badge variant="success" size="sm">
+                              {activePlacement.company?.name || "Mitra DUDI"}
+                            </M3Badge>
+                          ) : (
+                            <M3Badge variant="outline" size="sm">
+                              Belum Plotting
+                            </M3Badge>
+                          )}
+                        </M3TableCell>
+                      )}
 
                       <M3TableCell>
                         <M3Badge
@@ -419,8 +427,9 @@ export function StudentsPage({ user }: { user: AuthUser }) {
               <strong>{studentToDelete?.name || studentToDelete?.username}</strong>?
             </p>
             <p className="text-xs leading-5 text-md-on-surface-variant">
-              Akun siswa dan profilnya akan dihapus. Siswa dengan penempatan PKL
-              aktif tetap dilindungi dan tidak dapat dihapus.
+              {usesPkl
+                ? "Akun siswa dan profilnya akan dihapus. Siswa dengan penempatan PKL aktif tetap dilindungi dan tidak dapat dihapus."
+                : "Akun siswa dan profilnya akan dihapus dari unit sekolah aktif."}
             </p>
           </div>
         </M3Dialog>

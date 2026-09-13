@@ -3,6 +3,16 @@ import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser, requireSchoolAdmin, ensureAuthenticated, ensureSuperAdmin, requireSchoolDirectoryAccess } from "./authGuards";
+import { getSchoolCapabilities } from "./schoolCapabilities";
+
+async function getTenantSchoolCapabilities(schoolId: string) {
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { level: true },
+  });
+  if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
+  return getSchoolCapabilities(school.level);
+}
 
 // ==========================================
 // 1. School Profile & Onboarding Operations
@@ -169,6 +179,8 @@ export const updateSchoolInfo = async (rawArgs: unknown, context: { user?: User 
 
 export const getDepartments = async (_args: unknown, context: { user?: User }) => {
   const user = requireSchoolDirectoryAccess(context);
+  const capabilities = await getTenantSchoolCapabilities(user.schoolId);
+  if (!capabilities.usesDepartments) return [];
 
   return prisma.department.findMany({
     where: { schoolId: user.schoolId },
@@ -188,6 +200,10 @@ const departmentSchema = z.object({
 
 export const createDepartment = async (rawArgs: unknown, context: { user?: User }) => {
   const user = requireSchoolAdmin(context);
+  const capabilities = await getTenantSchoolCapabilities(user.schoolId);
+  if (!capabilities.usesDepartments) {
+    throw new HttpError(400, "Fitur jurusan tidak tersedia untuk jenjang sekolah ini.");
+  }
   const args = ensureArgsSchemaOrThrowHttpError(departmentSchema, rawArgs);
 
   const existing = await prisma.department.findUnique({
@@ -220,6 +236,10 @@ const updateDepartmentSchema = z.object({
 
 export const updateDepartment = async (rawArgs: unknown, context: { user?: User }) => {
   const user = requireSchoolAdmin(context);
+  const capabilities = await getTenantSchoolCapabilities(user.schoolId);
+  if (!capabilities.usesDepartments) {
+    throw new HttpError(400, "Fitur jurusan tidak tersedia untuk jenjang sekolah ini.");
+  }
   const args = ensureArgsSchemaOrThrowHttpError(updateDepartmentSchema, rawArgs);
 
   const dept = await prisma.department.findFirst({
@@ -244,6 +264,10 @@ const deleteDepartmentSchema = z.object({
 
 export const deleteDepartment = async (rawArgs: unknown, context: { user?: User }) => {
   const user = requireSchoolAdmin(context);
+  const capabilities = await getTenantSchoolCapabilities(user.schoolId);
+  if (!capabilities.usesDepartments) {
+    throw new HttpError(400, "Fitur jurusan tidak tersedia untuk jenjang sekolah ini.");
+  }
   const { id } = ensureArgsSchemaOrThrowHttpError(deleteDepartmentSchema, rawArgs);
 
   const dept = await prisma.department.findFirst({
@@ -364,16 +388,17 @@ const getClassRoomsSchema = z.object({
 
 export const getClassRooms = async (rawArgs: unknown, context: { user?: User }) => {
   const user = requireSchoolDirectoryAccess(context);
+  const capabilities = await getTenantSchoolCapabilities(user.schoolId);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getClassRoomsSchema || z.any(),
     rawArgs || {}
   );
 
-  return prisma.classRoom.findMany({
+  const classes = await prisma.classRoom.findMany({
     where: {
       schoolId: user.schoolId,
       ...(filter?.academicYearId ? { academicYearId: filter.academicYearId } : {}),
-      ...(filter?.departmentId ? { departmentId: filter.departmentId } : {}),
+      ...(capabilities.usesDepartments && filter?.departmentId ? { departmentId: filter.departmentId } : {}),
       ...(filter?.gradeLevel ? { gradeLevel: filter.gradeLevel } : {}),
     },
     include: {
@@ -393,6 +418,9 @@ export const getClassRooms = async (rawArgs: unknown, context: { user?: User }) 
     },
     orderBy: [{ gradeLevel: "asc" }, { name: "asc" }],
   });
+
+  if (capabilities.usesDepartments) return classes;
+  return classes.map((room) => ({ ...room, departmentId: null, department: null }));
 };
 
 const createClassRoomSchema = z.object({
@@ -406,6 +434,10 @@ const createClassRoomSchema = z.object({
 export const createClassRoom = async (rawArgs: unknown, context: { user?: User }) => {
   const user = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(createClassRoomSchema, rawArgs);
+  const capabilities = await getTenantSchoolCapabilities(user.schoolId);
+  if (!capabilities.usesDepartments && args.departmentId) {
+    throw new HttpError(400, "Jurusan tidak digunakan pada jenjang sekolah ini.");
+  }
 
   // Validate department belongs to this school if provided
   if (args.departmentId) {
@@ -452,7 +484,7 @@ export const createClassRoom = async (rawArgs: unknown, context: { user?: User }
       schoolId: user.schoolId,
       name: args.name.trim(),
       gradeLevel: args.gradeLevel,
-      departmentId: args.departmentId || null,
+      departmentId: capabilities.usesDepartments ? (args.departmentId || null) : null,
       academicYearId: args.academicYearId,
       homeroomTeacherId: args.homeroomTeacherId || null,
     },
@@ -476,6 +508,10 @@ const updateClassRoomSchema = z.object({
 export const updateClassRoom = async (rawArgs: unknown, context: { user?: User }) => {
   const user = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(updateClassRoomSchema, rawArgs);
+  const capabilities = await getTenantSchoolCapabilities(user.schoolId);
+  if (!capabilities.usesDepartments && args.departmentId) {
+    throw new HttpError(400, "Jurusan tidak digunakan pada jenjang sekolah ini.");
+  }
 
   const current = await prisma.classRoom.findFirst({
     where: { id: args.id, schoolId: user.schoolId },
@@ -512,7 +548,7 @@ export const updateClassRoom = async (rawArgs: unknown, context: { user?: User }
     data: {
       name: args.name.trim(),
       gradeLevel: args.gradeLevel,
-      departmentId: args.departmentId || null,
+      departmentId: capabilities.usesDepartments ? (args.departmentId || null) : null,
       academicYearId: args.academicYearId,
       homeroomTeacherId: args.homeroomTeacherId || null,
     },

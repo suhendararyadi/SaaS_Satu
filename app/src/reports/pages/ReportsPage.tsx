@@ -24,14 +24,16 @@ import {
   M3Text,
   M3Icon,
 } from "../../client/components/m3";
-
+import { getSchoolCapabilities } from "../../school/schoolCapabilities";
 
 export function ReportsPage({ user }: { user: AuthUser }) {
   const { data: schoolInfo } = useQuery(getSchoolInfo);
   const { data: reportContext } = useQuery(getSchoolReportContext);
   const { data: courses } = useQuery(getLmsCourses);
 
-  const isVocational = schoolInfo?.level === "SMA_SMK";
+  const capabilities = schoolInfo ? getSchoolCapabilities(schoolInfo.level) : null;
+  const isVocational = capabilities?.usesPkl ?? false;
+  const usesDepartments = capabilities?.usesDepartments ?? false;
 
   // Document Type Tabs based on School Level
   const reportTabs = [
@@ -128,7 +130,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
   const classOptions = [
     ...(reportContext?.classRooms?.map((c) => ({
       value: c.id,
-      label: `${c.name}${c.department ? ` (${c.department.code})` : ""}`,
+      label: `${c.name}${usesDepartments && c.department ? ` (${c.department.code})` : ""}`,
     })) || []),
   ];
 
@@ -379,7 +381,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                   <p>
                     Rombel Kelas:{" "}
                     <strong>{attendanceReport?.classRoom?.name || "Kelas Belum Dipilih"}</strong>
-                    {attendanceReport?.classRoom?.departmentName &&
+                    {usesDepartments && attendanceReport?.classRoom?.departmentName &&
                       ` (${attendanceReport.classRoom.departmentName})`}
                   </p>
                   <p>
@@ -583,7 +585,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                 </h2>
                 <p className="text-xs text-slate-600 mt-1">
                   Mata Pelajaran: <strong>{lmsReport?.courseTitle || "LMS"}</strong> • Rombel Kelas:{" "}
-                  <strong>{lmsReport?.className}</strong> ({lmsReport?.departmentName})
+                  <strong>{lmsReport?.className}</strong>{usesDepartments && lmsReport?.departmentName ? ` (${lmsReport.departmentName})` : ""}
                 </p>
               </div>
 
@@ -687,7 +689,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                       <th className="p-2 border-r border-slate-300 text-center">No</th>
                       <th className="p-2 border-r border-slate-300">Nama Siswa</th>
                       <th className="p-2 border-r border-slate-300 text-center font-mono">NIS</th>
-                      <th className="p-2 border-r border-slate-300">Kelas / Jurusan</th>
+                      <th className="p-2 border-r border-slate-300">{usesDepartments ? "Kelas / Jurusan" : "Kelas"}</th>
                       <th className="p-2 border-r border-slate-300">Tempat DUDI</th>
                       <th className="p-2 border-r border-slate-300 text-center">Presensi Hadir</th>
                       <th className="p-2 border-r border-slate-300 text-center">Jurnal Disetujui</th>
@@ -714,7 +716,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                           {p.nis || "-"}
                         </td>
                         <td className="p-2 border-r border-slate-300">
-                          {p.className} ({p.departmentName})
+                          {p.className}{usesDepartments && p.departmentName ? ` (${p.departmentName})` : ""}
                         </td>
                         <td className="p-2 border-r border-slate-300">
                           {p.companyName}

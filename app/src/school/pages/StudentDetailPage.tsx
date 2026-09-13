@@ -2,6 +2,7 @@ import React from "react";
 import { type AuthUser } from "wasp/auth";
 import { useNavigate, useParams } from "react-router";
 import {
+  getSchoolInfo,
   getSchoolStudentDetail,
   useQuery,
 } from "wasp/client/operations";
@@ -15,6 +16,7 @@ import {
   M3Icon,
 } from "../../client/components/m3";
 import { studentFormSections } from "../studentProfileUi";
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 function formatDate(value: unknown): string {
   if (!value) return "Belum diisi";
@@ -63,6 +65,10 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
     { id },
     { enabled: !!id },
   );
+  const { data: school } = useQuery(getSchoolInfo);
+  const capabilities = school ? getSchoolCapabilities(school.level) : null;
+  const usesDepartments = capabilities?.usesDepartments ?? false;
+  const usesPkl = capabilities?.usesPkl ?? false;
 
   if (query.isLoading) {
     return (
@@ -176,7 +182,7 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
           />
         )}
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className={`grid grid-cols-2 gap-3 ${usesPkl ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
           <M3Card variant="filled" className="p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-md-on-surface-variant">
               Kelengkapan Profil
@@ -196,22 +202,26 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
             <p className="mt-1 text-base font-semibold text-md-on-surface">
               {student.classRoom?.name || "Belum ditentukan"}
             </p>
-            <p className="mt-1 text-[11px] text-md-on-surface-variant">
-              {student.classRoom?.department?.name || "Program belum ditentukan"}
-            </p>
+            {usesDepartments && (
+              <p className="mt-1 text-[11px] text-md-on-surface-variant">
+                {student.classRoom?.department?.name || "Program belum ditentukan"}
+              </p>
+            )}
           </M3Card>
 
-          <M3Card variant="filled" className="p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-md-on-surface-variant">
-              PKL Aktif
-            </p>
-            <p className="mt-1 text-base font-semibold text-md-on-surface">
-              {activePlacement?.company?.name || "Belum ada"}
-            </p>
-            <p className="mt-1 text-[11px] text-md-on-surface-variant">
-              {activePlacement ? "Penempatan sedang berjalan" : "Tidak ada penempatan aktif"}
-            </p>
-          </M3Card>
+          {usesPkl && (
+            <M3Card variant="filled" className="p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-md-on-surface-variant">
+                PKL Aktif
+              </p>
+              <p className="mt-1 text-base font-semibold text-md-on-surface">
+                {activePlacement?.company?.name || "Belum ada"}
+              </p>
+              <p className="mt-1 text-[11px] text-md-on-surface-variant">
+                {activePlacement ? "Penempatan sedang berjalan" : "Tidak ada penempatan aktif"}
+              </p>
+            </M3Card>
+          )}
 
           <M3Card variant="filled" className="p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-md-on-surface-variant">
@@ -299,7 +309,7 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
           ))}
         </div>
 
-        {student.studentPlacements?.length > 0 && (
+        {usesPkl && student.studentPlacements?.length > 0 && (
           <M3Card variant="outlined" className="overflow-hidden">
             <div className="flex items-start gap-3 border-b border-md-outline-variant/35 px-4 py-3.5">
               <span className="flex size-9 items-center justify-center rounded-[10px] bg-md-secondary-container text-md-secondary">

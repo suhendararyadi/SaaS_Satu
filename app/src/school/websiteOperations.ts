@@ -3,6 +3,7 @@ import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { requireSchoolAdmin } from "./authGuards";
+import { getSchoolCapabilities } from "./schoolCapabilities";
 import { isFileUploadConfigured } from "../file-upload/config";
 import {
   assertCmsTenant,
@@ -117,7 +118,7 @@ export const getSchoolWebsiteAdmin = async (_args: unknown, context: SchoolConte
   const [school, site, contents, navItems, media, revisions] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
-      select: { id: true, name: true, slug: true, logoUrl: true, address: true, city: true, province: true, email: true, phone: true, departments: { select: { id: true, code: true, name: true }, orderBy: { code: "asc" } } },
+      select: { id: true, name: true, slug: true, logoUrl: true, address: true, city: true, province: true, email: true, phone: true, level: true, departments: { select: { id: true, code: true, name: true }, orderBy: { code: "asc" } } },
     }),
     prisma.schoolSite.findUnique({ where: { schoolId: user.schoolId } }),
     prisma.schoolSiteContent.findMany({ where: { schoolId: user.schoolId }, orderBy: [{ type: "asc" }, { updatedAt: "desc" }] }),
@@ -141,7 +142,7 @@ export const getSchoolWebsiteAdmin = async (_args: unknown, context: SchoolConte
   const actorById = new Map(actors.map((item: any) => [item.id, item]));
 
   return {
-    school,
+    school: { ...school, departments: getSchoolCapabilities(school.level).usesDepartments ? publicDepartments(school.departments) : [] },
     site: serializeSite(site),
     contents: contents.map(serializeContent),
     navItems,
@@ -483,7 +484,7 @@ export const getPublicSchoolSite = async (rawArgs: unknown) => {
   const school = await prisma.school.findUnique({
     where: { slug: schoolSlug },
     select: {
-      id: true, name: true, slug: true, logoUrl: true, address: true, city: true, province: true,
+      id: true, name: true, slug: true, logoUrl: true, address: true, city: true, province: true, level: true,
       site: true,
       departments: { select: { id: true, code: true, name: true }, orderBy: { code: "asc" } },
     },
@@ -508,7 +509,7 @@ export const getPublicSchoolSite = async (rawArgs: unknown) => {
   const nav = navItems.map((item: any) => ({ ...item, resolvedHref: resolveNavHref(item, school.slug, pageById) })).filter((item: any) => !!item.resolvedHref);
 
   return {
-    school: { id: school.id, name: school.name, slug: school.slug, logoUrl: school.logoUrl, address: school.address, city: school.city, province: school.province, departments: publicDepartments(school.departments) },
+    school: { id: school.id, name: school.name, slug: school.slug, logoUrl: school.logoUrl, address: school.address, city: school.city, province: school.province, level: school.level, departments: getSchoolCapabilities(school.level).usesDepartments ? publicDepartments(school.departments) : [] },
     site: serializeSite(school.site),
     pages: pages.map(serializeContent),
     news: news.map(serializeContent),
@@ -540,11 +541,11 @@ export const getPublicSchoolContent = async (rawArgs: unknown) => {
 export const getSchoolWebsitePreview = async (_args: unknown, context: SchoolContext) => {
   const user = requireSchoolAdmin(context);
   const [school, site, contents, media] = await Promise.all([
-    prisma.school.findUnique({ where: { id: user.schoolId }, select: { id: true, name: true, slug: true, logoUrl: true, address: true, city: true, province: true, departments: { select: { id: true, code: true, name: true }, orderBy: { code: "asc" } } } }),
+    prisma.school.findUnique({ where: { id: user.schoolId }, select: { id: true, name: true, slug: true, logoUrl: true, address: true, city: true, province: true, level: true, departments: { select: { id: true, code: true, name: true }, orderBy: { code: "asc" } } } }),
     prisma.schoolSite.findUnique({ where: { schoolId: user.schoolId } }),
     prisma.schoolSiteContent.findMany({ where: { schoolId: user.schoolId, status: { not: "ARCHIVED" } }, orderBy: { updatedAt: "desc" } }),
     prisma.schoolSiteMedia.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "desc" }, take: 12 }),
   ]);
   if (!school) throw new HttpError(404, "Sekolah aktif tidak ditemukan.");
-  return { school: { ...school, departments: publicDepartments(school.departments) }, site: serializeSite(site), contents: contents.map(serializeContent), media };
+  return { school: { ...school, departments: getSchoolCapabilities(school.level).usesDepartments ? publicDepartments(school.departments) : [] }, site: serializeSite(site), contents: contents.map(serializeContent), media };
 };

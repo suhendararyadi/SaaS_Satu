@@ -2,6 +2,7 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import { ensureSchoolUser } from "./authGuards";
 import { getPklEwsAlertsForScope, summarizePklEwsAlerts } from "../pkl/ews";
+import { getSchoolCapabilities } from "./schoolCapabilities";
 
 function displayName(user: Pick<User, "name" | "email" | "username">) {
   return user.name || user.username || user.email || "Pengguna";
@@ -311,7 +312,10 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
 
   const [students, teachers, classRooms, lmsCourses, companies, placements] = counts;
-  const ews = summarizePklEwsAlerts(ewsAlerts);
+  const capabilities = getSchoolCapabilities(school.level);
+  const ews = capabilities.usesPkl
+    ? summarizePklEwsAlerts(ewsAlerts)
+    : { totalAlerts: 0, high: 0, medium: 0, low: 0, affectedStudents: 0, affectedPlacements: 0 };
   const attention = [
     ...(!academicYear
       ? [{ code: "NO_ACTIVE_YEAR", severity: "warning" as const, label: "Belum ada tahun ajaran aktif", count: null, destination: "/school/academic-years" }]
@@ -361,7 +365,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     return {
       classRoomId: classRoom.id,
       className: classRoom.name,
-      departmentCode: classRoom.department?.code ?? null,
+      departmentCode: capabilities.usesDepartments ? (classRoom.department?.code ?? null) : null,
       totalRecords,
       absentCount,
       alpa,

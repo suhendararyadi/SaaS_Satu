@@ -5,6 +5,7 @@ import {
   getDutyTeacherReports,
   createDutyTeacherReport,
   getHomeroomDashboardData,
+  getSchoolInfo,
 } from "wasp/client/operations";
 import { Link } from "wasp/client/router";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
@@ -24,10 +25,15 @@ import {
   M3Text,
   M3Icon,
 } from "../../client/components/m3";
+import { getSchoolCapabilities } from "../../school/schoolCapabilities";
 
 export function GuruPiketPage({ user }: { user: AuthUser }) {
   const { data: dutyReports, isLoading, refetch } = useQuery(getDutyTeacherReports);
   const { data: homeroomClass } = useQuery(getHomeroomDashboardData);
+  const { data: school } = useQuery(getSchoolInfo);
+  const capabilities = school ? getSchoolCapabilities(school.level) : null;
+  const usesDepartments = capabilities?.usesDepartments ?? false;
+  const usesPkl = capabilities?.usesPkl ?? false;
 
   const [lateCount, setLateCount] = useState(0);
   const [dispensationCount, setDispensationCount] = useState(0);
@@ -278,7 +284,7 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
                 </span>
                 <h2 className="text-title-large font-bold text-md-on-surface mt-0.5">
                   Rombel: {homeroomClass.name}
-                  {homeroomClass.department ? ` (${homeroomClass.department.name})` : ""}
+                  {usesDepartments && homeroomClass.department ? ` (${homeroomClass.department.name})` : ""}
                 </h2>
               </div>
               <M3Badge variant="primary">
@@ -291,7 +297,7 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
                 <M3TableRow>
                   <M3TableHead>Nama Siswa</M3TableHead>
                   <M3TableHead>NIS</M3TableHead>
-                  <M3TableHead>Status Penempatan PKL</M3TableHead>
+                  {usesPkl && <M3TableHead>Status Penempatan PKL</M3TableHead>}
                 </M3TableRow>
               </M3TableHeader>
               <M3TableBody>
@@ -305,17 +311,19 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
                       <M3TableCell className="font-mono text-md-on-surface-variant">
                         {s.studentProfile?.nis || "-"}
                       </M3TableCell>
-                      <M3TableCell>
-                        {activePlacement ? (
-                          <M3Badge variant="success">
-                            PKL: {activePlacement.company?.name}
-                          </M3Badge>
-                        ) : (
-                          <span className="italic text-body-small text-md-on-surface-variant">
-                            Belum PKL
-                          </span>
-                        )}
-                      </M3TableCell>
+                      {usesPkl && (
+                        <M3TableCell>
+                          {activePlacement ? (
+                            <M3Badge variant="success">
+                              PKL: {activePlacement.company?.name}
+                            </M3Badge>
+                          ) : (
+                            <span className="italic text-body-small text-md-on-surface-variant">
+                              Belum PKL
+                            </span>
+                          )}
+                        </M3TableCell>
+                      )}
                     </M3TableRow>
                   );
                 })}
