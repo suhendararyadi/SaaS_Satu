@@ -38,6 +38,44 @@ const statusLabels: Record<DailyAttendanceStatus, string> = {
   TERLAMBAT: "Terlambat",
 };
 
+const statusVisuals: Record<DailyAttendanceStatus, {
+  icon: string;
+  activeClass: string;
+  idleClass: string;
+  iconClass: string;
+}> = {
+  HADIR: {
+    icon: "check_circle",
+    activeClass: "border-[#34C759]/30 bg-[#34C759]/16 text-[#187A35] shadow-[0_1px_2px_rgba(52,199,89,.16)] dark:border-[#30D158]/30 dark:bg-[#30D158]/18 dark:text-[#78E995]",
+    idleClass: "border-[#34C759]/16 bg-[#34C759]/[.055] text-[#4C6B55] hover:bg-[#34C759]/10 dark:border-[#30D158]/18 dark:bg-[#30D158]/[.07] dark:text-[#9CCDA9]",
+    iconClass: "bg-[#34C759]/15 text-[#248A3D] dark:bg-[#30D158]/18 dark:text-[#67D881]",
+  },
+  SAKIT: {
+    icon: "medical_services",
+    activeClass: "border-[#AF52DE]/30 bg-[#AF52DE]/15 text-[#7A2FA1] shadow-[0_1px_2px_rgba(175,82,222,.14)] dark:border-[#BF5AF2]/30 dark:bg-[#BF5AF2]/18 dark:text-[#D899F7]",
+    idleClass: "border-[#AF52DE]/16 bg-[#AF52DE]/[.05] text-[#6D5A73] hover:bg-[#AF52DE]/10 dark:border-[#BF5AF2]/18 dark:bg-[#BF5AF2]/[.07] dark:text-[#C6A9D2]",
+    iconClass: "bg-[#AF52DE]/14 text-[#8944AB] dark:bg-[#BF5AF2]/18 dark:text-[#D28AF4]",
+  },
+  IZIN: {
+    icon: "event_available",
+    activeClass: "border-[#007AFF]/28 bg-[#007AFF]/14 text-[#0058B8] shadow-[0_1px_2px_rgba(0,122,255,.14)] dark:border-[#0A84FF]/30 dark:bg-[#0A84FF]/18 dark:text-[#79B8FF]",
+    idleClass: "border-[#007AFF]/15 bg-[#007AFF]/[.05] text-[#52677B] hover:bg-[#007AFF]/10 dark:border-[#0A84FF]/18 dark:bg-[#0A84FF]/[.07] dark:text-[#9EB9D5]",
+    iconClass: "bg-[#007AFF]/13 text-[#0066CC] dark:bg-[#0A84FF]/18 dark:text-[#6BB1FF]",
+  },
+  ALPA: {
+    icon: "cancel",
+    activeClass: "border-[#FF3B30]/28 bg-[#FF3B30]/14 text-[#C2261E] shadow-[0_1px_2px_rgba(255,59,48,.13)] dark:border-[#FF453A]/30 dark:bg-[#FF453A]/18 dark:text-[#FF8A83]",
+    idleClass: "border-[#FF3B30]/15 bg-[#FF3B30]/[.045] text-[#765B59] hover:bg-[#FF3B30]/10 dark:border-[#FF453A]/18 dark:bg-[#FF453A]/[.065] dark:text-[#D0AAA7]",
+    iconClass: "bg-[#FF3B30]/13 text-[#D52B21] dark:bg-[#FF453A]/18 dark:text-[#FF817A]",
+  },
+  TERLAMBAT: {
+    icon: "schedule",
+    activeClass: "border-[#FF9500]/30 bg-[#FF9500]/16 text-[#A65D00] shadow-[0_1px_2px_rgba(255,149,0,.14)] dark:border-[#FF9F0A]/30 dark:bg-[#FF9F0A]/18 dark:text-[#FFC56E]",
+    idleClass: "border-[#FF9500]/16 bg-[#FF9500]/[.055] text-[#776551] hover:bg-[#FF9500]/11 dark:border-[#FF9F0A]/18 dark:bg-[#FF9F0A]/[.07] dark:text-[#D1B896]",
+    iconClass: "bg-[#FF9500]/14 text-[#C67600] dark:bg-[#FF9F0A]/18 dark:text-[#FFC15C]",
+  },
+};
+
 const monthOptions = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
@@ -60,14 +98,7 @@ function StatusButton({
   active: boolean;
   onClick: () => void;
 }) {
-  const activeClass =
-    status === "HADIR"
-      ? "bg-md-secondary text-md-on-secondary"
-      : status === "ALPA"
-        ? "bg-md-error text-md-on-error"
-        : status === "TERLAMBAT"
-          ? "bg-md-tertiary text-md-on-tertiary"
-          : "bg-md-primary text-md-on-primary";
+  const visual = statusVisuals[status];
 
   return (
     <button
@@ -75,13 +106,19 @@ function StatusButton({
       onClick={onClick}
       aria-pressed={active}
       className={[
-        "rounded-[999px] border px-3 py-1.5 text-[11.5px] font-semibold transition-colors",
-        active
-          ? `${activeClass} border-transparent`
-          : "border-md-outline-variant bg-md-surface text-md-on-surface-variant hover:bg-md-surface-container-high",
+        "group inline-flex min-h-8 items-center gap-1.5 rounded-[999px] border py-1 pl-1.5 pr-2.5 text-[11.5px] font-semibold transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[.98]",
+        active ? visual.activeClass : visual.idleClass,
       ].join(" ")}
     >
-      {statusLabels[status]}
+      <span
+        className={[
+          "flex size-[22px] shrink-0 items-center justify-center rounded-full transition-transform duration-150 group-hover:scale-105",
+          active ? "bg-white/55 dark:bg-black/15" : visual.iconClass,
+        ].join(" ")}
+      >
+        <M3Icon name={visual.icon} size={15} filled={active} weight={active ? 600 : 500} />
+      </span>
+      <span>{statusLabels[status]}</span>
     </button>
   );
 }
@@ -90,16 +127,22 @@ function StatCard({
   label,
   value,
   icon,
+  tone,
 }: {
   label: string;
   value: React.ReactNode;
   icon: string;
+  tone?: DailyAttendanceStatus | "TOTAL";
 }) {
+  const toneClass = tone && tone !== "TOTAL"
+    ? statusVisuals[tone].iconClass
+    : "bg-[#8E8E93]/12 text-[#636366] dark:bg-[#8E8E93]/18 dark:text-[#AEAEB2]";
+
   return (
     <M3Card variant="outlined" className="p-3.5">
       <div className="flex items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-md-surface-container-high text-md-on-surface-variant">
-          <M3Icon name={icon} size={19} />
+        <span className={`flex size-9 shrink-0 items-center justify-center rounded-[11px] ${toneClass}`}>
+          <M3Icon name={icon} size={19} filled={tone && tone !== "TOTAL"} weight={500} />
         </span>
         <div className="min-w-0">
           <p className="truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-md-on-surface-variant">
@@ -383,12 +426,12 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
             </M3Card>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-              <StatCard label="Total" value={draftSummary.total} icon="groups" />
-              <StatCard label="Hadir" value={draftSummary.hadir} icon="check_circle" />
-              <StatCard label="Sakit" value={draftSummary.sakit} icon="medical_services" />
-              <StatCard label="Izin" value={draftSummary.izin} icon="event_available" />
-              <StatCard label="Alpa" value={draftSummary.alpa} icon="cancel" />
-              <StatCard label="Terlambat" value={draftSummary.terlambat} icon="schedule" />
+              <StatCard label="Total" value={draftSummary.total} icon="groups" tone="TOTAL" />
+              <StatCard label="Hadir" value={draftSummary.hadir} icon="check_circle" tone="HADIR" />
+              <StatCard label="Sakit" value={draftSummary.sakit} icon="medical_services" tone="SAKIT" />
+              <StatCard label="Izin" value={draftSummary.izin} icon="event_available" tone="IZIN" />
+              <StatCard label="Alpa" value={draftSummary.alpa} icon="cancel" tone="ALPA" />
+              <StatCard label="Terlambat" value={draftSummary.terlambat} icon="schedule" tone="TERLAMBAT" />
             </div>
 
             {isLoading ? (
@@ -594,11 +637,11 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
 
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
                     <StatCard label="Tercatat" value={reportData.daily.summary.total} icon="groups" />
-                    <StatCard label="Hadir" value={reportData.daily.summary.hadir} icon="check_circle" />
-                    <StatCard label="Sakit" value={reportData.daily.summary.sakit} icon="medical_services" />
-                    <StatCard label="Izin" value={reportData.daily.summary.izin} icon="event_available" />
-                    <StatCard label="Alpa" value={reportData.daily.summary.alpa} icon="cancel" />
-                    <StatCard label="Terlambat" value={reportData.daily.summary.terlambat} icon="schedule" />
+                    <StatCard label="Hadir" value={reportData.daily.summary.hadir} icon="check_circle" tone="HADIR" />
+                    <StatCard label="Sakit" value={reportData.daily.summary.sakit} icon="medical_services" tone="SAKIT" />
+                    <StatCard label="Izin" value={reportData.daily.summary.izin} icon="event_available" tone="IZIN" />
+                    <StatCard label="Alpa" value={reportData.daily.summary.alpa} icon="cancel" tone="ALPA" />
+                    <StatCard label="Terlambat" value={reportData.daily.summary.terlambat} icon="schedule" tone="TERLAMBAT" />
                     <StatCard label="Rombel Selesai" value={reportData.daily.completedClasses} icon="task_alt" />
                   </div>
 
@@ -708,11 +751,11 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                     {reportData.studentHistory ? (
                       <>
                         <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
-                          <StatCard label="Hadir" value={reportData.studentHistory.summary.hadir} icon="check_circle" />
-                          <StatCard label="Sakit" value={reportData.studentHistory.summary.sakit} icon="medical_services" />
-                          <StatCard label="Izin" value={reportData.studentHistory.summary.izin} icon="event_available" />
-                          <StatCard label="Alpa" value={reportData.studentHistory.summary.alpa} icon="cancel" />
-                          <StatCard label="Terlambat" value={reportData.studentHistory.summary.terlambat} icon="schedule" />
+                          <StatCard label="Hadir" value={reportData.studentHistory.summary.hadir} icon="check_circle" tone="HADIR" />
+                          <StatCard label="Sakit" value={reportData.studentHistory.summary.sakit} icon="medical_services" tone="SAKIT" />
+                          <StatCard label="Izin" value={reportData.studentHistory.summary.izin} icon="event_available" tone="IZIN" />
+                          <StatCard label="Alpa" value={reportData.studentHistory.summary.alpa} icon="cancel" tone="ALPA" />
+                          <StatCard label="Terlambat" value={reportData.studentHistory.summary.terlambat} icon="schedule" tone="TERLAMBAT" />
                           <StatCard label="Kehadiran" value={reportData.studentHistory.summary.rate !== null ? `${reportData.studentHistory.summary.rate}%` : "-"} icon="percent" />
                         </div>
                         <div className="max-h-[360px] overflow-auto rounded-[12px] border border-md-outline-variant/40">
