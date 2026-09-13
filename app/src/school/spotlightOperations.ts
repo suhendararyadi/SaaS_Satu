@@ -153,6 +153,7 @@ export const getSchoolSpotlightSearch = async (
         username: true,
         role: true,
         teacherProfile: { select: { nip: true, title: true, isWaka: true } },
+        wakasekAssignments: { select: { role: true } },
       },
       orderBy: { name: "asc" },
       take,
@@ -162,7 +163,11 @@ export const getSchoolSpotlightSearch = async (
       const title = teacher.name || teacher.username || "Guru";
       const detail = [
         teacher.role === "SCHOOL_ADMIN" ? "Admin Sekolah" : "Guru",
-        teacher.teacherProfile?.isWaka ? "Waka" : null,
+        teacher.wakasekAssignments.length
+          ? teacher.wakasekAssignments.map((assignment) => assignment.role.replace("_", " ")).join(", ")
+          : teacher.teacherProfile?.isWaka
+            ? "Waka Kurikulum"
+            : null,
         teacher.teacherProfile?.nip ? `NIP ${teacher.teacherProfile.nip}` : null,
       ]
         .filter(Boolean)

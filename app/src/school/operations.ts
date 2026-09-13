@@ -4,6 +4,7 @@ import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser, requireSchoolAdmin, ensureAuthenticated, ensureSuperAdmin, requireSchoolDirectoryAccess } from "./authGuards";
 import { getSchoolCapabilities } from "./schoolCapabilities";
+import { WAKASEK_ROLES } from "./wakasek";
 
 async function getTenantSchoolCapabilities(schoolId: string) {
   const school = await prisma.school.findUnique({
@@ -603,6 +604,10 @@ export const getSchoolTeachers = async (_args: unknown, context: { user?: User }
       username: true,
       role: true,
       teacherProfile: true,
+      wakasekAssignments: {
+        select: { id: true, role: true },
+        orderBy: { role: "asc" },
+      },
       homeroomClasses: {
         select: { id: true, name: true },
       },
@@ -688,7 +693,8 @@ const createTeacherSchema = z.object({
   email: z.string().email("Format email tidak valid").optional().nullable().or(z.literal("")),
   phone: z.string().trim().optional().nullable(),
   role: z.enum(["TEACHER", "SCHOOL_ADMIN"]).default("TEACHER"),
-  isWaka: z.boolean().default(false),
+  wakasekRoles: z.array(z.enum(WAKASEK_ROLES)).default([]),
+  isWaka: z.boolean().optional(),
 });
 
 export const createTeacher = async (rawArgs: unknown, context: { user?: User }) => {
@@ -739,9 +745,24 @@ export const createTeacher = async (rawArgs: unknown, context: { user?: User }) 
         nip: cleanNip,
         title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
         phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
-        isWaka: args.isWaka ?? false,
+        isWaka: args.wakasekRoles.includes("KURIKULUM") || args.isWaka === true,
       },
     });
+    const effectiveWakasekRoles = args.wakasekRoles.length
+      ? args.wakasekRoles
+      : args.isWaka
+        ? ["KURIKULUM" as const]
+        : [];
+    if (effectiveWakasekRoles.length) {
+      await tx.wakasekAssignment.createMany({
+        data: effectiveWakasekRoles.map((wakaRole) => ({
+          schoolId: admin.schoolId,
+          teacherId: newUser.id,
+          role: wakaRole,
+        })),
+        skipDuplicates: true,
+      });
+    }
     return newUser;
   });
 };
@@ -754,7 +775,8 @@ const updateTeacherSchema = z.object({
   email: z.string().email("Format email tidak valid").optional().nullable().or(z.literal("")),
   phone: z.string().trim().optional().nullable(),
   role: z.enum(["TEACHER", "SCHOOL_ADMIN"]).default("TEACHER"),
-  isWaka: z.boolean().default(false),
+  wakasekRoles: z.array(z.enum(WAKASEK_ROLES)).default([]),
+  isWaka: z.boolean().optional(),
 });
 
 export const updateTeacher = async (rawArgs: unknown, context: { user?: User }) => {
@@ -802,6 +824,12 @@ export const updateTeacher = async (rawArgs: unknown, context: { user?: User }) 
       },
     });
 
+    const effectiveWakasekRoles = args.wakasekRoles.length
+      ? args.wakasekRoles
+      : args.isWaka
+        ? ["KURIKULUM" as const]
+        : [];
+
     await tx.teacherProfile.upsert({
       where: { userId: args.id },
       create: {
@@ -809,15 +837,30 @@ export const updateTeacher = async (rawArgs: unknown, context: { user?: User }) 
         nip: cleanNip,
         title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
         phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
-        isWaka: args.isWaka ?? false,
+        isWaka: effectiveWakasekRoles.includes("KURIKULUM"),
       },
       update: {
         nip: cleanNip,
         title: args.title && args.title.trim() !== "" ? args.title.trim() : null,
         phone: args.phone && args.phone.trim() !== "" ? args.phone.trim() : null,
-        isWaka: args.isWaka ?? false,
+        isWaka: effectiveWakasekRoles.includes("KURIKULUM"),
       },
     });
+
+    await tx.wakasekAssignment.deleteMany({
+      where: { schoolId: admin.schoolId, teacherId: args.id },
+    });
+    if (effectiveWakasekRoles.length) {
+      await tx.wakasekAssignment.createMany({
+        data: effectiveWakasekRoles.map((wakaRole) => ({
+          schoolId: admin.schoolId,
+          teacherId: args.id,
+          role: wakaRole,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     return updatedUser;
   });
 };

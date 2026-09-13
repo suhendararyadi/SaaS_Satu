@@ -29,6 +29,7 @@ import {
 } from "../../client/components/m3";
 import { SchoolSpotlight } from "./SchoolSpotlight";
 import { getSchoolCapabilities } from "../schoolCapabilities";
+import { WAKASEK_ROLE_META, type WakasekRoleCode } from "../wakasek";
 
 interface SchoolLayoutProps { user: AuthUser; children: ReactNode }
 
@@ -52,7 +53,8 @@ const pageTitles: Array<[string, string]> = [
   ["/school/ews", "Early Warning System"],
   ["/school/governance/piket", "Guru Piket"],
   ["/school/governance/walikelas", "Wali Kelas"],
-  ["/school/governance/waka", "Waka Kurikulum"],
+  ["/school/governance/wakasek", "Panel Wakasek"],
+  ["/school/governance/waka", "Panel Wakasek"],
   ["/school/reports", "Laporan"],
   ["/school/settings", "Pengaturan Sekolah"],
   ["/school", "Beranda"],
@@ -249,7 +251,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
         { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
-        { label: "Waka Kurikulum", href: "/school/governance/waka", icon: "verified_user" },
+        { label: "Panel Wakasek", href: "/school/governance/wakasek", icon: "verified_user" },
         { label: "Laporan", href: "/school/reports", icon: "description" },
       ] });
       sections.push({ title: "SISTEM", items: [{ label: "Pengaturan Sekolah", href: "/school/settings", icon: "settings" }] });
@@ -265,7 +267,11 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
           { label: `Presensi ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/attendance", icon: "fact_check" },
           { label: `Wali ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/governance/walikelas", icon: "supervisor_account" },
         ] : []),
-        ...(teacherDashboard?.assignments?.isWaka ? [{ label: "Waka Kurikulum", href: "/school/governance/waka", icon: "verified_user" }] : []),
+        ...(((teacherDashboard?.assignments?.wakasekRoles || []) as WakasekRoleCode[]).map((wakaRole) => ({
+          label: WAKASEK_ROLE_META[wakaRole].label,
+          href: "/school/governance/wakasek?role=" + wakaRole,
+          icon: WAKASEK_ROLE_META[wakaRole].icon,
+        }))),
       ];
       if (responsibilities.length) sections.push({ title: "TANGGUNG JAWAB", items: responsibilities });
       sections.push({ title: "LAPORAN", items: [{ label: "Laporan Saya", href: "/school/reports", icon: "description" }] });

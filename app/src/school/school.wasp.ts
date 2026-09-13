@@ -100,7 +100,7 @@ export const schoolSpec: Spec = [
   query(getDepartments, { entities: ["Department"] }),
   query(getAcademicYears, { entities: ["AcademicYear"] }),
   query(getClassRooms, { entities: ["ClassRoom", "Department", "AcademicYear", "User"] }),
-  query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "ClassRoom"] }),
+  query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "WakasekAssignment", "ClassRoom"] }),
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
   query(getDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
   query(getDailyAttendanceReportData, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
@@ -110,7 +110,7 @@ export const schoolSpec: Spec = [
     entities: ["User", "ClassRoom", "LmsCourse", "LmsAssignment", "LmsSubmission", "LmsAssessment", "LmsAssessmentResult", "Placement", "Company", "AttendanceLog", "DailyJournal"],
   }),
   query(getTeacherDashboardData, {
-    entities: ["User", "TeacherProfile", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
+    entities: ["User", "TeacherProfile", "WakasekAssignment", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
   }),
   query(getSchoolAdminDashboardData, {
     entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "SchoolDailyAttendance", "Company", "Placement", "AttendanceLog", "DailyJournal"],
@@ -119,7 +119,7 @@ export const schoolSpec: Spec = [
     entities: ["User", "Placement", "Company", "DailyJournal"],
   }),
   query(getSchoolSpotlightSearch, {
-    entities: ["User", "StudentProfile", "TeacherProfile", "ClassRoom", "Department", "AcademicYear", "LmsCourse", "Company", "Placement", "SchoolSiteContent"],
+    entities: ["User", "StudentProfile", "TeacherProfile", "WakasekAssignment", "ClassRoom", "Department", "AcademicYear", "LmsCourse", "Company", "Placement", "SchoolSiteContent"],
   }),
 
   query(getSchoolWebsiteAdmin, { entities: [...websiteEntities] }),
@@ -137,9 +137,9 @@ export const schoolSpec: Spec = [
   action(createClassRoom, { entities: ["ClassRoom", "Department", "AcademicYear"] }),
   action(updateClassRoom, { entities: ["ClassRoom"] }),
   action(deleteClassRoom, { entities: ["ClassRoom", "User"] }),
-  action(createTeacher, { entities: ["School", "User", "TeacherProfile"] }),
-  action(updateTeacher, { entities: ["User", "TeacherProfile"] }),
-  action(deleteTeacher, { entities: ["User", "TeacherProfile", "ClassRoom", "LmsCourse", "Placement"] }),
+  action(createTeacher, { entities: ["School", "User", "TeacherProfile", "WakasekAssignment"] }),
+  action(updateTeacher, { entities: ["User", "TeacherProfile", "WakasekAssignment"] }),
+  action(deleteTeacher, { entities: ["User", "TeacherProfile", "WakasekAssignment", "ClassRoom", "LmsCourse", "Placement"] }),
   action(createStudent, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   action(updateStudent, { entities: ["User", "StudentProfile", "ClassRoom"] }),
   action(deleteStudent, { entities: ["User", "StudentProfile", "Placement"] }),
@@ -147,7 +147,7 @@ export const schoolSpec: Spec = [
   action(importStudentsFromCsv, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   query(previewStudentsFromDapodik, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   action(importStudentsFromDapodik, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
-  action(importTeachersFromCsv, { entities: ["School", "User", "TeacherProfile"] }),
+  action(importTeachersFromCsv, { entities: ["School", "User", "TeacherProfile", "WakasekAssignment"] }),
   action(importCompaniesFromCsv, { entities: ["School", "Company"] }),
   action(switchActiveSchool, { entities: ["School", "User"] }),
   action(createSchoolByAdmin, { entities: ["School", "AcademicYear", "User"] }),

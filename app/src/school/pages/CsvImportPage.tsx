@@ -92,7 +92,7 @@ export function CsvImportPage({ user }: { user: AuthUser }) {
     TEACHERS: {
       title: "Data Guru & Tendik",
       filename: "template_guru.csv",
-      desc: "Format CSV untuk pendaftaran akun guru dan tendik. Mendukung penugasan Waka.",
+      desc: "Format CSV untuk pendaftaran akun guru dan tendik. Mendukung penugasan Wakasek modular.",
       sample: `nama,nip,gelar,hp,email,is_waka
 Guru Contoh 01,190000000000000001,S.Pd.,080000000001,guru01@example.sch.id,ya
 Guru Contoh 02,190000000000000002,S.Kom.,080000000002,guru02@example.sch.id,tidak`,

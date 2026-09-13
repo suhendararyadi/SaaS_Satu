@@ -9,6 +9,7 @@ import {
   deleteTeacher,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
+import { WAKASEK_ROLES, WAKASEK_ROLE_META, type WakasekRoleCode } from "../wakasek";
 import {
   M3Card,
   M3Button,
@@ -45,7 +46,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<"TEACHER" | "SCHOOL_ADMIN">("TEACHER");
-  const [isWaka, setIsWaka] = useState(false);
+  const [wakasekRoles, setWakasekRoles] = useState<WakasekRoleCode[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -64,7 +65,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
     setEmail("");
     setPhone("");
     setRole("TEACHER");
-    setIsWaka(false);
+    setWakasekRoles([]);
     setErrorMsg("");
   };
 
@@ -77,7 +78,8 @@ export function TeachersPage({ user }: { user: AuthUser }) {
     setEmail(t.email || "");
     setPhone(t.teacherProfile?.phone || "");
     setRole(t.role === "SCHOOL_ADMIN" ? "SCHOOL_ADMIN" : "TEACHER");
-    setIsWaka(t.teacherProfile?.isWaka || false);
+    const assignedRoles = (t.wakasekAssignments || []).map((assignment: any) => assignment.role) as WakasekRoleCode[];
+    setWakasekRoles(assignedRoles.length ? assignedRoles : t.teacherProfile?.isWaka ? ["KURIKULUM"] : []);
     setErrorMsg("");
   };
 
@@ -105,7 +107,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           role,
-          isWaka,
+          wakasekRoles,
         });
         setSuccessMsg(`Guru "${name.trim()}" berhasil ditambahkan.`);
       } else if (modalMode === "edit" && selectedTeacherId) {
@@ -117,7 +119,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           role,
-          isWaka,
+          wakasekRoles,
         });
         setSuccessMsg(`Data guru "${name.trim()}" berhasil diperbarui.`);
       }
@@ -300,21 +302,26 @@ export function TeachersPage({ user }: { user: AuthUser }) {
 
                     <M3TableCell>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {t.teacherProfile?.isWaka && (
+                        {((t.wakasekAssignments?.length
+                          ? t.wakasekAssignments.map((assignment: any) => assignment.role)
+                          : t.teacherProfile?.isWaka
+                            ? ["KURIKULUM"]
+                            : []) as WakasekRoleCode[]).map((wakaRole) => (
                           <M3Badge
+                            key={wakaRole}
                             variant="tertiary"
                             size="sm"
-                            icon={<M3Icon name="verified_user" size={12} className="mr-1" />}
+                            icon={<M3Icon name={WAKASEK_ROLE_META[wakaRole].icon} size={12} className="mr-1" />}
                           >
-                            Waka Kurikulum
+                            {WAKASEK_ROLE_META[wakaRole].shortLabel}
                           </M3Badge>
-                        )}
+                        ))}
                         {t.homeroomClasses?.map((hc) => (
                           <M3Badge key={hc.id} variant="primary" size="sm">
                             Wali {hc.name}
                           </M3Badge>
                         ))}
-                        {!t.teacherProfile?.isWaka &&
+                        {!(t.wakasekAssignments?.length || t.teacherProfile?.isWaka) &&
                           (!t.homeroomClasses || t.homeroomClasses.length === 0) && (
                             <M3Badge variant="outline" size="sm">
                               Guru Mapel
@@ -482,15 +489,39 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               onChange={(e) => setRole(e.target.value as any)}
             />
 
-            <div className="pt-2 border-t border-md-outline-variant/40">
-              <M3Switch
-                checked={isWaka}
-                onChange={setIsWaka}
-                label="Tugaskan sebagai Waka Kurikulum"
-              />
-              <p className="text-xs text-md-on-surface-variant mt-1 ml-11">
-                Waka Kurikulum memiliki akses memantau agenda mengajar seluruh guru.
-              </p>
+            <div className="space-y-3 border-t border-md-outline-variant/40 pt-3">
+              <div>
+                <p className="text-sm font-semibold text-md-on-surface">Penugasan Wakasek</p>
+                <p className="mt-0.5 text-xs leading-5 text-md-on-surface-variant">
+                  Satu guru dapat memegang lebih dari satu bidang. Panel dan menu akan muncul otomatis sesuai penugasan.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {WAKASEK_ROLES.map((wakaRole) => {
+                  const meta = WAKASEK_ROLE_META[wakaRole];
+                  const checked = wakasekRoles.includes(wakaRole);
+                  return (
+                    <div key={wakaRole} className="rounded-[14px] border border-md-outline-variant/40 bg-md-surface-container-low/35 p-3">
+                      <M3Switch
+                        checked={checked}
+                        onChange={(nextChecked) =>
+                          setWakasekRoles((current) =>
+                            nextChecked
+                              ? current.includes(wakaRole)
+                                ? current
+                                : [...current, wakaRole]
+                              : current.filter((roleCode) => roleCode !== wakaRole)
+                          )
+                        }
+                        label={meta.label}
+                      />
+                      <p className="mt-1 pl-11 text-[11.5px] leading-5 text-md-on-surface-variant">
+                        {meta.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </form>
         </M3Dialog>

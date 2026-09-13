@@ -11,12 +11,18 @@ import { requireTeacher } from "../school/authGuards";
 export const getWakaSupervisionData = async (_args: unknown, context: { user?: User }) => {
   const user = requireTeacher(context);
   if (!user.isAdmin && user.role === "TEACHER") {
-    const profile = await prisma.teacherProfile.findUnique({
-      where: { userId: user.id },
-      select: { isWaka: true },
-    });
-    if (!profile?.isWaka) {
-      throw new HttpError(403, "Dashboard supervisi hanya dapat diakses oleh Wakil Kepala Sekolah.");
+    const [profile, assignment] = await Promise.all([
+      prisma.teacherProfile.findUnique({
+        where: { userId: user.id },
+        select: { isWaka: true },
+      }),
+      prisma.wakasekAssignment.findFirst({
+        where: { schoolId: user.schoolId, teacherId: user.id, role: "KURIKULUM" },
+        select: { id: true },
+      }),
+    ]);
+    if (!profile?.isWaka && !assignment) {
+      throw new HttpError(403, "Dashboard supervisi Kurikulum hanya dapat diakses oleh Waka Kurikulum.");
     }
   }
 

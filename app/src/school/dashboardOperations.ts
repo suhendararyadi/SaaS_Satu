@@ -155,7 +155,7 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
   const user = ensureSchoolUser(context);
   if (user.role !== "TEACHER") throw new HttpError(403, "Dashboard ini hanya tersedia untuk guru.");
 
-  const [teacher, courses, profile, homeroomClass, activePlacements] = await Promise.all([
+  const [teacher, courses, profile, wakasekAssignments, homeroomClass, activePlacements] = await Promise.all([
     prisma.user.findFirst({
       where: { id: user.id, schoolId: user.schoolId, role: "TEACHER" },
       select: { id: true, name: true, email: true, username: true },
@@ -176,6 +176,11 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
       },
     }),
     prisma.teacherProfile.findUnique({ where: { userId: user.id }, select: { isWaka: true } }),
+    prisma.wakasekAssignment.findMany({
+      where: { schoolId: user.schoolId, teacherId: user.id },
+      select: { role: true },
+      orderBy: { role: "asc" },
+    }),
     prisma.classRoom.findFirst({
       where: { schoolId: user.schoolId, homeroomTeacherId: user.id, academicYear: { isActive: true } },
       select: { id: true, name: true },
@@ -239,7 +244,12 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
       : null,
     assignments: {
       homeroomClass,
-      isWaka: profile?.isWaka ?? false,
+      wakasekRoles: wakasekAssignments.length
+        ? wakasekAssignments.map((assignment) => assignment.role)
+        : profile?.isWaka
+          ? ["KURIKULUM" as const]
+          : [],
+      isWaka: wakasekAssignments.some((assignment) => assignment.role === "KURIKULUM") || (profile?.isWaka ?? false),
       dutyTeacherContext: null,
     },
   };

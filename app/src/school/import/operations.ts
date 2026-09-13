@@ -2,6 +2,7 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../../server/validation";
+import { parseWakasekRolesText } from "../wakasek";
 import { requireSchoolAdmin } from "../authGuards";
 import { parseCsv, extractValue } from "./csvParser";
 
@@ -201,8 +202,9 @@ export const importTeachersFromCsv = async (
     const nip = extractValue(row, ["nip", "nonip"]) || null;
     const title = extractValue(row, ["gelar", "title"]) || null;
     const phone = extractValue(row, ["hp", "telepon", "phone", "nohp"]) || null;
-    const rawWaka = extractValue(row, ["iswaka", "waka"]).toLowerCase();
-    const isWaka = rawWaka === "ya" || rawWaka === "true" || rawWaka === "1";
+    const rawWaka = extractValue(row, ["wakasekroles", "bidangwakasek", "waka", "iswaka"]);
+    const wakasekRoles = parseWakasekRolesText(rawWaka);
+    const isWaka = wakasekRoles.includes("KURIKULUM");
 
     const email =
       extractValue(row, ["email"]) ||
@@ -234,6 +236,19 @@ export const importTeachersFromCsv = async (
             create: { userId: existingUser.id, nip, title, phone, isWaka },
             update: { nip: nip ?? undefined, title: title ?? undefined, phone: phone ?? undefined, isWaka },
           });
+          await tx.wakasekAssignment.deleteMany({
+            where: { schoolId: admin.schoolId, teacherId: existingUser.id },
+          });
+          if (wakasekRoles.length) {
+            await tx.wakasekAssignment.createMany({
+              data: wakasekRoles.map((role) => ({
+                schoolId: admin.schoolId,
+                teacherId: existingUser.id,
+                role,
+              })),
+              skipDuplicates: true,
+            });
+          }
         });
       } else {
         await prisma.$transaction(async (tx) => {
@@ -243,6 +258,16 @@ export const importTeachersFromCsv = async (
           await tx.teacherProfile.create({
             data: { userId: newUser.id, nip, title, phone, isWaka },
           });
+          if (wakasekRoles.length) {
+            await tx.wakasekAssignment.createMany({
+              data: wakasekRoles.map((role) => ({
+                schoolId: admin.schoolId,
+                teacherId: newUser.id,
+                role,
+              })),
+              skipDuplicates: true,
+            });
+          }
         });
       }
 

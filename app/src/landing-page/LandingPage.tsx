@@ -7,7 +7,7 @@ const modules = [
   { icon: "account_tree", name: "Akademik", description: "Tahun ajaran, jurusan, rombel, guru, peserta didik, dan import data.", tone: "bg-md-primary-container text-md-primary" },
   { icon: "menu_book", name: "LMS & CBT", description: "Ruang mapel, materi, tugas, agenda KBM, presensi kelas, dan asesmen CBT.", tone: "bg-md-primary-container text-md-primary" },
   { icon: "work", name: "E-PKL", description: "Mitra DUDI, penempatan, presensi lokasi, jurnal harian, review, dan monitoring.", tone: "bg-md-primary-container text-md-primary" },
-  { icon: "verified_user", name: "Tata Kelola", description: "Dukungan kerja Wali Kelas, Waka Kurikulum, dan Guru Piket sesuai data yang tersedia.", tone: "bg-md-primary-container text-md-primary" },
+  { icon: "verified_user", name: "Tata Kelola", description: "Dukungan kerja Wali Kelas, Wakasek Kurikulum/Kesiswaan/Sarpras/Humas-Hubin, dan Guru Piket sesuai penugasan.", tone: "bg-md-primary-container text-md-primary" },
   { icon: "description", name: "Laporan", description: "Rekap akademik dan PKL tanpa angka contoh atau nilai yang dibuat-buat.", tone: "bg-md-primary-container text-md-primary" },
   { icon: "domain", name: "Multi-tenant", description: "Konteks sekolah aktif dan otorisasi server-side membatasi data sesuai peran dan tenant.", tone: "bg-md-primary-container text-md-primary" },
 ] as const;

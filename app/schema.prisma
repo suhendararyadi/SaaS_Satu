@@ -59,6 +59,13 @@ enum SchoolSiteNavType {
   EXTERNAL
 }
 
+enum WakasekRole {
+  KURIKULUM
+  KESISWAAN
+  SARPRAS
+  HUMAS_HUBIN
+}
+
 model User {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -69,10 +76,11 @@ model User {
   isAdmin  Boolean  @default(false)
   role     UserRole @default(STUDENT)
 
-  schoolId       String?
-  school         School?         @relation(fields: [schoolId], references: [id], onDelete: SetNull)
-  teacherProfile TeacherProfile?
-  studentProfile StudentProfile?
+  schoolId           String?
+  school             School?             @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  teacherProfile     TeacherProfile?
+  studentProfile     StudentProfile?
+  wakasekAssignments WakasekAssignment[]
 
   classRoomId     String?
   classRoom       ClassRoom?  @relation("StudentClass", fields: [classRoomId], references: [id])
@@ -82,12 +90,12 @@ model User {
   teacherPlacements Placement[] @relation("TeacherPlacements")
   mentorPlacements  Placement[] @relation("MentorPlacements")
 
-  teacherCourses        LmsCourse[]           @relation("TeacherCourses")
-  attendanceRecords     LmsAttendanceRecord[]
-  assignmentSubmissions LmsSubmission[]
-  assessmentResults     LmsAssessmentResult[]
-  dutyReports           DutyTeacherReport[]
-  dailyAttendances      SchoolDailyAttendance[] @relation("DailyAttendanceStudent")
+  teacherCourses           LmsCourse[]             @relation("TeacherCourses")
+  attendanceRecords        LmsAttendanceRecord[]
+  assignmentSubmissions    LmsSubmission[]
+  assessmentResults        LmsAssessmentResult[]
+  dutyReports              DutyTeacherReport[]
+  dailyAttendances         SchoolDailyAttendance[] @relation("DailyAttendanceStudent")
   recordedDailyAttendances SchoolDailyAttendance[] @relation("DailyAttendanceRecorder")
 
   paymentProcessorUserId        String?   @unique
@@ -126,20 +134,21 @@ model School {
   subscriptionStatus String           @default("active")
   subscriptionEndsAt DateTime?
 
-  users         User[]
-  departments   Department[]
-  classRooms    ClassRoom[]
-  academicYears AcademicYear[]
-  companies     Company[]
-  placements    Placement[]
-  lmsCourses    LmsCourse[]
-  dutyReports   DutyTeacherReport[]
-  dailyAttendances SchoolDailyAttendance[]
-  site          SchoolSite?
-  siteContents  SchoolSiteContent[]
-  siteNavItems  SchoolSiteNavItem[]
-  siteMedia     SchoolSiteMedia[]
-  siteRevisions SchoolSiteRevision[]
+  users              User[]
+  departments        Department[]
+  classRooms         ClassRoom[]
+  academicYears      AcademicYear[]
+  companies          Company[]
+  placements         Placement[]
+  lmsCourses         LmsCourse[]
+  dutyReports        DutyTeacherReport[]
+  dailyAttendances   SchoolDailyAttendance[]
+  wakasekAssignments WakasekAssignment[]
+  site               SchoolSite?
+  siteContents       SchoolSiteContent[]
+  siteNavItems       SchoolSiteNavItem[]
+  siteMedia          SchoolSiteMedia[]
+  siteRevisions      SchoolSiteRevision[]
 }
 
 model Department {
@@ -154,14 +163,14 @@ model Department {
 }
 
 model AcademicYear {
-  id       String      @id @default(uuid())
-  schoolId String
-  school   School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  yearName String // "2026/2027"
-  semester String // "GANJIL" | "GENAP"
-  isActive Boolean     @default(false)
-  classes  ClassRoom[]
-  courses  LmsCourse[]
+  id               String                  @id @default(uuid())
+  schoolId         String
+  school           School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  yearName         String // "2026/2027"
+  semester         String // "GANJIL" | "GENAP"
+  isActive         Boolean                 @default(false)
+  classes          ClassRoom[]
+  courses          LmsCourse[]
   dailyAttendances SchoolDailyAttendance[]
 
   @@unique([schoolId, yearName, semester])
@@ -169,18 +178,18 @@ model AcademicYear {
 }
 
 model ClassRoom {
-  id                String       @id @default(uuid())
+  id                String                  @id @default(uuid())
   schoolId          String
-  school            School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school            School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   departmentId      String?
-  department        Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  department        Department?             @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   academicYearId    String
-  academicYear      AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear            @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   gradeLevel        Int // 1..6 (SD), 7..9 (SMP), 10..13 (SMA/SMK)
   name              String // "XII RPL 1"
   homeroomTeacherId String?
-  homeroomTeacher   User?        @relation("HomeroomClasses", fields: [homeroomTeacherId], references: [id])
-  students          User[]       @relation("StudentClass")
+  homeroomTeacher   User?                   @relation("HomeroomClasses", fields: [homeroomTeacherId], references: [id])
+  students          User[]                  @relation("StudentClass")
   lmsCourses        LmsCourse[]
   dailyAttendances  SchoolDailyAttendance[]
 
@@ -189,7 +198,6 @@ model ClassRoom {
   @@index([schoolId, departmentId])
   @@index([schoolId, homeroomTeacherId])
 }
-
 
 model SchoolDailyAttendance {
   id             String       @id @default(uuid())
@@ -223,13 +231,30 @@ model TeacherProfile {
   nip    String?
   title  String? // "S.Kom., M.T."
   phone  String?
+  // Legacy compatibility flag. New Wakasek access is stored in WakasekAssignment.
+  // During migration, existing true values are mapped to KURIKULUM.
   isWaka Boolean @default(false)
 }
 
+model WakasekAssignment {
+  id        String      @id @default(uuid())
+  schoolId  String
+  school    School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   User        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  role      WakasekRole
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([schoolId, teacherId, role])
+  @@index([schoolId, role])
+  @@index([teacherId])
+}
+
 model StudentProfile {
-  id        String    @id @default(uuid())
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Core identity. Dapodik NIPD maps to nis for backwards compatibility.
   nis        String?
@@ -302,16 +327,16 @@ model StudentProfile {
   bankAccountHolder String?
 
   // Additional Dapodik attributes.
-  specialNeeds       String?
-  birthOrder         Int?
-  latitude           Float?
-  longitude          Float?
-  familyCardNumber   String?
-  weightKg           Float?
-  heightCm           Float?
+  specialNeeds        String?
+  birthOrder          Int?
+  latitude            Float?
+  longitude           Float?
+  familyCardNumber    String?
+  weightKg            Float?
+  heightCm            Float?
   headCircumferenceCm Float?
-  siblingCount       Int?
-  distanceToSchoolKm Float?
+  siblingCount        Int?
+  distanceToSchoolKm  Float?
 
   dapodikImportedAt DateTime?
 
@@ -654,7 +679,6 @@ model SchoolSiteMedia {
 
   @@index([schoolId, createdAt])
 }
-
 
 model SchoolSiteRevision {
   id           String   @id @default(uuid())

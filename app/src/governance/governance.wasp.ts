@@ -1,5 +1,5 @@
 import { action, page, query, route, type Spec } from "@wasp.sh/spec";
-import { WakaKurikulumPage } from "./pages/WakaKurikulumPage" with { type: "ref" };
+import { WakasekDashboardPage } from "./pages/WakasekDashboardPage" with { type: "ref" };
 import { GuruPiketPage } from "./pages/GuruPiketPage" with { type: "ref" };
 import { WaliKelasPage } from "./pages/WaliKelasPage" with { type: "ref" };
 
@@ -9,9 +9,28 @@ import {
   createDutyTeacherReport,
   getHomeroomDashboardData,
 } from "./operations" with { type: "ref" };
+import { getWakasekDashboardData } from "./wakasekOperations" with { type: "ref" };
 
 export const governanceSpec: Spec = [
   // Queries
+  query(getWakasekDashboardData, {
+    entities: [
+      "WakasekAssignment",
+      "School",
+      "User",
+      "TeacherProfile",
+      "AcademicYear",
+      "LmsCourse",
+      "LmsAgenda",
+      "ClassRoom",
+      "Department",
+      "SchoolDailyAttendance",
+      "Company",
+      "Placement",
+      "SchoolSite",
+      "SchoolSiteContent",
+    ],
+  }),
   query(getWakaSupervisionData, {
     entities: [
       "LmsCourse",
@@ -20,6 +39,7 @@ export const governanceSpec: Spec = [
       "LmsAgenda",
       "LmsAgendaPhoto",
       "TeacherProfile",
+      "WakasekAssignment",
     ],
   }),
   query(getDutyTeacherReports, {
@@ -46,9 +66,14 @@ export const governanceSpec: Spec = [
 
   // Routes
   route(
+    "WakasekDashboardRoute",
+    "/school/governance/wakasek",
+    page(WakasekDashboardPage, { authRequired: true })
+  ),
+  route(
     "WakaKurikulumRoute",
     "/school/governance/waka",
-    page(WakaKurikulumPage, { authRequired: true })
+    page(WakasekDashboardPage, { authRequired: true })
   ),
   route(
     "GuruPiketRoute",

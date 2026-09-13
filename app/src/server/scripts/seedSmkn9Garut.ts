@@ -117,6 +117,21 @@ export async function seedSmkn9Garut(prisma: PrismaClient) {
     },
     update: { isWaka: true },
   });
+  await prisma.wakasekAssignment.upsert({
+    where: {
+      schoolId_teacherId_role: {
+        schoolId: school.id,
+        teacherId: teacherWaka.id,
+        role: "KURIKULUM",
+      },
+    },
+    create: {
+      schoolId: school.id,
+      teacherId: teacherWaka.id,
+      role: "KURIKULUM",
+    },
+    update: {},
+  });
 
   const teacherSuhendar = await prisma.user.upsert({
     where: { email: "suhendar.aryadi@smkn9garut.sch.id" },
