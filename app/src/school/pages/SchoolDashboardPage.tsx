@@ -318,7 +318,7 @@ function AdminDashboard() {
           label="Kehadiran hari ini"
           value={data.attendance.rate !== null ? `${formatAttendanceRate(data.attendance.rate)}%` : "—"}
           tone={data.attendance.rate !== null && data.attendance.rate < 90 ? "orange" : "green"}
-          helper={data.attendance.sessionCount > 0 ? `${data.attendance.sessionCount} sesi presensi` : "Belum ada sesi presensi"}
+          helper={data.attendance.classCount > 0 ? `${data.attendance.classCount} rombel tercatat` : "Belum ada presensi harian"}
         />
       </div>
 
@@ -341,8 +341,8 @@ function AdminDashboard() {
               </div>
               <p className="mt-4 border-t border-md-outline-variant pt-3 text-[11.5px] leading-5 text-md-on-surface-variant">
                 {data.attendance.rate !== null
-                  ? `Rata-rata sekolah ${data.attendance.rate}% dari ${data.attendance.sessionCount} sesi presensi hari ini. Dua rombel terbawah diberi aksen jingga dan merah.`
-                  : "Belum ada presensi tercatat hari ini. Rombel aktif tetap ditampilkan tanpa menganggap data kosong sebagai 0%."}
+                  ? `Rata-rata kehadiran sekolah ${data.attendance.rate}% dari ${data.attendance.classCount} rombel yang sudah mencatat presensi harian. Dua rombel terbawah diberi aksen jingga dan merah.`
+                  : "Belum ada presensi harian tercatat hari ini. Rombel aktif tetap ditampilkan tanpa menganggap data kosong sebagai 0%."}
               </p>
             </>
           ) : (

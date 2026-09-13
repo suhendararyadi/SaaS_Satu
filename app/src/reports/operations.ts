@@ -3,6 +3,7 @@ import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser } from "../school/authGuards";
+import { jakartaDateOnly } from "../school/dailyAttendance";
 
 function requireReportStaff(context: { user?: User }) {
   const user = ensureSchoolUser(context);
@@ -255,64 +256,39 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
-  const currentMonthIdx = filter?.month ? filter.month - 1 : new Date().getMonth();
-  const selectedMonthName = months[currentMonthIdx] || months[new Date().getMonth()];
-  const selectedYear = filter?.year || new Date().getFullYear();
-  const monthStart = new Date(selectedYear, currentMonthIdx, 1);
-  const nextMonthStart = new Date(selectedYear, currentMonthIdx + 1, 1);
+  const [todayYear, todayMonth] = jakartaDateOnly().split("-").map(Number);
+  const selectedMonth = filter?.month || todayMonth;
+  const currentMonthIdx = selectedMonth - 1;
+  const selectedMonthName = months[currentMonthIdx] || months[todayMonth - 1];
+  const selectedYear = filter?.year || todayYear;
+  const monthStartDateOnly = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+  const nextMonthDate = new Date(Date.UTC(selectedYear, selectedMonth, 1));
+  const nextMonthStartDateOnly = `${nextMonthDate.getUTCFullYear()}-${String(nextMonthDate.getUTCMonth() + 1).padStart(2, "0")}-01`;
 
   const school = await prisma.school.findUnique({
     where: { id: user.schoolId },
   });
 
-  const classRoom = filter?.classRoomId
-    ? await prisma.classRoom.findFirst({
-        where: {
-          id: filter.classRoomId,
-          schoolId: user.schoolId,
-          ...getStaffClassRoomScope(user),
+  const classRoom = await prisma.classRoom.findFirst({
+    where: {
+      schoolId: user.schoolId,
+      ...(filter?.classRoomId ? { id: filter.classRoomId } : {}),
+      ...getStaffClassRoomScope(user),
+    },
+    include: {
+      department: true,
+      academicYear: true,
+      homeroomTeacher: { select: { id: true, name: true, teacherProfile: true } },
+      students: {
+        select: {
+          id: true,
+          name: true,
+          studentProfile: true,
         },
-        include: {
-          department: true,
-          academicYear: true,
-          homeroomTeacher: { select: { id: true, name: true, teacherProfile: true } },
-          students: {
-            select: {
-              id: true,
-              name: true,
-              studentProfile: true,
-              attendanceRecords: {
-                where: { session: { date: { gte: monthStart, lt: nextMonthStart } } },
-                select: { status: true },
-              },
-            },
-            orderBy: { name: "asc" },
-          },
-        },
-      })
-    : await prisma.classRoom.findFirst({
-        where: {
-          schoolId: user.schoolId,
-          ...getStaffClassRoomScope(user),
-        },
-        include: {
-          department: true,
-          academicYear: true,
-          homeroomTeacher: { select: { id: true, name: true, teacherProfile: true } },
-          students: {
-            select: {
-              id: true,
-              name: true,
-              studentProfile: true,
-              attendanceRecords: {
-                where: { session: { date: { gte: monthStart, lt: nextMonthStart } } },
-                select: { status: true },
-              },
-            },
-            orderBy: { name: "asc" },
-          },
-        },
-      });
+        orderBy: { name: "asc" },
+      },
+    },
+  });
 
   if (!classRoom) {
     return {
@@ -324,13 +300,38 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
     };
   }
 
+  const attendanceRecords = await prisma.schoolDailyAttendance.findMany({
+    where: {
+      schoolId: user.schoolId,
+      classRoomId: classRoom.id,
+      dateOnly: {
+        gte: monthStartDateOnly,
+        lt: nextMonthStartDateOnly,
+      },
+    },
+    select: {
+      studentId: true,
+      status: true,
+      dateOnly: true,
+    },
+  });
+
+  const recordsByStudent = new Map<string, typeof attendanceRecords>();
+  for (const record of attendanceRecords) {
+    const current = recordsByStudent.get(record.studentId) || [];
+    current.push(record);
+    recordsByStudent.set(record.studentId, current);
+  }
+
   const studentsAttendance = classRoom.students.map((student) => {
-    const records = student.attendanceRecords || [];
+    const records = recordsByStudent.get(student.id) || [];
     const hadir = records.filter((r) => r.status === "HADIR").length;
     const sakit = records.filter((r) => r.status === "SAKIT").length;
     const izin = records.filter((r) => r.status === "IZIN").length;
     const alpa = records.filter((r) => r.status === "ALPA").length;
-    const total = hadir + sakit + izin + alpa;
+    const terlambat = records.filter((r) => r.status === "TERLAMBAT").length;
+    const total = hadir + sakit + izin + alpa + terlambat;
+    const present = hadir + terlambat;
 
     return {
       studentId: student.id,
@@ -342,7 +343,8 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
       sakit,
       izin,
       alpa,
-      rate: total > 0 ? Math.round((hadir / total) * 100) : null,
+      terlambat,
+      rate: total > 0 ? Math.round((present / total) * 100) : null,
     };
   });
 

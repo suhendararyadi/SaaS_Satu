@@ -51,7 +51,7 @@ export const reportsSpec: Spec = [
       "User",
       "StudentProfile",
       "TeacherProfile",
-      "LmsAttendanceRecord",
+      "SchoolDailyAttendance",
     ],
   }),
   query(getActiveStudentCertificateData, {

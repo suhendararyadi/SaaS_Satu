@@ -41,6 +41,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/classes", "Kelas & Rombel"],
   ["/school/teachers", "Guru & Tendik"],
   ["/school/students", "Data Siswa"],
+  ["/school/attendance", "Presensi Harian"],
   ["/school/import", "Import Data"],
   ["/school/lms/courses", "Pembelajaran"],
   ["/school/pkl/companies", "Mitra DUDI"],
@@ -245,6 +246,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Website Sekolah", href: "/school/website", icon: "language" },
       ] });
       sections.push({ title: "TATA KELOLA", items: [
+        { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
         { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
         { label: "Waka Kurikulum", href: "/school/governance/waka", icon: "verified_user" },
@@ -256,6 +258,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" },
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
+        { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
       ] });
       if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "Early Warning", href: "/school/ews", icon: "warning" }] });
       const responsibilities = [

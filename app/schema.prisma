@@ -87,6 +87,8 @@ model User {
   assignmentSubmissions LmsSubmission[]
   assessmentResults     LmsAssessmentResult[]
   dutyReports           DutyTeacherReport[]
+  dailyAttendances      SchoolDailyAttendance[] @relation("DailyAttendanceStudent")
+  recordedDailyAttendances SchoolDailyAttendance[] @relation("DailyAttendanceRecorder")
 
   paymentProcessorUserId        String?   @unique
   lemonSqueezyCustomerPortalUrl String? // Lemon Squeezy portal
@@ -132,6 +134,7 @@ model School {
   placements    Placement[]
   lmsCourses    LmsCourse[]
   dutyReports   DutyTeacherReport[]
+  dailyAttendances SchoolDailyAttendance[]
   site          SchoolSite?
   siteContents  SchoolSiteContent[]
   siteNavItems  SchoolSiteNavItem[]
@@ -159,6 +162,7 @@ model AcademicYear {
   isActive Boolean     @default(false)
   classes  ClassRoom[]
   courses  LmsCourse[]
+  dailyAttendances SchoolDailyAttendance[]
 
   @@unique([schoolId, yearName, semester])
   @@index([schoolId, isActive])
@@ -178,11 +182,38 @@ model ClassRoom {
   homeroomTeacher   User?        @relation("HomeroomClasses", fields: [homeroomTeacherId], references: [id])
   students          User[]       @relation("StudentClass")
   lmsCourses        LmsCourse[]
+  dailyAttendances  SchoolDailyAttendance[]
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId, academicYearId])
   @@index([schoolId, departmentId])
   @@index([schoolId, homeroomTeacherId])
+}
+
+
+model SchoolDailyAttendance {
+  id             String       @id @default(uuid())
+  schoolId       String
+  school         School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  classRoomId    String
+  classRoom      ClassRoom    @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User         @relation("DailyAttendanceStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  dateOnly       String
+  status         String
+  notes          String?
+  recordedById   String
+  recordedBy     User         @relation("DailyAttendanceRecorder", fields: [recordedById], references: [id])
+  recordedAt     DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([schoolId, studentId, dateOnly])
+  @@index([schoolId, dateOnly])
+  @@index([schoolId, classRoomId, dateOnly])
+  @@index([studentId, dateOnly])
+  @@index([recordedById])
 }
 
 model TeacherProfile {

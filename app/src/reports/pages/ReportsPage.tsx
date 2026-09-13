@@ -367,7 +367,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-base font-bold uppercase tracking-wide underline">
-                  REKAPITULASI PRESENSI &amp; KEHADIRAN PESERTA DIDIK
+                  REKAPITULASI PRESENSI HARIAN &amp; KEHADIRAN PESERTA DIDIK
                 </h2>
                 <p className="text-xs text-slate-600 mt-1">
                   Bulan {attendanceReport?.monthName} {attendanceReport?.year} • Tahun Ajaran{" "}
@@ -415,6 +415,9 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                       <th className="p-2 border-r border-slate-300 text-center w-14 bg-rose-50 text-rose-800">
                         Alpa (A)
                       </th>
+                      <th className="p-2 border-r border-slate-300 text-center w-16 bg-amber-50 text-amber-800">
+                        Terlambat (T)
+                      </th>
                       <th className="p-2 text-center w-20 font-bold">Kehadiran</th>
                     </tr>
                   </thead>
@@ -422,7 +425,7 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                     {(!attendanceReport?.studentsAttendance ||
                       attendanceReport.studentsAttendance.length === 0) && (
                       <tr>
-                        <td colSpan={9} className="p-6 text-center text-slate-500 italic">
+                        <td colSpan={10} className="p-6 text-center text-slate-500 italic">
                           Belum ada peserta didik terdaftar pada rombel kelas ini.
                         </td>
                       </tr>
@@ -452,6 +455,9 @@ export function ReportsPage({ user }: { user: AuthUser }) {
                         </td>
                         <td className="p-2 border-r border-slate-300 text-center font-mono text-rose-600">
                           {st.alpa}
+                        </td>
+                        <td className="p-2 border-r border-slate-300 text-center font-mono text-amber-700">
+                          {st.terlambat}
                         </td>
                         <td className="p-2 text-center font-bold font-mono">
                           {st.rate ?? "-"}{st.rate !== null ? "%" : ""}

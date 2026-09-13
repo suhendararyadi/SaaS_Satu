@@ -5,6 +5,7 @@ import { AcademicYearsPage } from "./pages/AcademicYearsPage" with { type: "ref"
 import { ClassRoomsPage } from "./pages/ClassRoomsPage" with { type: "ref" };
 import { TeachersPage } from "./pages/TeachersPage" with { type: "ref" };
 import { StudentsPage } from "./pages/StudentsPage" with { type: "ref" };
+import { DailyAttendancePage } from "./pages/DailyAttendancePage" with { type: "ref" };
 import { StudentDetailPage } from "./pages/StudentDetailPage" with { type: "ref" };
 import { StudentFormPage } from "./pages/StudentFormPage" with { type: "ref" };
 import { CsvImportPage } from "./pages/CsvImportPage" with { type: "ref" };
@@ -86,6 +87,10 @@ import {
 } from "./websiteOperations" with { type: "ref" };
 import { schoolSiteSitemapApi } from "./websitePublicApi" with { type: "ref" };
 import { getSchoolSpotlightSearch } from "./spotlightOperations" with { type: "ref" };
+import {
+  getDailySchoolAttendance,
+  saveDailySchoolAttendance,
+} from "./dailyAttendanceOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
 
@@ -96,6 +101,7 @@ export const schoolSpec: Spec = [
   query(getClassRooms, { entities: ["ClassRoom", "Department", "AcademicYear", "User"] }),
   query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "ClassRoom"] }),
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
+  query(getDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
   query(getSchoolStudentDetail, { entities: ["User", "StudentProfile", "ClassRoom", "Department", "AcademicYear", "Placement", "Company"] }),
   query(getAllSchools, { entities: ["School", "User", "Department", "ClassRoom", "Company", "Placement"] }),
   query(getStudentDashboardData, {
@@ -105,7 +111,7 @@ export const schoolSpec: Spec = [
     entities: ["User", "TeacherProfile", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
   }),
   query(getSchoolAdminDashboardData, {
-    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "LmsAttendanceSession", "LmsAttendanceRecord", "Company", "Placement", "AttendanceLog", "DailyJournal"],
+    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "SchoolDailyAttendance", "Company", "Placement", "AttendanceLog", "DailyJournal"],
   }),
   query(getMentorDashboardData, {
     entities: ["User", "Placement", "Company", "DailyJournal"],
@@ -135,6 +141,7 @@ export const schoolSpec: Spec = [
   action(createStudent, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   action(updateStudent, { entities: ["User", "StudentProfile", "ClassRoom"] }),
   action(deleteStudent, { entities: ["User", "StudentProfile", "Placement"] }),
+  action(saveDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "AcademicYear", "ClassRoom", "User", "StudentProfile"] }),
   action(importStudentsFromCsv, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   query(previewStudentsFromDapodik, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   action(importStudentsFromDapodik, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
@@ -162,6 +169,7 @@ export const schoolSpec: Spec = [
   route("ClassRoomsRoute", "/school/classes", page(ClassRoomsPage, { authRequired: true })),
   route("TeachersRoute", "/school/teachers", page(TeachersPage, { authRequired: true })),
   route("StudentsRoute", "/school/students", page(StudentsPage, { authRequired: true })),
+  route("DailyAttendanceRoute", "/school/attendance", page(DailyAttendancePage, { authRequired: true })),
   route("StudentCreateRoute", "/school/students/new", page(StudentFormPage, { authRequired: true })),
   route("StudentEditRoute", "/school/students/:id/edit", page(StudentFormPage, { authRequired: true })),
   route("StudentDetailRoute", "/school/students/:id", page(StudentDetailPage, { authRequired: true })),
