@@ -74,6 +74,39 @@ enum SchoolStaffAssignmentRole {
   OTHER
 }
 
+enum FollowUpStatus {
+  FINDING
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CANCELED
+}
+
+enum FollowUpSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FollowUpSourceType {
+  ATTENDANCE
+  PKL_EWS
+  DUTY_TEACHER
+  HOMEROOM
+  WAKASEK
+  SYSTEM
+  MANUAL
+}
+
+enum FollowUpEventType {
+  CREATED
+  ASSIGNED
+  STATUS_CHANGED
+  COMMENT
+  UPDATED
+}
+
 model User {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -106,6 +139,11 @@ model User {
   dutyReports              DutyTeacherReport[]
   dailyAttendances         SchoolDailyAttendance[] @relation("DailyAttendanceStudent")
   recordedDailyAttendances SchoolDailyAttendance[] @relation("DailyAttendanceRecorder")
+  followUpSubjectCases     SchoolFollowUpCase[]    @relation("FollowUpSubjectStudent")
+  followUpAssignedCases    SchoolFollowUpCase[]    @relation("FollowUpAssignee")
+  followUpCreatedCases     SchoolFollowUpCase[]    @relation("FollowUpCreator")
+  followUpResolvedCases    SchoolFollowUpCase[]    @relation("FollowUpResolver")
+  followUpEvents           SchoolFollowUpEvent[]   @relation("FollowUpEventActor")
 
   paymentProcessorUserId        String?   @unique
   lemonSqueezyCustomerPortalUrl String? // Lemon Squeezy portal
@@ -154,6 +192,7 @@ model School {
   dailyAttendances   SchoolDailyAttendance[]
   wakasekAssignments WakasekAssignment[]
   staffAssignments   SchoolStaffAssignment[]
+  followUpCases      SchoolFollowUpCase[]
   site               SchoolSite?
   siteContents       SchoolSiteContent[]
   siteNavItems       SchoolSiteNavItem[]
@@ -288,6 +327,57 @@ model SchoolStaffAssignment {
   @@index([schoolId, teacherId, isActive])
   @@index([departmentId, role, isActive])
   @@index([academicYearId, isActive])
+}
+
+model SchoolFollowUpCase {
+  id               String                @id @default(uuid())
+  schoolId         String
+  school           School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sourceType       FollowUpSourceType
+  sourceKey        String
+  sourceUrl        String?
+  title            String
+  description      String
+  severity         FollowUpSeverity      @default(MEDIUM)
+  status           FollowUpStatus        @default(FINDING)
+  subjectStudentId String?
+  subjectStudent   User?                 @relation("FollowUpSubjectStudent", fields: [subjectStudentId], references: [id], onDelete: SetNull)
+  assignedToId     String?
+  assignedTo       User?                 @relation("FollowUpAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdById      String?
+  createdBy        User?                 @relation("FollowUpCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  dueAt            DateTime?
+  resolvedAt       DateTime?
+  resolvedById     String?
+  resolvedBy       User?                 @relation("FollowUpResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolutionNote   String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  events           SchoolFollowUpEvent[]
+
+  @@unique([schoolId, sourceType, sourceKey])
+  @@index([schoolId, status, severity])
+  @@index([schoolId, assignedToId, status])
+  @@index([schoolId, subjectStudentId, status])
+  @@index([schoolId, createdAt])
+}
+
+model SchoolFollowUpEvent {
+  id         String             @id @default(uuid())
+  caseId     String
+  case       SchoolFollowUpCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actor      User?              @relation("FollowUpEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  type       FollowUpEventType
+  fromStatus FollowUpStatus?
+  toStatus   FollowUpStatus?
+  note       String?
+  metadata   Json?
+  createdAt  DateTime           @default(now())
+
+  @@index([caseId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model StudentProfile {

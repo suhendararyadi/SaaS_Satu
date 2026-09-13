@@ -156,7 +156,7 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
   const user = ensureSchoolUser(context);
   if (user.role !== "TEACHER") throw new HttpError(403, "Dashboard ini hanya tersedia untuk guru.");
 
-  const [teacher, courses, profile, wakasekAssignments, staffAssignments, homeroomClass, activePlacements] = await Promise.all([
+  const [teacher, courses, profile, wakasekAssignments, staffAssignments, homeroomClass, activePlacements, followUpAssignedCount] = await Promise.all([
     prisma.user.findFirst({
       where: { id: user.id, schoolId: user.schoolId, role: "TEACHER" },
       select: { id: true, name: true, email: true, username: true },
@@ -217,7 +217,14 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
         },
         _count: { select: { journals: { where: { status: "SUBMITTED" } } } },
       },
-    }),
+    }),,
+    prisma.schoolFollowUpCase.count({
+      where: {
+        schoolId: user.schoolId,
+        assignedToId: user.id,
+        status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] },
+      },
+    })
   ]);
   if (!teacher) throw new HttpError(404, "Profil guru tidak ditemukan.");
 
@@ -252,6 +259,7 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
       ungradedSubmissionCount,
       incompleteAgendaCount: null,
       pendingPklJournalReviewCount: activePlacements.reduce((total, placement) => total + placement._count.journals, 0),
+      followUpAssignedCount,
     },
     pkl: activePlacements.length
       ? {
@@ -299,7 +307,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   if (!isAdmin) throw new HttpError(403, "Dashboard ini hanya tersedia untuk administrator sekolah.");
 
   const todayDateOnly = localDateKey();
-  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, classAttendanceSources, ewsAlerts] = await Promise.all([
+  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, classAttendanceSources, ewsAlerts, followUpActiveCount, followUpOverdueCount] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
       select: { id: true, name: true, level: true, tier: true, studentQuota: true },
@@ -340,6 +348,16 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
       },
     }),
     getPklEwsAlertsForScope(user.schoolId),
+    prisma.schoolFollowUpCase.count({
+      where: { schoolId: user.schoolId, status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] } },
+    }),
+    prisma.schoolFollowUpCase.count({
+      where: {
+        schoolId: user.schoolId,
+        status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] },
+        dueAt: { lt: new Date() },
+      },
+    }),
   ]);
   if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
 
@@ -349,6 +367,17 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     ? summarizePklEwsAlerts(ewsAlerts)
     : { totalAlerts: 0, high: 0, medium: 0, low: 0, affectedStudents: 0, affectedPlacements: 0 };
   const attention = [
+    ...(followUpActiveCount > 0
+      ? [{
+          code: "FOLLOW_UP_CASES",
+          severity: followUpOverdueCount > 0 ? ("warning" as const) : ("info" as const),
+          label: followUpOverdueCount > 0
+            ? `Tindak lanjut: ${followUpOverdueCount} melewati tenggat`
+            : "Kasus tindak lanjut aktif",
+          count: followUpActiveCount,
+          destination: "/school/follow-up",
+        }]
+      : []),
     ...(!academicYear
       ? [{ code: "NO_ACTIVE_YEAR", severity: "warning" as const, label: "Belum ada tahun ajaran aktif", count: null, destination: "/school/academic-years" }]
       : []),
@@ -427,6 +456,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     counts: { students, teachers, classRooms, lmsCourses, companies, placements },
     attention,
     ews,
+    followUp: { active: followUpActiveCount, overdue: followUpOverdueCount },
     attendance: {
       dateKey: localDateKey(),
       classCount: attendanceClassCount,

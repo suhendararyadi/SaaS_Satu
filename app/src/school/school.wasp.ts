@@ -13,6 +13,7 @@ import { AllSchoolsPage } from "./pages/AllSchoolsPage" with { type: "ref" };
 import { SchoolSettingsPage } from "./pages/SchoolSettingsPage" with { type: "ref" };
 import { WebsiteSchoolPage } from "./pages/WebsiteSchoolPage" with { type: "ref" };
 import { SchoolWebsitePreviewPage } from "./pages/SchoolWebsitePreviewPage" with { type: "ref" };
+import { FollowUpWorkflowPage } from "./pages/FollowUpWorkflowPage" with { type: "ref" };
 import {
   PublicSchoolHomePage,
   PublicSchoolNewsIndexPage,
@@ -92,6 +93,14 @@ import {
   saveDailySchoolAttendance,
 } from "./dailyAttendanceOperations" with { type: "ref" };
 import { getDailyAttendanceReportData } from "./dailyAttendanceReportOperations" with { type: "ref" };
+import {
+  getFollowUpWorkflowData,
+  syncFollowUpFindings,
+  createManualFollowUpCase,
+  updateFollowUpCase,
+  addFollowUpComment,
+  ensurePklEwsFollowUp,
+} from "./followUpOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
 
@@ -110,10 +119,10 @@ export const schoolSpec: Spec = [
     entities: ["User", "ClassRoom", "LmsCourse", "LmsAssignment", "LmsSubmission", "LmsAssessment", "LmsAssessmentResult", "Placement", "Company", "AttendanceLog", "DailyJournal"],
   }),
   query(getTeacherDashboardData, {
-    entities: ["User", "TeacherProfile", "WakasekAssignment", "SchoolStaffAssignment", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
+    entities: ["User", "TeacherProfile", "WakasekAssignment", "SchoolStaffAssignment", "SchoolFollowUpCase", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
   }),
   query(getSchoolAdminDashboardData, {
-    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "SchoolDailyAttendance", "Company", "Placement", "AttendanceLog", "DailyJournal"],
+    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "SchoolDailyAttendance", "SchoolFollowUpCase", "Company", "Placement", "AttendanceLog", "DailyJournal"],
   }),
   query(getMentorDashboardData, {
     entities: ["User", "Placement", "Company", "DailyJournal"],
@@ -122,11 +131,38 @@ export const schoolSpec: Spec = [
     entities: ["User", "StudentProfile", "TeacherProfile", "WakasekAssignment", "ClassRoom", "Department", "AcademicYear", "LmsCourse", "Company", "Placement", "SchoolSiteContent"],
   }),
 
+  query(getFollowUpWorkflowData, {
+    entities: [
+      "SchoolFollowUpCase",
+      "SchoolFollowUpEvent",
+      "School",
+      "User",
+      "ClassRoom",
+      "Placement",
+      "SchoolStaffAssignment",
+      "WakasekAssignment",
+    ],
+  }),
   query(getSchoolWebsiteAdmin, { entities: [...websiteEntities] }),
   query(getSchoolWebsitePreview, { entities: [...websiteEntities] }),
   query(getPublicSchoolSite, { entities: [...websiteEntities] }),
   query(getPublicSchoolContent, { entities: [...websiteEntities] }),
 
+  action(syncFollowUpFindings, {
+    entities: ["SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "SchoolDailyAttendance", "Placement", "AttendanceLog", "DailyJournal", "DutyTeacherReport", "WakasekAssignment"],
+  }),
+  action(createManualFollowUpCase, {
+    entities: ["SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "SchoolStaffAssignment", "WakasekAssignment"],
+  }),
+  action(updateFollowUpCase, {
+    entities: ["SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "Placement", "SchoolStaffAssignment", "WakasekAssignment"],
+  }),
+  action(addFollowUpComment, {
+    entities: ["SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "Placement", "SchoolStaffAssignment", "WakasekAssignment"],
+  }),
+  action(ensurePklEwsFollowUp, {
+    entities: ["SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "Placement", "AttendanceLog", "DailyJournal", "WakasekAssignment"],
+  }),
   action(registerSchool, { entities: ["School", "User", "AcademicYear"] }),
   action(updateSchoolInfo, { entities: ["School"] }),
   action(createDepartment, { entities: ["Department"] }),
@@ -165,6 +201,7 @@ export const schoolSpec: Spec = [
   action(saveSchoolWebsiteMedia, { entities: [...websiteEntities] }),
   action(deleteSchoolWebsiteMedia, { entities: [...websiteEntities] }),
 
+  route("FollowUpWorkflowRoute", "/school/follow-up", page(FollowUpWorkflowPage, { authRequired: true })),
   route("SchoolDashboardRoute", "/school", page(SchoolDashboardPage, { authRequired: true })),
   route("DepartmentsRoute", "/school/departments", page(DepartmentsPage, { authRequired: true })),
   route("AcademicYearsRoute", "/school/academic-years", page(AcademicYearsPage, { authRequired: true })),

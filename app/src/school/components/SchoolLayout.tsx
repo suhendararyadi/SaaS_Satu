@@ -52,6 +52,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/pkl/journals", "Jurnal PKL"],
   ["/school/pkl/monitoring", "Monitoring PKL"],
   ["/school/ews", "Early Warning System"],
+  ["/school/follow-up", "Tindak Lanjut"],
   ["/school/governance/organization", "Struktur & Penugasan"],
   ["/school/governance/piket", "Guru Piket"],
   ["/school/governance/walikelas", "Wali Kelas"],
@@ -251,6 +252,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ] });
       sections.push({ title: "TATA KELOLA", items: [
         { label: "Struktur & Penugasan", href: "/school/governance/organization", icon: "account_tree" },
+        { label: "Tindak Lanjut", href: "/school/follow-up", icon: "assignment_turned_in" },
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
         { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },

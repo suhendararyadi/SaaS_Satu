@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpenText, MapPinOff, ShieldAlert, TriangleAlert } from "lucide-react";
 import { type AuthUser } from "wasp/auth";
-import { useQuery, getPklEwsAlerts } from "wasp/client/operations";
+import { useQuery, getPklEwsAlerts, ensurePklEwsFollowUp } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
   M3Badge,
@@ -33,6 +33,7 @@ export function MonitoringEwsPage({ user }: { user: AuthUser }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
+  const [followUpBusyId, setFollowUpBusyId] = useState<string | null>(null);
 
   const alerts = query.data ?? [];
   const highAlerts = alerts.filter((alert) => alert.severity === "HIGH");
@@ -54,6 +55,16 @@ export function MonitoringEwsPage({ user }: { user: AuthUser }) {
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
+
+  const createFollowUp = async (alertId: string) => {
+    setFollowUpBusyId(alertId);
+    try {
+      const result = await ensurePklEwsFollowUp({ alertId });
+      window.location.href = `/school/follow-up?case=${result.id}`;
+    } finally {
+      setFollowUpBusyId(null);
+    }
+  };
 
   const severityOptions = [
     { value: "ALL", label: "Semua prioritas" },
@@ -201,6 +212,19 @@ export function MonitoringEwsPage({ user }: { user: AuthUser }) {
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-2 pl-12 md:pl-0">
+                      <M3Button
+                        variant="tonal"
+                        size="sm"
+                        icon="assignment_turned_in"
+                        loading={followUpBusyId === item.id}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void createFollowUp(item.id);
+                        }}
+                      >
+                        Tindak lanjuti
+                      </M3Button>
                       <span className="text-[11.5px] font-medium text-md-primary opacity-80 group-hover:opacity-100">
                         {item.category === "JOURNAL" ? "Buka jurnal" : "Buka presensi"}
                       </span>

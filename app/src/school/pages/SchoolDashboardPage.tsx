@@ -242,6 +242,7 @@ function TeacherDashboard() {
   const attentionItems = [
     ...(data.attention.ungradedSubmissionCount > 0 ? [{ label: "Tugas belum dinilai", value: data.attention.ungradedSubmissionCount, href: "/school/lms/courses", tone: "warning" as const }] : []),
     ...(data.attention.pendingPklJournalReviewCount > 0 ? [{ label: "Jurnal PKL menunggu review", value: data.attention.pendingPklJournalReviewCount, href: "/school/pkl/journals", tone: "primary" as const }] : []),
+    ...((data.attention.followUpAssignedCount ?? 0) > 0 ? [{ label: "Tindak lanjut ditugaskan", value: data.attention.followUpAssignedCount ?? 0, href: "/school/follow-up", tone: "warning" as const }] : []),
   ];
 
   return (
@@ -252,7 +253,7 @@ function TeacherDashboard() {
         <M3StatCard label="Ruang mengajar" value={data.courses.length} tone="blue" href="/school/lms/courses" />
         <M3StatCard label="Belum dinilai" value={data.attention.ungradedSubmissionCount} tone="orange" />
         <M3StatCard label="Jurnal PKL menunggu" value={data.attention.pendingPklJournalReviewCount} tone="teal" href={data.pkl ? "/school/pkl/journals" : undefined} />
-        <M3StatCard label="Siswa PKL aktif" value={data.pkl?.activePlacementCount ?? 0} tone="green" />
+        <M3StatCard label="Tindak lanjut" value={data.attention.followUpAssignedCount ?? 0} tone={(data.attention.followUpAssignedCount ?? 0) ? "orange" : "green"} href="/school/follow-up" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[.8fr_1.2fr]">
