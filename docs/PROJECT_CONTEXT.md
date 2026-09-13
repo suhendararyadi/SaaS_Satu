@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last updated: **11 September 2026 (Asia/Jakarta)**.
+Last updated: **13 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Jika isi dokumen bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot ini.
 
@@ -20,6 +20,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Spotlight HIG focus refinement: `0699046` — `refine(school): polish Spotlight HIG focus state`
 - Apple-style search field refinement: `5f20bdc` — `refine(school): align Spotlight search field with Apple HIG`
 - Inner input chrome fix: `5eb8b87` — `fix(school): remove Spotlight inner input chrome`
+- Dapodik-aligned student database: `783ff2c` — `feat(school): build Dapodik student database`
+- Student detail AcademicYear runtime fix: `2c07ede` — `fix(school): correct student detail academic year`
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -50,24 +52,24 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production sudah memakai unified Spotlight release:
+Production saat ini memakai release final **Dapodik Student Database**:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/4e50fd5-school-spotlight`
-- **static current**: `/var/www/saas-satu/releases/5eb8b87-spotlight-input-chrome-fix`
-- runtime source commit: `4e50fd56e44acc95077a7695990efb34ec6299b7`
-- previous backend rollback: `/home/ubuntu/deployments/SaaS_Satu/releases/5b16861-website-phase2`
-- immediate static rollback: `/var/www/saas-satu/releases/5f20bdc-spotlight-apple-searchfield`
-- previous static rollback: `/var/www/saas-satu/releases/0699046-spotlight-hig-focus`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/2c07ede-student-detail-fix`
+- **static current**: `/var/www/saas-satu/releases/2c07ede-student-detail-fix`
+- runtime source commit: `2c07ede4e57189c29a2a4b0f3616fb3f820ff77b`
+- immediate backend rollback: `/home/ubuntu/deployments/SaaS_Satu/releases/783ff2c-dapodik-student-database`
+- immediate static rollback: `/var/www/saas-satu/releases/783ff2c-dapodik-student-database`
 - `saas-satu.service`: active
-- `/school`: HTTP 200
-- `/school/website`: HTTP 200
-- `/login`: HTTP 200
-- `/admin`: HTTP 200 shell route
-- `/auth/me`: HTTP 200 anonymous smoke
-- unauthenticated Spotlight operation: HTTP 401
-- recent `/auth/me` / Spotlight operation 500 count pada verification window: 0
+- `/school/students`: HTTP 200
+- `/school/students/new`: HTTP 200
+- `/school/import`: HTTP 200
+- `/auth/me`: HTTP 200
+- unauthenticated student detail/import/create/update operations: HTTP 401
+- Prisma migration status: **Database schema is up to date**
+- recent student-detail 500 setelah cutover final: **0**
+- recent `/auth/me` 500 setelah cutover final: **0**
 
-Spotlight full-stack cutover memakai bounded release promotion setelah full preflight dan blue-green startup pada port 3102. Tidak ada schema migration atau seed pada rollout Spotlight.
+Migration Dapodik bersifat additive dan sudah applied. Tidak ada row dari file contoh Dapodik yang diimpor ke production. Production verification mencatat `student_users=21`, `student_profiles=21`, dan `dapodik_imported=0`, sehingga student existing tetap utuh dan contoh file hanya dipakai sebagai referensi struktur.
 
 ## 3.1 School OS Spotlight Search — LIVE
 
@@ -114,6 +116,101 @@ Quality gate Spotlight:
 - Website Sekolah/public sitemap regression smoke: PASS.
 
 Authenticated browser smoke tidak dibuat dengan synthetic password/session; rollout sengaja tidak membuat atau memodifikasi credential production hanya untuk test. Authorization policy, compiled server operation, blue-green runtime, and unauthenticated boundary are covered automatically.
+
+
+## 3.2 Database Siswa berbasis Dapodik — LIVE
+
+School OS sekarang memakai struktur `StudentProfile` yang selaras dengan data **Daftar Peserta Didik Dapodik**. File contoh yang diberikan pemilik produk dipakai hanya untuk memahami struktur kolom dan **tidak pernah diimpor**.
+
+### Halaman dan alur
+
+- `/school/students` — daftar siswa ringkas, pencarian Nama / NIPD-NIS / NISN / NIK;
+- `/school/students/new` — halaman Tambah Siswa lengkap;
+- `/school/students/:id` — halaman detail per siswa;
+- `/school/students/:id/edit` — halaman edit lengkap;
+- `/school/import` — impor langsung file Dapodik `.xlsx` dengan preview dan validasi sebelum commit.
+
+Dialog CRUD kecil tidak lagi menjadi surface utama untuk siswa karena dataset Dapodik terlalu besar. Form dibagi ke kelompok Data Utama, Alamat & Kontak, Dokumen/Riwayat Pendidikan, Ayah, Ibu, Wali, KPS/KIP/PIP, Rekening, dan Data Tambahan.
+
+### Required vs optional
+
+Untuk input manual, **hanya Nama Lengkap dan Jenis Kelamin yang wajib**. NIPD/NIS, NISN, NIK, rombel, tanggal lahir, alamat, data orang tua/wali, bantuan sosial, bank, koordinat, fisik, dan field Dapodik lain nullable/opsional dan dapat dilengkapi bertahap.
+
+Existing student tidak diberi nilai sintetis. Field baru yang belum tersedia tampil sebagai `Belum diisi` sampai diisi manual atau melalui import Dapodik.
+
+### Field model
+
+`StudentProfile` menyimpan field terstruktur, bukan blob JSON:
+
+- identitas: NIPD/NIS, NISN, JK, tempat/tanggal lahir, NIK, agama, status;
+- alamat/kontak: alamat, RT/RW, dusun, desa/kelurahan, kecamatan, kode pos, jenis tinggal, transportasi, telepon/HP;
+- dokumen/pendidikan: SKHUN, rombel saat ini, nomor ujian nasional, seri ijazah, sekolah asal, akta lahir;
+- bantuan: KPS, KIP, KKS, PIP + alasan;
+- ayah/ibu/wali: nama, tahun lahir, pendidikan, pekerjaan, penghasilan, NIK;
+- rekening: bank, nomor rekening, nama pemilik;
+- tambahan: kebutuhan khusus, anak ke-, koordinat, No KK, berat/tinggi/lingkar kepala, jumlah saudara, jarak rumah-sekolah;
+- `dapodikImportedAt` menandai profile yang pernah ditulis lewat importer.
+
+NIPD Dapodik tetap dipetakan ke `StudentProfile.nis` agar kompatibel dengan modul lama.
+
+### Import Dapodik
+
+Importer membaca file `.xlsx` secara langsung dan mengenali:
+
+- metadata laporan di atas tabel;
+- dua baris header;
+- grouped columns `Data Ayah`, `Data Ibu`, `Data Wali`;
+- Excel serial date;
+- leading-zero identifier seperti NISN/NIK/No KK;
+- maksimal 10 MB dan 5.000 siswa per proses.
+
+Flow: **pilih file → parse → preview/validate → konfirmasi → import**. Preview tidak menulis database. Matching existing student menggunakan identitas terstruktur dan tidak auto-create rombel.
+
+### Authorization & privacy
+
+- create/edit/import: `requireSchoolAdmin`;
+- detail/read directory: `requireSchoolDirectoryAccess`;
+- semua query/mutation tenant-scoped dengan `schoolId`;
+- class room yang dipilih diverifikasi milik tenant aktif;
+- NIPD/NIS, NISN, NIK dicek uniqueness di sekolah;
+- viewer non-admin tidak menerima identifier sensitif seperti NIK, NIK orang tua/wali, No KK, nomor rekening, akta lahir, KPS/KIP/KKS.
+
+### Migration, backup, dan production proof
+
+Migration additive:
+
+`20260912213000_add_dapodik_student_profile`
+
+Backup safety sebelum final verification:
+
+`/var/backups/saas-satu/saas_satu_staging-dapodik-20260913T084334Z.sql.gz`
+
+Backup diverifikasi `gzip -t`, mode 600, owner root.
+
+Production data preservation:
+
+- student users: **21**
+- student profiles: **21**
+- profile dengan `dapodikImportedAt != null`: **0**
+
+Jadi tidak ada contoh Dapodik yang masuk ke database dan student existing tetap memiliki profile.
+
+### Quality gate & rollout
+
+- Vitest: **91/91 PASS** pada 11 test files;
+- TypeScript: PASS;
+- Wasp 0.25 production build: PASS;
+- Prisma Client generation: PASS;
+- Vite SSR/client: PASS;
+- backend bundle: PASS;
+- full preflight: PASS;
+- blue-green startup port 3102: PASS;
+- blue-green `/auth/me`: 200;
+- blue-green unauthenticated detail operation: 401;
+- exact read-only Prisma detail query dengan relasi rombel/tahun ajaran/PKL: PASS;
+- final production release: `2c07ede-student-detail-fix`.
+
+Pada rollout awal `783ff2c`, authenticated detail sempat 500 karena select salah memakai `AcademicYear.name`. Schema yang benar memakai `yearName` + `semester`. Bug tersebut diperbaiki di `2c07ede`; setelah cutover final, count `get-school-student-detail 500` pada verification window = **0**.
 
 
 ## 4. Website Sekolah CMS — LIVE
@@ -299,6 +396,7 @@ Jangan menambah capability infra tersebut sebagai placeholder visual sebelum per
 - [`RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md`](./RELEASE_2026-09-10_WEBSITE_SEKOLAH_CMS.md) — release record CMS foundation
 - [`RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md`](./RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md) — release record Phase 2 + public redesign
 - [`RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md`](./RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md) — release record global Spotlight Search `Cmd/Ctrl+K`
+- [`RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md`](./RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md) — release record database siswa Dapodik + detail per siswa
 - [`DEMO_DATA.md`](./DEMO_DATA.md) — demo seed safety
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — historical development chronology
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — architecture/security boundaries

@@ -614,3 +614,68 @@ Website Sekolah ditingkatkan dari CMS foundation menjadi Phase 2 production. Adm
 SEO ditingkatkan dengan canonical, route-specific Open Graph/Twitter metadata, `EducationalOrganization` dan `NewsArticle` JSON-LD, serta sitemap XML tenant-scoped. Nginx menambah hanya route regex `/site/<slug>/sitemap.xml` ke backend; config dibackup dan `nginx -t` PASS. Production object storage terdeteksi `enabled:false`, sehingga direct upload tidak dipalsukan dan media tetap explicit public HTTPS entries.
 
 Migration additive `20260910224500_add_school_website_phase2` diterapkan setelah backup `/var/backups/saas-satu/saas_satu_staging-20260910T154255Z-pre-website-phase2.sql.gz` diverifikasi. Full release `5b16861-website-phase2` dipromosikan sukses; metadata polish berikutnya memakai static-only release `f142e94-website-phase2-meta` dan run kedua idempotent. Final Playwright desktop+iPhone tidak menemukan overflow, marker DEMO, console error, atau request failure; admin CMS unauthenticated tetap HTTP 401; sitemap HTTP 200 XML; Vitest 76/76 PASS. `robotsIndex=false` dipertahankan.
+
+
+---
+
+## 13 September 2026 — Database Siswa Dapodik + halaman detail per siswa
+
+Data siswa School OS ditingkatkan menjadi database sekolah lengkap yang mengikuti struktur Daftar Peserta Didik Dapodik. File contoh Dapodik hanya digunakan sebagai referensi format dan tidak diimpor.
+
+Implementasi utama:
+
+- StudentProfile diperluas secara additive untuk identitas, alamat/kontak, dokumen pendidikan, data ayah/ibu/wali, KPS/KIP/KKS/PIP, rekening, kebutuhan khusus, koordinat, No KK, data fisik, jumlah saudara, jarak, dan timestamp import Dapodik;
+- input manual hanya mewajibkan Nama Lengkap + Jenis Kelamin; field lain opsional;
+- route baru:
+  - `/school/students/new`;
+  - `/school/students/:id`;
+  - `/school/students/:id/edit`;
+- daftar siswa tetap compact dan nama/detail membuka halaman profile;
+- form tambah/edit memakai grouped sections, bukan dialog kecil;
+- detail siswa menampilkan completeness, rombel, PKL, status import, serta semua kelompok data;
+- viewer non-admin tidak menerima identifier sensitif;
+- direct importer `.xlsx` Dapodik membaca two-row header, parent/guardian groups, serial date, dan leading-zero identifiers;
+- importer memakai preview/validation sebelum commit serta tidak auto-create rombel.
+
+Migration:
+
+`20260912213000_add_dapodik_student_profile`
+
+Backup:
+
+`/var/backups/saas-satu/saas_satu_staging-dapodik-20260913T084334Z.sql.gz`
+
+Source release utama:
+
+`783ff2c` — `feat(school): build Dapodik student database`
+
+Runtime bugfix:
+
+`2c07ede` — `fix(school): correct student detail academic year`
+
+Bugfix diperlukan karena detail pertama memilih `AcademicYear.name`, sementara schema memakai `yearName` dan `semester`. Exact production Prisma detail query setelah fix PASS dan tidak ada 500 detail baru pada verification window.
+
+Production final:
+
+- backend/static: `2c07ede-student-detail-fix`;
+- rollback: `783ff2c-dapodik-student-database`;
+- service active;
+- migration up-to-date;
+- `/school/students`, `/school/students/new`, `/school/import`, `/auth/me`: HTTP 200;
+- unauthenticated detail/preview/import/create/update: HTTP 401;
+- student users = 21;
+- student profiles = 21;
+- dapodikImportedAt non-null = 0.
+
+Quality gate:
+
+- Vitest **91/91 PASS**;
+- TypeScript PASS;
+- Wasp compile/build PASS;
+- Vite SSR/client PASS;
+- backend bundle PASS;
+- preflight PASS;
+- blue-green port 3102 PASS;
+- final exact read-only detail query PASS.
+
+Tidak ada row dari file contoh Dapodik yang masuk ke production.
