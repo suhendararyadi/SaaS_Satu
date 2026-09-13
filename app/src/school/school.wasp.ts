@@ -91,6 +91,7 @@ import {
   getDailySchoolAttendance,
   saveDailySchoolAttendance,
 } from "./dailyAttendanceOperations" with { type: "ref" };
+import { getDailyAttendanceReportData } from "./dailyAttendanceReportOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
 
@@ -102,6 +103,7 @@ export const schoolSpec: Spec = [
   query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "ClassRoom"] }),
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
   query(getDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
+  query(getDailyAttendanceReportData, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
   query(getSchoolStudentDetail, { entities: ["User", "StudentProfile", "ClassRoom", "Department", "AcademicYear", "Placement", "Company"] }),
   query(getAllSchools, { entities: ["School", "User", "Department", "ClassRoom", "Company", "Placement"] }),
   query(getStudentDashboardData, {

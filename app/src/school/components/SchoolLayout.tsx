@@ -258,11 +258,13 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" },
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
-        { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
       ] });
       if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "Early Warning", href: "/school/ews", icon: "warning" }] });
       const responsibilities = [
-        ...(teacherDashboard?.assignments?.homeroomClass ? [{ label: `Wali ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/governance/walikelas", icon: "supervisor_account" }] : []),
+        ...(teacherDashboard?.assignments?.homeroomClass ? [
+          { label: `Presensi ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/attendance", icon: "fact_check" },
+          { label: `Wali ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/governance/walikelas", icon: "supervisor_account" },
+        ] : []),
         ...(teacherDashboard?.assignments?.isWaka ? [{ label: "Waka Kurikulum", href: "/school/governance/waka", icon: "verified_user" }] : []),
       ];
       if (responsibilities.length) sections.push({ title: "TANGGUNG JAWAB", items: responsibilities });

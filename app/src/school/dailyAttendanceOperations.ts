@@ -2,7 +2,7 @@ import { HttpError } from "wasp/server";
 import { type User } from "wasp/entities";
 import { z } from "zod";
 import { prisma } from "wasp/server";
-import { requireTeacher } from "./authGuards";
+import { ensureSchoolUser } from "./authGuards";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import {
   DAILY_ATTENDANCE_STATUSES,
@@ -10,8 +10,21 @@ import {
   jakartaDateOnly,
   summarizeDailyAttendance,
 } from "./dailyAttendance";
+import {
+  canUseDailyAttendance,
+  isDailyAttendanceAdmin,
+} from "./dailyAttendanceAccess";
 
 const dateOnlySchema = z.string().refine(isValidDateOnly, "Tanggal tidak valid.");
+
+function assertDailyAttendanceClassAccess(
+  user: Pick<User, "id" | "role" | "isAdmin">,
+  classRoom: { homeroomTeacherId: string | null },
+) {
+  if (isDailyAttendanceAdmin(user)) return;
+  if (user.role === "TEACHER" && classRoom.homeroomTeacherId === user.id) return;
+  throw new HttpError(403, "Presensi harian hanya dapat dikelola oleh admin sekolah atau wali kelas rombel tersebut.");
+}
 
 const getDailyAttendanceSchema = z.object({
   classRoomId: z.string().uuid().optional(),
@@ -22,7 +35,7 @@ export const getDailySchoolAttendance = async (
   rawArgs: unknown,
   context: { user?: User },
 ) => {
-  const user = requireTeacher(context);
+  const user = ensureSchoolUser(context);
   const args = ensureArgsSchemaOrThrowHttpError(getDailyAttendanceSchema || z.any(), rawArgs || {});
   const dateOnly = args?.dateOnly || jakartaDateOnly();
 
@@ -31,20 +44,28 @@ export const getDailySchoolAttendance = async (
     select: { id: true, yearName: true, semester: true },
   });
 
+  const isAdmin = isDailyAttendanceAdmin(user);
   const classes = await prisma.classRoom.findMany({
     where: {
       schoolId: user.schoolId,
       ...(activeAcademicYear ? { academicYearId: activeAcademicYear.id } : {}),
+      ...(!isAdmin ? { homeroomTeacherId: user.id } : {}),
     },
     select: {
       id: true,
       name: true,
       gradeLevel: true,
       department: { select: { code: true, name: true } },
+      homeroomTeacherId: true,
+      homeroomTeacher: { select: { id: true, name: true } },
       _count: { select: { students: true } },
     },
     orderBy: [{ gradeLevel: "asc" }, { name: "asc" }],
   });
+
+  if (!canUseDailyAttendance(user, classes.map((classRoom) => classRoom.id))) {
+    throw new HttpError(403, "Presensi harian hanya tersedia untuk admin sekolah dan wali kelas yang memiliki rombel binaan.");
+  }
 
   const classRoomId = args?.classRoomId || classes[0]?.id;
   if (!classRoomId) {
@@ -56,6 +77,11 @@ export const getDailySchoolAttendance = async (
       students: [],
       summary: summarizeDailyAttendance([]),
       savedCount: 0,
+      access: {
+        isAdmin,
+        isHomeroomTeacher: !isAdmin,
+        scopeLabel: isAdmin ? "Semua rombel" : "Kelas binaan",
+      },
     };
   }
 
@@ -71,11 +97,14 @@ export const getDailySchoolAttendance = async (
       gradeLevel: true,
       academicYearId: true,
       department: { select: { code: true, name: true } },
+      homeroomTeacherId: true,
+      homeroomTeacher: { select: { id: true, name: true } },
     },
   });
   if (!selectedClass) {
     throw new HttpError(404, "Rombel tidak ditemukan pada tahun ajaran aktif.");
   }
+  assertDailyAttendanceClassAccess(user, selectedClass);
 
   const students = await prisma.user.findMany({
     where: {
@@ -130,6 +159,11 @@ export const getDailySchoolAttendance = async (
     students: rows,
     summary: summarizeDailyAttendance(savedRecords),
     savedCount: savedRecords.length,
+    access: {
+      isAdmin,
+      isHomeroomTeacher: !isAdmin,
+      scopeLabel: isAdmin ? "Semua rombel" : selectedClass.name,
+    },
   };
 };
 
@@ -149,7 +183,7 @@ export const saveDailySchoolAttendance = async (
   rawArgs: unknown,
   context: { user?: User },
 ) => {
-  const user = requireTeacher(context);
+  const user = ensureSchoolUser(context);
   const args = ensureArgsSchemaOrThrowHttpError(saveDailyAttendanceSchema, rawArgs);
 
   if (args.dateOnly > jakartaDateOnly()) {
@@ -167,6 +201,7 @@ export const saveDailySchoolAttendance = async (
       id: true,
       academicYearId: true,
       academicYear: { select: { isActive: true } },
+      homeroomTeacherId: true,
       students: {
         where: {
           role: "STUDENT",
@@ -176,6 +211,7 @@ export const saveDailySchoolAttendance = async (
     },
   });
   if (!classRoom) throw new HttpError(404, "Rombel tidak ditemukan.");
+  assertDailyAttendanceClassAccess(user, classRoom);
   if (!classRoom.academicYear.isActive) {
     throw new HttpError(400, "Presensi harian hanya dapat dicatat pada tahun ajaran aktif.");
   }
