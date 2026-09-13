@@ -3,6 +3,7 @@ import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { requireTeacher } from "../school/authGuards";
+import { isDutyAssignmentForDay, jakartaDutyDayCode } from "../school/staffAssignments";
 
 // ==========================================
 // 1. Waka Kurikulum Supervision Operations
@@ -114,6 +115,34 @@ const createDutyReportSchema = z.object({
 export const createDutyTeacherReport = async (rawArgs: unknown, context: { user?: User }) => {
   const teacher = requireTeacher(context);
   const args = ensureArgsSchemaOrThrowHttpError(createDutyReportSchema, rawArgs);
+
+  const isAdmin = !!teacher.isAdmin || teacher.role === "SUPERADMIN" || teacher.role === "SCHOOL_ADMIN";
+  if (!isAdmin) {
+    const activeAssignments = await prisma.schoolStaffAssignment.findMany({
+      where: {
+        schoolId: teacher.schoolId,
+        teacherId: teacher.id,
+        role: "DUTY_TEACHER",
+        isActive: true,
+        OR: [{ academicYearId: null }, { academicYear: { isActive: true } }],
+      },
+      select: { dutyDays: true },
+    });
+    const configuredDutyCount = await prisma.schoolStaffAssignment.count({
+      where: { schoolId: teacher.schoolId, role: "DUTY_TEACHER", isActive: true },
+    });
+
+    const today = jakartaDutyDayCode();
+    const scheduledToday = activeAssignments.some((assignment) =>
+      isDutyAssignmentForDay(assignment.dutyDays, today),
+    );
+
+    // Backward-compatible fallback only while the school has not configured
+    // any duty-teacher assignments at all.
+    if (configuredDutyCount > 0 && !scheduledToday) {
+      throw new HttpError(403, "Anda tidak terjadwal sebagai Guru Piket hari ini.");
+    }
+  }
 
   return prisma.dutyTeacherReport.create({
     data: {

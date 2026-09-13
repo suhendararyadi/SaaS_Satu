@@ -30,6 +30,7 @@ import {
 import { SchoolSpotlight } from "./SchoolSpotlight";
 import { getSchoolCapabilities } from "../schoolCapabilities";
 import { WAKASEK_ROLE_META, type WakasekRoleCode } from "../wakasek";
+import { STAFF_ASSIGNMENT_META, type StaffAssignmentRoleCode } from "../staffAssignments";
 
 interface SchoolLayoutProps { user: AuthUser; children: ReactNode }
 
@@ -51,6 +52,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/pkl/journals", "Jurnal PKL"],
   ["/school/pkl/monitoring", "Monitoring PKL"],
   ["/school/ews", "Early Warning System"],
+  ["/school/governance/organization", "Struktur & Penugasan"],
   ["/school/governance/piket", "Guru Piket"],
   ["/school/governance/walikelas", "Wali Kelas"],
   ["/school/governance/wakasek", "Panel Wakasek"],
@@ -248,6 +250,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Website Sekolah", href: "/school/website", icon: "language" },
       ] });
       sections.push({ title: "TATA KELOLA", items: [
+        { label: "Struktur & Penugasan", href: "/school/governance/organization", icon: "account_tree" },
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
         { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
@@ -271,6 +274,11 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
           label: WAKASEK_ROLE_META[wakaRole].label,
           href: "/school/governance/wakasek?role=" + wakaRole,
           icon: WAKASEK_ROLE_META[wakaRole].icon,
+        }))),
+        ...(((teacherDashboard?.assignments?.staffAssignments || []) as Array<{ id: string; role: StaffAssignmentRoleCode; displayTitle: string }>).map((assignment) => ({
+          label: assignment.displayTitle || STAFF_ASSIGNMENT_META[assignment.role].label,
+          href: assignment.role === "DUTY_TEACHER" ? "/school/governance/piket" : "/school/governance/organization",
+          icon: STAFF_ASSIGNMENT_META[assignment.role].icon,
         }))),
       ];
       if (responsibilities.length) sections.push({ title: "TANGGUNG JAWAB", items: responsibilities });

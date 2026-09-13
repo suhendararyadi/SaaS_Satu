@@ -608,6 +608,20 @@ export const getSchoolTeachers = async (_args: unknown, context: { user?: User }
         select: { id: true, role: true },
         orderBy: { role: "asc" },
       },
+      staffAssignments: {
+        where: {
+          isActive: true,
+          OR: [{ academicYearId: null }, { academicYear: { isActive: true } }],
+        },
+        select: {
+          id: true,
+          role: true,
+          unitName: true,
+          customTitle: true,
+          department: { select: { id: true, code: true, name: true } },
+        },
+        orderBy: [{ role: "asc" }, { updatedAt: "desc" }],
+      },
       homeroomClasses: {
         select: { id: true, name: true },
       },

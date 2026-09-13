@@ -3,6 +3,7 @@ import { type User } from "wasp/entities";
 import { ensureSchoolUser } from "./authGuards";
 import { getPklEwsAlertsForScope, summarizePklEwsAlerts } from "../pkl/ews";
 import { getSchoolCapabilities } from "./schoolCapabilities";
+import { isDutyAssignmentForDay, jakartaDutyDayCode, staffAssignmentDisplayTitle } from "./staffAssignments";
 
 function displayName(user: Pick<User, "name" | "email" | "username">) {
   return user.name || user.username || user.email || "Pengguna";
@@ -155,7 +156,7 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
   const user = ensureSchoolUser(context);
   if (user.role !== "TEACHER") throw new HttpError(403, "Dashboard ini hanya tersedia untuk guru.");
 
-  const [teacher, courses, profile, wakasekAssignments, homeroomClass, activePlacements] = await Promise.all([
+  const [teacher, courses, profile, wakasekAssignments, staffAssignments, homeroomClass, activePlacements] = await Promise.all([
     prisma.user.findFirst({
       where: { id: user.id, schoolId: user.schoolId, role: "TEACHER" },
       select: { id: true, name: true, email: true, username: true },
@@ -180,6 +181,23 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
       where: { schoolId: user.schoolId, teacherId: user.id },
       select: { role: true },
       orderBy: { role: "asc" },
+    }),
+    prisma.schoolStaffAssignment.findMany({
+      where: {
+        schoolId: user.schoolId,
+        teacherId: user.id,
+        isActive: true,
+        OR: [{ academicYearId: null }, { academicYear: { isActive: true } }],
+      },
+      select: {
+        id: true,
+        role: true,
+        unitName: true,
+        customTitle: true,
+        dutyDays: true,
+        department: { select: { id: true, code: true, name: true } },
+      },
+      orderBy: [{ role: "asc" }, { updatedAt: "desc" }],
     }),
     prisma.classRoom.findFirst({
       where: { schoolId: user.schoolId, homeroomTeacherId: user.id, academicYear: { isActive: true } },
@@ -250,7 +268,27 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
           ? ["KURIKULUM" as const]
           : [],
       isWaka: wakasekAssignments.some((assignment) => assignment.role === "KURIKULUM") || (profile?.isWaka ?? false),
-      dutyTeacherContext: null,
+      staffAssignments: staffAssignments.map((assignment) => ({
+        ...assignment,
+        displayTitle: staffAssignmentDisplayTitle({
+          role: assignment.role,
+          unitName: assignment.unitName,
+          customTitle: assignment.customTitle,
+          department: assignment.department,
+        }),
+      })),
+      dutyTeacherContext: (() => {
+        const dutyAssignments = staffAssignments.filter((assignment) => assignment.role === "DUTY_TEACHER");
+        if (!dutyAssignments.length) return null;
+        const today = jakartaDutyDayCode();
+        return {
+          scheduledToday: dutyAssignments.some((assignment) =>
+            isDutyAssignmentForDay(assignment.dutyDays, today),
+          ),
+          today,
+          dutyDays: [...new Set(dutyAssignments.flatMap((assignment) => assignment.dutyDays))],
+        };
+      })(),
     },
   };
 };

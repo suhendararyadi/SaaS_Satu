@@ -100,7 +100,7 @@ export const schoolSpec: Spec = [
   query(getDepartments, { entities: ["Department"] }),
   query(getAcademicYears, { entities: ["AcademicYear"] }),
   query(getClassRooms, { entities: ["ClassRoom", "Department", "AcademicYear", "User"] }),
-  query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "WakasekAssignment", "ClassRoom"] }),
+  query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "WakasekAssignment", "SchoolStaffAssignment", "AcademicYear", "Department", "ClassRoom"] }),
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
   query(getDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
   query(getDailyAttendanceReportData, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
@@ -110,7 +110,7 @@ export const schoolSpec: Spec = [
     entities: ["User", "ClassRoom", "LmsCourse", "LmsAssignment", "LmsSubmission", "LmsAssessment", "LmsAssessmentResult", "Placement", "Company", "AttendanceLog", "DailyJournal"],
   }),
   query(getTeacherDashboardData, {
-    entities: ["User", "TeacherProfile", "WakasekAssignment", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
+    entities: ["User", "TeacherProfile", "WakasekAssignment", "SchoolStaffAssignment", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
   }),
   query(getSchoolAdminDashboardData, {
     entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "SchoolDailyAttendance", "Company", "Placement", "AttendanceLog", "DailyJournal"],

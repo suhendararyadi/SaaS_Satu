@@ -10,6 +10,7 @@ import {
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
 import { WAKASEK_ROLE_META, type WakasekRoleCode } from "../wakasek";
+import { STAFF_ASSIGNMENT_META, type StaffAssignmentRoleCode } from "../staffAssignments";
 import {
   M3Badge,
   M3Button,
@@ -274,7 +275,7 @@ function TeacherDashboard() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {data.pkl && <section className="hig-grouped-surface p-4 sm:p-5"><SectionTitle title="PKL bimbingan" note={`${data.pkl.activePlacementCount} siswa aktif`} /><div className="hig-list mt-4">{data.pkl.pendingJournalReviews.slice(0, 5).map((journal: any) => <a key={journal.journalId} href="/school/pkl/journals" className="hig-list-row"><ListDot tone="warning" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{journal.studentDisplayName}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{journal.companyName} · {formatDate(journal.date)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}</div></section>}
-        <section className="hig-grouped-surface p-4 sm:p-5"><SectionTitle title="Tanggung jawab tambahan" note="Peran sekolah yang tercatat pada akun Anda." /><div className="mt-4 flex flex-wrap gap-2">{data.assignments.homeroomClass && <M3Button variant="tonal" href="/school/governance/walikelas" size="sm">Wali {data.assignments.homeroomClass.name}</M3Button>}{((data.assignments.wakasekRoles || []) as WakasekRoleCode[]).map((wakaRole) => <M3Button key={wakaRole} variant="tonal" href={"/school/governance/wakasek?role=" + wakaRole} size="sm">{WAKASEK_ROLE_META[wakaRole].label}</M3Button>)}{!data.assignments.homeroomClass && !(data.assignments.wakasekRoles || []).length && <p className="text-[12.5px] leading-5 text-md-on-surface-variant">Tidak ada penugasan Wali Kelas atau Wakasek pada akun ini.</p>}</div></section>
+        <section className="hig-grouped-surface p-4 sm:p-5"><SectionTitle title="Tanggung jawab tambahan" note="Peran sekolah yang tercatat pada akun Anda." /><div className="mt-4 flex flex-wrap gap-2">{data.assignments.homeroomClass && <M3Button variant="tonal" href="/school/governance/walikelas" size="sm">Wali {data.assignments.homeroomClass.name}</M3Button>}{((data.assignments.wakasekRoles || []) as WakasekRoleCode[]).map((wakaRole) => <M3Button key={wakaRole} variant="tonal" href={"/school/governance/wakasek?role=" + wakaRole} size="sm">{WAKASEK_ROLE_META[wakaRole].label}</M3Button>)}{((data.assignments.staffAssignments || []) as Array<{ id: string; role: StaffAssignmentRoleCode; displayTitle: string }>).map((assignment) => <M3Button key={assignment.id} variant="tonal" href={assignment.role === "DUTY_TEACHER" ? "/school/governance/piket" : "/school/governance/organization"} size="sm">{assignment.displayTitle || STAFF_ASSIGNMENT_META[assignment.role].label}</M3Button>)}{!data.assignments.homeroomClass && !(data.assignments.wakasekRoles || []).length && !(data.assignments.staffAssignments || []).length && <p className="text-[12.5px] leading-5 text-md-on-surface-variant">Tidak ada penugasan tambahan pada akun ini.</p>}</div></section>
       </div>
     </div>
   );

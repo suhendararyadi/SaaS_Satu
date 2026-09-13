@@ -10,6 +10,7 @@ import {
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
 import { WAKASEK_ROLES, WAKASEK_ROLE_META, type WakasekRoleCode } from "../wakasek";
+import { STAFF_ASSIGNMENT_META, staffAssignmentDisplayTitle, type StaffAssignmentRoleCode } from "../staffAssignments";
 import {
   M3Card,
   M3Button,
@@ -189,6 +190,14 @@ export function TeachersPage({ user }: { user: AuthUser }) {
             <M3Button
               variant="tonal"
               size="md"
+              href="/school/governance/organization"
+              icon="account_tree"
+            >
+              Struktur & Penugasan
+            </M3Button>
+            <M3Button
+              variant="tonal"
+              size="md"
               href="/school/import"
               icon="upload_file"
             >
@@ -321,7 +330,26 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                             Wali {hc.name}
                           </M3Badge>
                         ))}
+                        {((t.staffAssignments || []) as Array<any>).map((assignment) => {
+                          const role = assignment.role as StaffAssignmentRoleCode;
+                          return (
+                            <M3Badge
+                              key={assignment.id}
+                              variant="secondary"
+                              size="sm"
+                              icon={<M3Icon name={STAFF_ASSIGNMENT_META[role].icon} size={12} className="mr-1" />}
+                            >
+                              {staffAssignmentDisplayTitle({
+                                role,
+                                unitName: assignment.unitName,
+                                customTitle: assignment.customTitle,
+                                department: assignment.department,
+                              })}
+                            </M3Badge>
+                          );
+                        })}
                         {!(t.wakasekAssignments?.length || t.teacherProfile?.isWaka) &&
+                          !(t.staffAssignments?.length) &&
                           (!t.homeroomClasses || t.homeroomClasses.length === 0) && (
                             <M3Badge variant="outline" size="sm">
                               Guru Mapel

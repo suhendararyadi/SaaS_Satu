@@ -66,6 +66,14 @@ enum WakasekRole {
   HUMAS_HUBIN
 }
 
+enum SchoolStaffAssignmentRole {
+  PRINCIPAL
+  DUTY_TEACHER
+  DEPARTMENT_HEAD
+  EXTRACURRICULAR_ADVISOR
+  OTHER
+}
+
 model User {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -77,10 +85,11 @@ model User {
   role     UserRole @default(STUDENT)
 
   schoolId           String?
-  school             School?             @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  school             School?                 @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   teacherProfile     TeacherProfile?
   studentProfile     StudentProfile?
   wakasekAssignments WakasekAssignment[]
+  staffAssignments   SchoolStaffAssignment[]
 
   classRoomId     String?
   classRoom       ClassRoom?  @relation("StudentClass", fields: [classRoomId], references: [id])
@@ -144,6 +153,7 @@ model School {
   dutyReports        DutyTeacherReport[]
   dailyAttendances   SchoolDailyAttendance[]
   wakasekAssignments WakasekAssignment[]
+  staffAssignments   SchoolStaffAssignment[]
   site               SchoolSite?
   siteContents       SchoolSiteContent[]
   siteNavItems       SchoolSiteNavItem[]
@@ -152,12 +162,13 @@ model School {
 }
 
 model Department {
-  id       String      @id @default(uuid())
-  schoolId String
-  school   School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  code     String
-  name     String
-  classes  ClassRoom[]
+  id               String                  @id @default(uuid())
+  schoolId         String
+  school           School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  code             String
+  name             String
+  classes          ClassRoom[]
+  staffAssignments SchoolStaffAssignment[]
 
   @@unique([schoolId, code])
 }
@@ -172,6 +183,7 @@ model AcademicYear {
   classes          ClassRoom[]
   courses          LmsCourse[]
   dailyAttendances SchoolDailyAttendance[]
+  staffAssignments SchoolStaffAssignment[]
 
   @@unique([schoolId, yearName, semester])
   @@index([schoolId, isActive])
@@ -249,6 +261,33 @@ model WakasekAssignment {
   @@unique([schoolId, teacherId, role])
   @@index([schoolId, role])
   @@index([teacherId])
+}
+
+model SchoolStaffAssignment {
+  id             String                    @id @default(uuid())
+  schoolId       String
+  school         School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacherId      String
+  teacher        User                      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  role           SchoolStaffAssignmentRole
+  academicYearId String?
+  academicYear   AcademicYear?             @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  departmentId   String?
+  department     Department?               @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  unitName       String?
+  customTitle    String?
+  dutyDays       String[]                  @default([])
+  notes          String?
+  startDate      DateTime?
+  endDate        DateTime?
+  isActive       Boolean                   @default(true)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([schoolId, role, isActive])
+  @@index([schoolId, teacherId, isActive])
+  @@index([departmentId, role, isActive])
+  @@index([academicYearId, isActive])
 }
 
 model StudentProfile {

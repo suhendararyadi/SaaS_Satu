@@ -6,6 +6,7 @@ import {
   createDutyTeacherReport,
   getHomeroomDashboardData,
   getSchoolInfo,
+  getSchoolOrganizationData,
 } from "wasp/client/operations";
 import { Link } from "wasp/client/router";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
@@ -26,14 +27,24 @@ import {
   M3Icon,
 } from "../../client/components/m3";
 import { getSchoolCapabilities } from "../../school/schoolCapabilities";
+import { DUTY_DAY_LABELS, isDutyAssignmentForDay, jakartaDutyDayCode, type DutyDayCode } from "../../school/staffAssignments";
 
 export function GuruPiketPage({ user }: { user: AuthUser }) {
   const { data: dutyReports, isLoading, refetch } = useQuery(getDutyTeacherReports);
   const { data: homeroomClass } = useQuery(getHomeroomDashboardData);
   const { data: school } = useQuery(getSchoolInfo);
+  const { data: organization } = useQuery(getSchoolOrganizationData);
   const capabilities = school ? getSchoolCapabilities(school.level) : null;
   const usesDepartments = capabilities?.usesDepartments ?? false;
   const usesPkl = capabilities?.usesPkl ?? false;
+  const isAdmin = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
+  const dutyTeachers = (organization as any)?.assignments?.dutyTeachers || [];
+  const myDutyAssignments = dutyTeachers.filter((assignment: any) => assignment.teacher?.id === user.id);
+  const todayDutyCode = jakartaDutyDayCode();
+  const scheduledToday = myDutyAssignments.some((assignment: any) =>
+    isDutyAssignmentForDay(assignment.dutyDays || [], todayDutyCode),
+  );
+  const canSubmitDutyReport = isAdmin || dutyTeachers.length === 0 || scheduledToday;
 
   const [lateCount, setLateCount] = useState(0);
   const [dispensationCount, setDispensationCount] = useState(0);
@@ -90,6 +101,30 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
             Catat keterlambatan, izin dispensasi, dan ketertiban harian siswa.
           </p>
         </div>
+
+        {!isAdmin && dutyTeachers.length === 0 && (
+          <M3Banner
+            variant="warning"
+            headline="Jadwal piket resmi belum dikonfigurasi"
+            supportingText="Mode kompatibilitas masih aktif, sehingga guru tetap dapat mencatat laporan. Admin dapat menyusun jadwal dari Struktur & Penugasan."
+            actionLabel="Lihat Struktur"
+            actionHref="/school/governance/organization"
+            icon="schedule"
+          />
+        )}
+
+        {!isAdmin && dutyTeachers.length > 0 && (
+          <M3Banner
+            variant={scheduledToday ? "success" : "standard"}
+            headline={scheduledToday ? "Anda terjadwal sebagai Guru Piket hari ini" : "Hari ini bukan jadwal piket Anda"}
+            supportingText={
+              myDutyAssignments.length
+                ? `Jadwal Anda: ${myDutyAssignments.flatMap((assignment: any) => assignment.dutyDays || []).length ? [...new Set(myDutyAssignments.flatMap((assignment: any) => assignment.dutyDays || []))].map((day: any) => DUTY_DAY_LABELS[day as DutyDayCode]).join(", ") : "fleksibel / setiap hari"}.`
+                : "Anda belum memiliki penugasan Guru Piket aktif. Laporan tetap dapat dilihat, tetapi input mengikuti jadwal resmi."
+            }
+            icon={scheduledToday ? "task_alt" : "event_busy"}
+          />
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form Guru Piket */}
@@ -162,6 +197,7 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
                   loading={submitting}
                   type="submit"
                   className="w-full"
+                  disabled={!canSubmitDutyReport}
                 >
                   Kirim Laporan Piket
                 </M3Button>
