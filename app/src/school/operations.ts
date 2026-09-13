@@ -586,7 +586,7 @@ export const getSchoolStudents = async (rawArgs: unknown, context: { user?: User
     rawArgs || {}
   );
 
-  return prisma.user.findMany({
+  const students = await prisma.user.findMany({
     where: {
       schoolId: user.schoolId,
       role: "STUDENT",
@@ -604,7 +604,15 @@ export const getSchoolStudents = async (rawArgs: unknown, context: { user?: User
           department: { select: { code: true, name: true } },
         },
       },
-      studentProfile: true,
+      studentProfile: {
+        select: {
+          nis: true,
+          nisn: true,
+          nik: true,
+          gender: true,
+          status: true,
+        },
+      },
       studentPlacements: {
         where: { status: "ACTIVE" },
         select: {
@@ -617,6 +625,20 @@ export const getSchoolStudents = async (rawArgs: unknown, context: { user?: User
     },
     orderBy: { name: "asc" },
   });
+
+  const canViewSensitiveIdentifiers =
+    !!user.isAdmin ||
+    user.role === "SUPERADMIN" ||
+    user.role === "SCHOOL_ADMIN";
+
+  if (canViewSensitiveIdentifiers) return students;
+
+  return students.map((student) => ({
+    ...student,
+    studentProfile: student.studentProfile
+      ? { ...student.studentProfile, nik: null }
+      : null,
+  }));
 };
 
 // ==========================================

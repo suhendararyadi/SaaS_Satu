@@ -5,6 +5,8 @@ import { AcademicYearsPage } from "./pages/AcademicYearsPage" with { type: "ref"
 import { ClassRoomsPage } from "./pages/ClassRoomsPage" with { type: "ref" };
 import { TeachersPage } from "./pages/TeachersPage" with { type: "ref" };
 import { StudentsPage } from "./pages/StudentsPage" with { type: "ref" };
+import { StudentDetailPage } from "./pages/StudentDetailPage" with { type: "ref" };
+import { StudentFormPage } from "./pages/StudentFormPage" with { type: "ref" };
 import { CsvImportPage } from "./pages/CsvImportPage" with { type: "ref" };
 import { AllSchoolsPage } from "./pages/AllSchoolsPage" with { type: "ref" };
 import { SchoolSettingsPage } from "./pages/SchoolSettingsPage" with { type: "ref" };
@@ -39,13 +41,16 @@ import {
   updateTeacher,
   deleteTeacher,
   getSchoolStudents,
-  createStudent,
-  updateStudent,
   deleteStudent,
   getAllSchools,
   switchActiveSchool,
   createSchoolByAdmin,
 } from "./operations" with { type: "ref" };
+import {
+  getSchoolStudentDetail,
+  createStudent,
+  updateStudent,
+} from "./studentOperations" with { type: "ref" };
 import {
   getStudentDashboardData,
   getTeacherDashboardData,
@@ -57,6 +62,10 @@ import {
   importTeachersFromCsv,
   importCompaniesFromCsv,
 } from "./import/operations" with { type: "ref" };
+import {
+  previewStudentsFromDapodik,
+  importStudentsFromDapodik,
+} from "./import/dapodikOperations" with { type: "ref" };
 import {
   getSchoolWebsiteAdmin,
   initializeSchoolWebsite,
@@ -87,6 +96,7 @@ export const schoolSpec: Spec = [
   query(getClassRooms, { entities: ["ClassRoom", "Department", "AcademicYear", "User"] }),
   query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "ClassRoom"] }),
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
+  query(getSchoolStudentDetail, { entities: ["User", "StudentProfile", "ClassRoom", "Department", "AcademicYear", "Placement", "Company"] }),
   query(getAllSchools, { entities: ["School", "User", "Department", "ClassRoom", "Company", "Placement"] }),
   query(getStudentDashboardData, {
     entities: ["User", "ClassRoom", "LmsCourse", "LmsAssignment", "LmsSubmission", "LmsAssessment", "LmsAssessmentResult", "Placement", "Company", "AttendanceLog", "DailyJournal"],
@@ -126,6 +136,8 @@ export const schoolSpec: Spec = [
   action(updateStudent, { entities: ["User", "StudentProfile", "ClassRoom"] }),
   action(deleteStudent, { entities: ["User", "StudentProfile", "Placement"] }),
   action(importStudentsFromCsv, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
+  query(previewStudentsFromDapodik, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
+  action(importStudentsFromDapodik, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   action(importTeachersFromCsv, { entities: ["School", "User", "TeacherProfile"] }),
   action(importCompaniesFromCsv, { entities: ["School", "Company"] }),
   action(switchActiveSchool, { entities: ["School", "User"] }),
@@ -150,6 +162,9 @@ export const schoolSpec: Spec = [
   route("ClassRoomsRoute", "/school/classes", page(ClassRoomsPage, { authRequired: true })),
   route("TeachersRoute", "/school/teachers", page(TeachersPage, { authRequired: true })),
   route("StudentsRoute", "/school/students", page(StudentsPage, { authRequired: true })),
+  route("StudentCreateRoute", "/school/students/new", page(StudentFormPage, { authRequired: true })),
+  route("StudentEditRoute", "/school/students/:id/edit", page(StudentFormPage, { authRequired: true })),
+  route("StudentDetailRoute", "/school/students/:id", page(StudentDetailPage, { authRequired: true })),
   route("CsvImportRoute", "/school/import", page(CsvImportPage, { authRequired: true })),
   route("AllSchoolsRoute", "/school/admin/schools", page(AllSchoolsPage, { authRequired: true })),
   route("SchoolSettingsRoute", "/school/settings", page(SchoolSettingsPage, { authRequired: true })),

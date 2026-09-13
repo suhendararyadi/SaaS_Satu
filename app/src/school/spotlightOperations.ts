@@ -89,6 +89,9 @@ export const getSchoolSpotlightSearch = async (
           { email: insensitive(query) },
           { studentProfile: { is: { nis: insensitive(query) } } },
           { studentProfile: { is: { nisn: insensitive(query) } } },
+          ...(user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN"
+            ? [{ studentProfile: { is: { nik: insensitive(query) } } }]
+            : []),
           { classRoom: { is: { name: insensitive(query) } } },
         ],
       },
@@ -122,7 +125,7 @@ export const getSchoolSpotlightSearch = async (
         group: "Siswa",
         title,
         subtitle: `${classLabel}${nisLabel}`,
-        href: `/school/students?spotlight=${encoded(title)}`,
+        href: `/school/students/${student.id}`,
         icon: "person",
       });
     }

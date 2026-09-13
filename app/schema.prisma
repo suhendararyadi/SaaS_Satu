@@ -199,11 +199,94 @@ model StudentProfile {
   id        String    @id @default(uuid())
   userId    String    @unique
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nis       String?
-  nisn      String?
-  gender    String? // "L" | "P"
-  birthDate DateTime?
-  status    String    @default("ACTIVE") // "ACTIVE", "SUSPENDED", "GRADUATED"
+
+  // Core identity. Dapodik NIPD maps to nis for backwards compatibility.
+  nis        String?
+  nisn       String?
+  gender     String? // "L" | "P"
+  birthPlace String?
+  birthDate  DateTime?
+  nik        String?
+  religion   String?
+  status     String    @default("ACTIVE") // "ACTIVE", "SUSPENDED", "GRADUATED"
+
+  // Address and contact from Dapodik.
+  address        String?
+  rt             String?
+  rw             String?
+  hamlet         String?
+  village        String?
+  district       String?
+  postalCode     String?
+  residenceType  String?
+  transportation String?
+  phone          String?
+  mobilePhone    String?
+
+  // Previous education / national documents.
+  skhun                  String?
+  currentClassName       String?
+  nationalExamNumber     String?
+  diplomaSerialNumber    String?
+  previousSchool         String?
+  birthCertificateNumber String?
+
+  // Social assistance.
+  receivesKps Boolean?
+  kpsNumber   String?
+  receivesKip Boolean?
+  kipNumber   String?
+  kipName     String?
+  kksNumber   String?
+  pipEligible Boolean?
+  pipReason   String?
+
+  // Father.
+  fatherName       String?
+  fatherBirthYear  Int?
+  fatherEducation  String?
+  fatherOccupation String?
+  fatherIncome     String?
+  fatherNik        String?
+
+  // Mother.
+  motherName       String?
+  motherBirthYear  Int?
+  motherEducation  String?
+  motherOccupation String?
+  motherIncome     String?
+  motherNik        String?
+
+  // Guardian.
+  guardianName       String?
+  guardianBirthYear  Int?
+  guardianEducation  String?
+  guardianOccupation String?
+  guardianIncome     String?
+  guardianNik        String?
+
+  // Bank / PIP.
+  bankName          String?
+  bankAccountNumber String?
+  bankAccountHolder String?
+
+  // Additional Dapodik attributes.
+  specialNeeds       String?
+  birthOrder         Int?
+  latitude           Float?
+  longitude          Float?
+  familyCardNumber   String?
+  weightKg           Float?
+  heightCm           Float?
+  headCircumferenceCm Float?
+  siblingCount       Int?
+  distanceToSchoolKm Float?
+
+  dapodikImportedAt DateTime?
+
+  @@index([nisn])
+  @@index([nik])
+  @@index([nis])
 }
 
 model Company {
