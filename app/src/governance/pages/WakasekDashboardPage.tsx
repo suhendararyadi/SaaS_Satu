@@ -86,28 +86,91 @@ function CurriculumPanel({ data }: { data: any }) {
 function StudentAffairsPanel({ data, isAdmin }: { data: any; isAdmin: boolean }) {
   return (
     <div className="space-y-4">
+      <M3Banner
+        variant="standard"
+        headline="Kesiswaan Terpadu"
+        supportingText="Pelanggaran, prestasi, pembinaan, pemanggilan orang tua, izin/dispensasi, presensi, dan tindak lanjut sekarang dikelola dalam satu pusat kerja."
+        icon="school"
+      />
       <div className="flex flex-wrap justify-end gap-2">
-        {isAdmin && <M3Button href="/school/attendance" variant="tonal" size="sm" icon="fact_check">Presensi Harian</M3Button>}
+        <M3Button href="/school/student-affairs" variant="tonal" size="sm" icon="school">Buka Kesiswaan</M3Button>
+        <M3Button href="/school/follow-up" variant="outlined" size="sm" icon="assignment_turned_in">Tindak Lanjut</M3Button>
+        {isAdmin && <M3Button href="/school/attendance" variant="outlined" size="sm" icon="fact_check">Presensi Harian</M3Button>}
         <M3Button href="/school/students" variant="outlined" size="sm" icon="groups">Data Siswa</M3Button>
       </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <M3Card variant="outlined" className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-md-on-surface">Pelanggaran Aktif</p>
+              <p className="text-xs text-md-on-surface-variant">Kasus yang masih tercatat atau sedang ditangani.</p>
+            </div>
+            <M3Badge variant={data.recentViolations?.length ? "warning" : "success"} size="sm">{data.recentViolations?.length || 0}</M3Badge>
+          </div>
+          {!data.recentViolations?.length ? (
+            <M3EmptyState icon="task_alt" title="Tidak ada pelanggaran aktif" description="Kasus yang perlu perhatian akan muncul di sini." />
+          ) : (
+            <div className="space-y-2">
+              {data.recentViolations.map((item: any) => (
+                <div key={item.id} className="rounded-[11px] border border-md-outline-variant/45 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[12.5px] font-semibold text-md-on-surface">{item.title}</p>
+                      <p className="mt-0.5 text-[11px] text-md-on-surface-variant">{item.student?.name || "Siswa"} · {item.student?.classRoom?.name || "-"}</p>
+                    </div>
+                    <M3Badge variant={item.severity === "CRITICAL" ? "error" : item.severity === "HIGH" ? "warning" : "outline"} size="sm">{item.severity}</M3Badge>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-md-on-surface-variant">
+                    <span>PIC: {item.handledBy?.name || "Belum ditetapkan"}</span>
+                    <M3Button href={"/school/student-affairs?tab=VIOLATIONS&student=" + item.student.id} variant="text" size="sm">Buka</M3Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </M3Card>
+
+        <M3Card variant="outlined" className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-md-on-surface">Pembinaan Aktif</p>
+              <p className="text-xs text-md-on-surface-variant">Pembinaan dan pemanggilan orang tua yang belum selesai.</p>
+            </div>
+            <M3Badge variant={data.recentCoachings?.length ? "warning" : "success"} size="sm">{data.recentCoachings?.length || 0}</M3Badge>
+          </div>
+          {!data.recentCoachings?.length ? (
+            <M3EmptyState icon="task_alt" title="Tidak ada pembinaan aktif" description="Pembinaan yang masih berjalan akan muncul di sini." />
+          ) : (
+            <div className="space-y-2">
+              {data.recentCoachings.map((item: any) => (
+                <div key={item.id} className="rounded-[11px] border border-md-outline-variant/45 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[12.5px] font-semibold text-md-on-surface">{item.topic}</p>
+                      <p className="mt-0.5 text-[11px] text-md-on-surface-variant">{item.student?.name || "Siswa"} · {item.student?.classRoom?.name || "-"}</p>
+                    </div>
+                    <M3Badge variant="outline" size="sm">{item.type}</M3Badge>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-md-on-surface-variant">
+                    <span>PIC: {item.assignedTo?.name || "Belum ditetapkan"}</span>
+                    <M3Button href={"/school/student-affairs?tab=COACHING&student=" + item.student.id} variant="text" size="sm">Buka</M3Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </M3Card>
+      </div>
+
       {!data.classRows?.length ? (
-        <M3EmptyState
-          icon="groups"
-          title="Rombel aktif belum tersedia"
-          description="Ringkasan kesiswaan akan muncul setelah tahun ajaran dan rombel aktif tersedia."
-        />
+        <M3EmptyState icon="groups" title="Rombel aktif belum tersedia" description="Ringkasan presensi kesiswaan akan muncul setelah tahun ajaran dan rombel aktif tersedia." />
       ) : (
         <M3Card variant="outlined" className="overflow-hidden p-0">
           <M3Table>
             <M3TableHeader>
               <M3TableRow>
-                <M3TableHead>Rombel</M3TableHead>
-                <M3TableHead>Wali Kelas</M3TableHead>
-                <M3TableHead>Siswa</M3TableHead>
-                <M3TableHead>Tercatat</M3TableHead>
-                <M3TableHead>Alpa</M3TableHead>
-                <M3TableHead>Terlambat</M3TableHead>
-                <M3TableHead>Kehadiran</M3TableHead>
+                <M3TableHead>Rombel</M3TableHead><M3TableHead>Wali Kelas</M3TableHead><M3TableHead>Siswa</M3TableHead><M3TableHead>Tercatat</M3TableHead><M3TableHead>Alpa</M3TableHead><M3TableHead>Terlambat</M3TableHead><M3TableHead>Kehadiran</M3TableHead>
               </M3TableRow>
             </M3TableHeader>
             <M3TableBody>

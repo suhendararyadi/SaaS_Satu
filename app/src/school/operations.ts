@@ -1143,6 +1143,19 @@ export const deleteStudent = async (rawArgs: unknown, context: { user?: User }) 
     );
   }
 
+  const studentAffairsHistoryCount =
+    (await prisma.studentViolation.count({ where: { schoolId: admin.schoolId, studentId: id } })) +
+    (await prisma.studentAchievement.count({ where: { schoolId: admin.schoolId, studentId: id } })) +
+    (await prisma.studentCoaching.count({ where: { schoolId: admin.schoolId, studentId: id } })) +
+    (await prisma.studentPermit.count({ where: { schoolId: admin.schoolId, studentId: id } }));
+
+  if (studentAffairsHistoryCount > 0) {
+    throw new HttpError(
+      400,
+      "Siswa memiliki riwayat Kesiswaan yang harus dipertahankan. Ubah status siswa menjadi nonaktif/lulus daripada menghapus data permanen."
+    );
+  }
+
   return prisma.$transaction(async (tx) => {
     await tx.lmsAttendanceRecord.deleteMany({ where: { studentId: id } });
     await tx.lmsSubmission.deleteMany({ where: { studentId: id } });

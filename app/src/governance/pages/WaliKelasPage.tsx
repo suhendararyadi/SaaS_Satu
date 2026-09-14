@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { type AuthUser } from "wasp/auth";
 import { useQuery, getHomeroomDashboardData, getSchoolInfo } from "wasp/client/operations";
-import { Link } from "wasp/client/router";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
   M3Card,
@@ -40,6 +39,9 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
   const activePklStudents = students.filter(
     (s: any) => s.studentPlacements && s.studentPlacements.length > 0
   ).length;
+  const openViolations = students.reduce((sum: number, item: any) => sum + (item._count?.studentViolations || 0), 0);
+  const openCoachings = students.reduce((sum: number, item: any) => sum + (item._count?.studentCoachings || 0), 0);
+  const achievementCount = students.reduce((sum: number, item: any) => sum + (item._count?.studentAchievements || 0), 0);
 
   const filteredStudents = useMemo(() => {
     return students.filter((s: any) => {
@@ -103,13 +105,17 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
             <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">Kelas {homeroomClass.name}</h2>
             <p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{usesDepartments && homeroomClass.department?.name ? `${homeroomClass.department.name} · ` : ""}{homeroomClass.academicYear?.yearName} · {homeroomClass.academicYear?.semester}</p>
           </div>
-          <M3Button variant="text" href="/school/reports" size="sm">Cetak rekap</M3Button>
+          <div className="flex flex-wrap gap-2">
+            <M3Button variant="tonal" href="/school/student-affairs" size="sm" icon="school">Kesiswaan Kelas</M3Button>
+            <M3Button variant="text" href="/school/reports" size="sm">Cetak rekap</M3Button>
+          </div>
         </div>
 
-        <div className={`grid gap-3 ${usesPkl ? "sm:grid-cols-3" : "sm:grid-cols-1"}`}>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <M3StatCard label="Siswa aktif" value={totalStudents} tone="blue" />
-          {usesPkl && <M3StatCard label="Sudah terplot PKL" value={activePklStudents} tone="green" />}
-          {usesPkl && <M3StatCard label="Belum terplot PKL" value={Math.max(0, totalStudents - activePklStudents)} tone="orange" />}
+          <M3StatCard label="Pelanggaran aktif" value={openViolations} tone={openViolations ? "orange" : "green"} />
+          <M3StatCard label="Pembinaan aktif" value={openCoachings} tone={openCoachings ? "orange" : "green"} />
+          <M3StatCard label="Prestasi tercatat" value={achievementCount} tone="teal" />
         </div>
 
         {/* Filter Toolbar Card */}
@@ -190,7 +196,8 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                       {usesPkl && <M3TableHead>Penempatan PKL</M3TableHead>}
                       {usesPkl && <M3TableHead>Presensi Terkini</M3TableHead>}
                       {usesPkl && <M3TableHead>Jurnal Harian</M3TableHead>}
-                      {usesPkl && <M3TableHead className="text-right">Tindakan</M3TableHead>}
+                      <M3TableHead>Kesiswaan</M3TableHead>
+                      <M3TableHead className="text-right">Tindakan</M3TableHead>
                     </M3TableRow>
                   </M3TableHeader>
                   <M3TableBody>
@@ -268,20 +275,41 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                                 </span>
                               )}
                             </M3TableCell>
-
-                            <M3TableCell className="text-right">
-                              <Link to="/school/pkl/monitoring">
-                                <M3Button
-                                  variant="text"
-                                  size="sm"
-                                  trailingIcon="open_in_new"
-                                >
-                                  Monitoring
-                                </M3Button>
-                              </Link>
-                            </M3TableCell>
                             </>
                           )}
+
+                          <M3TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {(student._count?.studentViolations || 0) > 0 && (
+                                <M3Badge variant="warning" size="sm">{student._count.studentViolations} pelanggaran</M3Badge>
+                              )}
+                              {(student._count?.studentCoachings || 0) > 0 && (
+                                <M3Badge variant="secondary" size="sm">{student._count.studentCoachings} pembinaan</M3Badge>
+                              )}
+                              {(student._count?.studentAchievements || 0) > 0 && (
+                                <M3Badge variant="success" size="sm">{student._count.studentAchievements} prestasi</M3Badge>
+                              )}
+                              {(student._count?.studentPermits || 0) > 0 && (
+                                <M3Badge variant="outline" size="sm">{student._count.studentPermits} izin</M3Badge>
+                              )}
+                              {!(student._count?.studentViolations || 0) &&
+                               !(student._count?.studentCoachings || 0) &&
+                               !(student._count?.studentAchievements || 0) &&
+                               !(student._count?.studentPermits || 0) && (
+                                <span className="text-[11px] text-md-on-surface-variant">Belum ada catatan</span>
+                              )}
+                            </div>
+                          </M3TableCell>
+
+                          <M3TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              {usesPkl && (
+                                <M3Button variant="text" size="sm" href="/school/pkl/monitoring">PKL</M3Button>
+                              )}
+                              <M3Button variant="text" size="sm" href={"/school/students/" + student.id}>Profil</M3Button>
+                              <M3Button variant="text" size="sm" href={"/school/student-affairs?student=" + student.id}>Kesiswaan</M3Button>
+                            </div>
+                          </M3TableCell>
                         </M3TableRow>
                       );
                     })}

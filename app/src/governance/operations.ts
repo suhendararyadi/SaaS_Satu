@@ -177,6 +177,14 @@ export const getHomeroomDashboardData = async (_args: unknown, context: { user?:
           id: true,
           name: true,
           studentProfile: true,
+          _count: {
+            select: {
+              studentViolations: { where: { status: { in: ["RECORDED", "IN_REVIEW"] } } },
+              studentAchievements: true,
+              studentCoachings: { where: { status: { in: ["OPEN", "IN_PROGRESS"] } } },
+              studentPermits: { where: { status: { in: ["REQUESTED", "APPROVED"] } } },
+            },
+          },
           studentPlacements: {
             where: { status: "ACTIVE" },
             include: {

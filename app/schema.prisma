@@ -95,6 +95,7 @@ enum FollowUpSourceType {
   DUTY_TEACHER
   HOMEROOM
   WAKASEK
+  STUDENT_AFFAIRS
   SARPRAS
   SYSTEM
   MANUAL
@@ -139,6 +140,64 @@ enum AssetMovementType {
   ADJUSTMENT
 }
 
+enum StudentViolationStatus {
+  RECORDED
+  IN_REVIEW
+  RESOLVED
+  CANCELED
+}
+
+enum StudentAchievementLevel {
+  SCHOOL
+  DISTRICT
+  REGENCY
+  PROVINCE
+  NATIONAL
+  INTERNATIONAL
+}
+
+enum StudentCoachingType {
+  COACHING
+  COUNSELING
+  PARENT_MEETING
+}
+
+enum StudentCoachingStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum StudentPermitType {
+  EXIT
+  DISPENSATION
+  ACTIVITY
+  OTHER
+}
+
+enum StudentPermitStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELED
+}
+
+enum StudentAffairsEntityType {
+  VIOLATION
+  ACHIEVEMENT
+  COACHING
+  PERMIT
+}
+
+enum StudentAffairsEventType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  COMMENT
+}
+
 model User {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -181,6 +240,19 @@ model User {
   reportedAssetMaintenances AssetMaintenance[]      @relation("MaintenanceReporter")
   assignedAssetMaintenances AssetMaintenance[]      @relation("MaintenanceAssignee")
   assetMovements            AssetMovement[]         @relation("AssetMovementActor")
+  studentViolations         StudentViolation[]      @relation("ViolationStudent")
+  reportedStudentViolations StudentViolation[]      @relation("ViolationReporter")
+  handledStudentViolations  StudentViolation[]      @relation("ViolationHandler")
+  studentAchievements       StudentAchievement[]    @relation("AchievementStudent")
+  recordedAchievements      StudentAchievement[]    @relation("AchievementRecorder")
+  studentCoachings          StudentCoaching[]       @relation("CoachingStudent")
+  recordedStudentCoachings  StudentCoaching[]       @relation("CoachingRecorder")
+  assignedStudentCoachings  StudentCoaching[]       @relation("CoachingAssignee")
+  studentPermits            StudentPermit[]         @relation("PermitStudent")
+  recordedStudentPermits    StudentPermit[]         @relation("PermitRecorder")
+  approvedStudentPermits    StudentPermit[]         @relation("PermitApprover")
+  studentAffairsEvents      StudentAffairsEvent[]   @relation("AffairsEventStudent")
+  actedStudentAffairsEvents StudentAffairsEvent[]   @relation("AffairsEventActor")
 
   paymentProcessorUserId        String?   @unique
   lemonSqueezyCustomerPortalUrl String? // Lemon Squeezy portal
@@ -218,28 +290,33 @@ model School {
   subscriptionStatus String           @default("active")
   subscriptionEndsAt DateTime?
 
-  users              User[]
-  departments        Department[]
-  classRooms         ClassRoom[]
-  academicYears      AcademicYear[]
-  companies          Company[]
-  placements         Placement[]
-  lmsCourses         LmsCourse[]
-  dutyReports        DutyTeacherReport[]
-  dailyAttendances   SchoolDailyAttendance[]
-  wakasekAssignments WakasekAssignment[]
-  staffAssignments   SchoolStaffAssignment[]
-  followUpCases      SchoolFollowUpCase[]
-  facilityRooms      FacilityRoom[]
-  assetCategories    AssetCategory[]
-  assets             AssetItem[]
-  assetMaintenances  AssetMaintenance[]
-  assetMovements     AssetMovement[]
-  site               SchoolSite?
-  siteContents       SchoolSiteContent[]
-  siteNavItems       SchoolSiteNavItem[]
-  siteMedia          SchoolSiteMedia[]
-  siteRevisions      SchoolSiteRevision[]
+  users                User[]
+  departments          Department[]
+  classRooms           ClassRoom[]
+  academicYears        AcademicYear[]
+  companies            Company[]
+  placements           Placement[]
+  lmsCourses           LmsCourse[]
+  dutyReports          DutyTeacherReport[]
+  dailyAttendances     SchoolDailyAttendance[]
+  wakasekAssignments   WakasekAssignment[]
+  staffAssignments     SchoolStaffAssignment[]
+  followUpCases        SchoolFollowUpCase[]
+  facilityRooms        FacilityRoom[]
+  assetCategories      AssetCategory[]
+  assets               AssetItem[]
+  assetMaintenances    AssetMaintenance[]
+  assetMovements       AssetMovement[]
+  studentViolations    StudentViolation[]
+  studentAchievements  StudentAchievement[]
+  studentCoachings     StudentCoaching[]
+  studentPermits       StudentPermit[]
+  studentAffairsEvents StudentAffairsEvent[]
+  site                 SchoolSite?
+  siteContents         SchoolSiteContent[]
+  siteNavItems         SchoolSiteNavItem[]
+  siteMedia            SchoolSiteMedia[]
+  siteRevisions        SchoolSiteRevision[]
 }
 
 model Department {
@@ -498,6 +575,131 @@ model AssetMovement {
   @@index([fromRoomId])
   @@index([toRoomId])
   @@index([performedById])
+}
+
+model StudentViolation {
+  id             String                 @id @default(uuid())
+  schoolId       String
+  school         School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User                   @relation("ViolationStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  category       String
+  title          String
+  description    String
+  severity       FollowUpSeverity       @default(MEDIUM)
+  points         Int                    @default(0)
+  incidentAt     DateTime
+  location       String?
+  status         StudentViolationStatus @default(RECORDED)
+  reportedById   String?
+  reportedBy     User?                  @relation("ViolationReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  handledById    String?
+  handledBy      User?                  @relation("ViolationHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  actionTaken    String?
+  resolutionNote String?
+  resolvedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([schoolId, status, severity])
+  @@index([schoolId, studentId, incidentAt])
+  @@index([handledById, status])
+}
+
+model StudentAchievement {
+  id              String                  @id @default(uuid())
+  schoolId        String
+  school          School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         User                    @relation("AchievementStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  category        String
+  title           String
+  level           StudentAchievementLevel
+  award           String?
+  organizer       String?
+  achievementDate DateTime
+  notes           String?
+  evidenceUrl     String?
+  recordedById    String?
+  recordedBy      User?                   @relation("AchievementRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([schoolId, level, achievementDate])
+  @@index([schoolId, studentId, achievementDate])
+}
+
+model StudentCoaching {
+  id             String                @id @default(uuid())
+  schoolId       String
+  school         School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User                  @relation("CoachingStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  type           StudentCoachingType
+  topic          String
+  summary        String
+  attendees      String?
+  agreement      String?
+  nextAction     String?
+  nextReviewAt   DateTime?
+  status         StudentCoachingStatus @default(OPEN)
+  recordedById   String?
+  recordedBy     User?                 @relation("CoachingRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  assignedToId   String?
+  assignedTo     User?                 @relation("CoachingAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  completedAt    DateTime?
+  resolutionNote String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([schoolId, status, type])
+  @@index([schoolId, studentId, createdAt])
+  @@index([assignedToId, status])
+}
+
+model StudentPermit {
+  id           String              @id @default(uuid())
+  schoolId     String
+  school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User                @relation("PermitStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  type         StudentPermitType
+  reason       String
+  destination  String?
+  startAt      DateTime
+  endAt        DateTime?
+  status       StudentPermitStatus @default(REQUESTED)
+  recordedById String?
+  recordedBy   User?               @relation("PermitRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  approvedById String?
+  approvedBy   User?               @relation("PermitApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvalNote String?
+  returnedAt   DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([schoolId, status, startAt])
+  @@index([schoolId, studentId, startAt])
+}
+
+model StudentAffairsEvent {
+  id         String                   @id @default(uuid())
+  schoolId   String
+  school     School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User                     @relation("AffairsEventStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  entityType StudentAffairsEntityType
+  entityId   String
+  type       StudentAffairsEventType
+  actorId    String?
+  actor      User?                    @relation("AffairsEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  note       String?
+  metadata   Json?
+  createdAt  DateTime                 @default(now())
+
+  @@index([schoolId, studentId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model SchoolFollowUpCase {

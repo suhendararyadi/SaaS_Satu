@@ -307,7 +307,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   if (!isAdmin) throw new HttpError(403, "Dashboard ini hanya tersedia untuk administrator sekolah.");
 
   const todayDateOnly = localDateKey();
-  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, classAttendanceSources, ewsAlerts, followUpActiveCount, followUpOverdueCount] = await Promise.all([
+  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, classAttendanceSources, ewsAlerts, followUpActiveCount, followUpOverdueCount, openStudentViolations, openStudentCoachings, overdueStudentPermits] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
       select: { id: true, name: true, level: true, tier: true, studentQuota: true },
@@ -358,6 +358,20 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
         dueAt: { lt: new Date() },
       },
     }),
+    prisma.studentViolation.count({
+      where: { schoolId: user.schoolId, status: { in: ["RECORDED", "IN_REVIEW"] } },
+    }),
+    prisma.studentCoaching.count({
+      where: { schoolId: user.schoolId, status: { in: ["OPEN", "IN_PROGRESS"] } },
+    }),
+    prisma.studentPermit.count({
+      where: {
+        schoolId: user.schoolId,
+        status: "APPROVED",
+        endAt: { lt: new Date() },
+        returnedAt: null,
+      },
+    }),
   ]);
   if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
 
@@ -366,7 +380,21 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   const ews = capabilities.usesPkl
     ? summarizePklEwsAlerts(ewsAlerts)
     : { totalAlerts: 0, high: 0, medium: 0, low: 0, affectedStudents: 0, affectedPlacements: 0 };
+  const studentAffairsAttentionCount =
+    openStudentViolations + openStudentCoachings + overdueStudentPermits;
+
   const attention = [
+    ...(studentAffairsAttentionCount > 0
+      ? [{
+          code: "STUDENT_AFFAIRS",
+          severity: (openStudentViolations > 0 || overdueStudentPermits > 0) ? ("warning" as const) : ("info" as const),
+          label: overdueStudentPermits > 0
+            ? `Kesiswaan: ${overdueStudentPermits} izin melewati batas waktu`
+            : "Kesiswaan perlu ditinjau",
+          count: studentAffairsAttentionCount,
+          destination: "/school/student-affairs",
+        }]
+      : []),
     ...(followUpActiveCount > 0
       ? [{
           code: "FOLLOW_UP_CASES",
@@ -457,6 +485,12 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     attention,
     ews,
     followUp: { active: followUpActiveCount, overdue: followUpOverdueCount },
+    studentAffairs: {
+      openViolations: openStudentViolations,
+      openCoachings: openStudentCoachings,
+      overduePermits: overdueStudentPermits,
+      attention: studentAffairsAttentionCount,
+    },
     attendance: {
       dateKey: localDateKey(),
       classCount: attendanceClassCount,

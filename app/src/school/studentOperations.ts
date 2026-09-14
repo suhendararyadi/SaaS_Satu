@@ -6,6 +6,7 @@ import {
   requireSchoolAdmin,
   requireSchoolDirectoryAccess,
 } from "./authGuards";
+import { resolveStudentAffairsAccess } from "./studentAffairsAccess";
 
 const optionalText = z.string().trim().optional().nullable();
 const optionalEmail = z
@@ -384,6 +385,158 @@ export const getSchoolStudentDetail = async (
     user.role === "SUPERADMIN" ||
     user.role === "SCHOOL_ADMIN";
 
+  const affairsAccess = await resolveStudentAffairsAccess(user);
+  const canViewStudentAffairs =
+    affairsAccess.canAccess &&
+    (affairsAccess.canManageAll ||
+      (!!student.classRoom?.id &&
+        affairsAccess.homeroomClassIds.includes(student.classRoom.id)));
+
+  let studentAffairs: any = null;
+  if (canViewStudentAffairs) {
+    const [violations, achievements, coachings, permits, attendance, followUps] =
+      await Promise.all([
+        prisma.studentViolation.findMany({
+          where: { schoolId: user.schoolId, studentId: student.id },
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            severity: true,
+            status: true,
+            points: true,
+            incidentAt: true,
+            resolutionNote: true,
+          },
+          orderBy: { incidentAt: "desc" },
+          take: 20,
+        }),
+        prisma.studentAchievement.findMany({
+          where: { schoolId: user.schoolId, studentId: student.id },
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            level: true,
+            award: true,
+            achievementDate: true,
+          },
+          orderBy: { achievementDate: "desc" },
+          take: 20,
+        }),
+        prisma.studentCoaching.findMany({
+          where: { schoolId: user.schoolId, studentId: student.id },
+          select: {
+            id: true,
+            type: true,
+            topic: true,
+            status: true,
+            nextAction: true,
+            nextReviewAt: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        }),
+        prisma.studentPermit.findMany({
+          where: { schoolId: user.schoolId, studentId: student.id },
+          select: {
+            id: true,
+            type: true,
+            reason: true,
+            status: true,
+            startAt: true,
+            endAt: true,
+          },
+          orderBy: { startAt: "desc" },
+          take: 20,
+        }),
+        prisma.schoolDailyAttendance.findMany({
+          where: { schoolId: user.schoolId, studentId: student.id },
+          select: { id: true, dateOnly: true, status: true, notes: true },
+          orderBy: { dateOnly: "desc" },
+          take: 20,
+        }),
+        prisma.schoolFollowUpCase.findMany({
+          where: {
+            schoolId: user.schoolId,
+            subjectStudentId: student.id,
+            sourceType: "STUDENT_AFFAIRS",
+          },
+          select: { id: true, status: true, severity: true, sourceKey: true },
+        }),
+      ]);
+
+    const timeline = [
+      ...violations.map((item) => ({
+        id: "violation:" + item.id,
+        type: "VIOLATION",
+        date: item.incidentAt,
+        title: item.title,
+        subtitle: item.category,
+        status: item.status,
+        severity: item.severity,
+      })),
+      ...achievements.map((item) => ({
+        id: "achievement:" + item.id,
+        type: "ACHIEVEMENT",
+        date: item.achievementDate,
+        title: item.title,
+        subtitle: item.award || item.category,
+        status: item.level,
+        severity: null,
+      })),
+      ...coachings.map((item) => ({
+        id: "coaching:" + item.id,
+        type: "COACHING",
+        date: item.createdAt,
+        title: item.topic,
+        subtitle: item.type,
+        status: item.status,
+        severity: null,
+      })),
+      ...permits.map((item) => ({
+        id: "permit:" + item.id,
+        type: "PERMIT",
+        date: item.startAt,
+        title: item.reason,
+        subtitle: item.type,
+        status: item.status,
+        severity: null,
+      })),
+      ...attendance.map((item) => ({
+        id: "attendance:" + item.id,
+        type: "ATTENDANCE",
+        date: new Date(item.dateOnly + "T00:00:00+07:00"),
+        title: "Presensi " + item.status,
+        subtitle: item.notes || "Presensi harian sekolah",
+        status: item.status,
+        severity: item.status === "ALPA" ? "HIGH" : item.status === "TERLAMBAT" ? "MEDIUM" : null,
+      })),
+    ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 30);
+
+    studentAffairs = {
+      stats: {
+        openViolations: violations.filter(
+          (item) => item.status === "RECORDED" || item.status === "IN_REVIEW",
+        ).length,
+        achievements: achievements.length,
+        openCoachings: coachings.filter(
+          (item) => item.status === "OPEN" || item.status === "IN_PROGRESS",
+        ).length,
+        activePermits: permits.filter(
+          (item) => item.status === "REQUESTED" || item.status === "APPROVED",
+        ).length,
+        activeFollowUps: followUps.filter(
+          (item) => item.status !== "RESOLVED" && item.status !== "CANCELED",
+        ).length,
+      },
+      timeline,
+    };
+  }
+
   if (!canManage && student.studentProfile) {
     const hidden = {
       ...student.studentProfile,
@@ -398,10 +551,10 @@ export const getSchoolStudentDetail = async (
       kipNumber: null,
       kksNumber: null,
     };
-    return { student: { ...student, studentProfile: hidden }, canManage };
+    return { student: { ...student, studentProfile: hidden }, canManage, studentAffairs };
   }
 
-  return { student, canManage };
+  return { student, canManage, studentAffairs };
 };
 
 export const createStudent = async (

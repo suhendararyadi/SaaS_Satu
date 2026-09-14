@@ -125,7 +125,19 @@ async function getCurriculumData(schoolId: string) {
 
 async function getStudentAffairsData(schoolId: string) {
   const today = jakartaDateOnly();
-  const [activeYear, totalStudents, studentsWithoutClass, records] = await Promise.all([
+  const now = new Date();
+  const [
+    activeYear,
+    totalStudents,
+    studentsWithoutClass,
+    records,
+    openViolations,
+    openCoachings,
+    activePermits,
+    achievementCount,
+    recentViolations,
+    recentCoachings,
+  ] = await Promise.all([
     prisma.academicYear.findFirst({
       where: { schoolId, isActive: true },
       select: { id: true, yearName: true, semester: true },
@@ -135,6 +147,61 @@ async function getStudentAffairsData(schoolId: string) {
     prisma.schoolDailyAttendance.findMany({
       where: { schoolId, dateOnly: today },
       select: { classRoomId: true, status: true },
+    }),
+    prisma.studentViolation.count({
+      where: { schoolId, status: { in: ["RECORDED", "IN_REVIEW"] } },
+    }),
+    prisma.studentCoaching.count({
+      where: { schoolId, status: { in: ["OPEN", "IN_PROGRESS"] } },
+    }),
+    prisma.studentPermit.count({
+      where: {
+        schoolId,
+        status: "APPROVED",
+        startAt: { lte: now },
+        OR: [{ endAt: null }, { endAt: { gte: now } }],
+      },
+    }),
+    prisma.studentAchievement.count({ where: { schoolId } }),
+    prisma.studentViolation.findMany({
+      where: { schoolId, status: { in: ["RECORDED", "IN_REVIEW"] } },
+      select: {
+        id: true,
+        title: true,
+        severity: true,
+        status: true,
+        incidentAt: true,
+        student: {
+          select: {
+            id: true,
+            name: true,
+            classRoom: { select: { name: true } },
+          },
+        },
+        handledBy: { select: { name: true } },
+      },
+      orderBy: [{ severity: "desc" }, { incidentAt: "desc" }],
+      take: 8,
+    }),
+    prisma.studentCoaching.findMany({
+      where: { schoolId, status: { in: ["OPEN", "IN_PROGRESS"] } },
+      select: {
+        id: true,
+        type: true,
+        topic: true,
+        status: true,
+        nextReviewAt: true,
+        student: {
+          select: {
+            id: true,
+            name: true,
+            classRoom: { select: { name: true } },
+          },
+        },
+        assignedTo: { select: { name: true } },
+      },
+      orderBy: [{ nextReviewAt: "asc" }, { createdAt: "desc" }],
+      take: 8,
     }),
   ]);
 
@@ -171,13 +238,18 @@ async function getStudentAffairsData(schoolId: string) {
     type: "KESISWAAN" as const,
     metrics: [
       { label: "Siswa", value: totalStudents, helper: "Terdaftar di sekolah", tone: "blue" },
-      { label: "Kehadiran hari ini", value: attendanceRate(summary) === null ? "-" : `${attendanceRate(summary)}%`, helper: `${summary.total} presensi tercatat`, tone: "green" },
-      { label: "Alpa", value: summary.alpa, helper: "Hari ini", tone: "orange" },
-      { label: "Belum masuk rombel", value: studentsWithoutClass, helper: "Perlu penempatan", tone: studentsWithoutClass ? "orange" : "teal" },
+      { label: "Pelanggaran aktif", value: openViolations, helper: "Belum selesai", tone: openViolations ? "orange" : "green" },
+      { label: "Pembinaan aktif", value: openCoachings, helper: "Masih diproses", tone: openCoachings ? "orange" : "green" },
+      { label: "Izin aktif", value: activePermits, helper: "Sedang berlaku", tone: activePermits ? "teal" : "green" },
     ],
     dateOnly: today,
     summary,
+    attendanceRate: attendanceRate(summary),
+    studentsWithoutClass,
+    achievementCount,
     classRows,
+    recentViolations,
+    recentCoachings,
   };
 }
 

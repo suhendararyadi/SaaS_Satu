@@ -15,6 +15,7 @@ import { WebsiteSchoolPage } from "./pages/WebsiteSchoolPage" with { type: "ref"
 import { SchoolWebsitePreviewPage } from "./pages/SchoolWebsitePreviewPage" with { type: "ref" };
 import { FollowUpWorkflowPage } from "./pages/FollowUpWorkflowPage" with { type: "ref" };
 import { SarprasInventoryPage } from "./pages/SarprasInventoryPage" with { type: "ref" };
+import { StudentAffairsPage } from "./pages/StudentAffairsPage" with { type: "ref" };
 import {
   PublicSchoolHomePage,
   PublicSchoolNewsIndexPage,
@@ -111,6 +112,16 @@ import {
   updateAssetMaintenance,
   moveAssetItem,
 } from "./sarprasOperations" with { type: "ref" };
+import {
+  getStudentAffairsData,
+  createStudentViolation,
+  updateStudentViolation,
+  saveStudentAchievement,
+  createStudentCoaching,
+  updateStudentCoaching,
+  createStudentPermit,
+  updateStudentPermit,
+} from "./studentAffairsOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
 
@@ -123,7 +134,7 @@ export const schoolSpec: Spec = [
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
   query(getDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
   query(getDailyAttendanceReportData, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
-  query(getSchoolStudentDetail, { entities: ["User", "StudentProfile", "ClassRoom", "Department", "AcademicYear", "Placement", "Company"] }),
+  query(getSchoolStudentDetail, { entities: ["User", "StudentProfile", "ClassRoom", "Department", "AcademicYear", "Placement", "Company", "SchoolDailyAttendance", "StudentViolation", "StudentAchievement", "StudentCoaching", "StudentPermit", "SchoolFollowUpCase", "WakasekAssignment", "SchoolStaffAssignment"] }),
   query(getAllSchools, { entities: ["School", "User", "Department", "ClassRoom", "Company", "Placement"] }),
   query(getStudentDashboardData, {
     entities: ["User", "ClassRoom", "LmsCourse", "LmsAssignment", "LmsSubmission", "LmsAssessment", "LmsAssessmentResult", "Placement", "Company", "AttendanceLog", "DailyJournal"],
@@ -132,7 +143,7 @@ export const schoolSpec: Spec = [
     entities: ["User", "TeacherProfile", "WakasekAssignment", "SchoolStaffAssignment", "SchoolFollowUpCase", "ClassRoom", "LmsCourse", "AcademicYear", "LmsAssignment", "LmsSubmission", "Placement", "Company", "DailyJournal"],
   }),
   query(getSchoolAdminDashboardData, {
-    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "SchoolDailyAttendance", "SchoolFollowUpCase", "Company", "Placement", "AttendanceLog", "DailyJournal"],
+    entities: ["School", "User", "AcademicYear", "ClassRoom", "LmsCourse", "SchoolDailyAttendance", "SchoolFollowUpCase", "StudentViolation", "StudentCoaching", "StudentPermit", "Company", "Placement", "AttendanceLog", "DailyJournal"],
   }),
   query(getMentorDashboardData, {
     entities: ["User", "Placement", "Company", "DailyJournal"],
@@ -141,6 +152,24 @@ export const schoolSpec: Spec = [
     entities: ["User", "StudentProfile", "TeacherProfile", "WakasekAssignment", "ClassRoom", "Department", "AcademicYear", "LmsCourse", "Company", "Placement", "SchoolSiteContent"],
   }),
 
+  query(getStudentAffairsData, {
+    entities: [
+      "StudentViolation",
+      "StudentAchievement",
+      "StudentCoaching",
+      "StudentPermit",
+      "StudentAffairsEvent",
+      "SchoolFollowUpCase",
+      "SchoolFollowUpEvent",
+      "School",
+      "User",
+      "StudentProfile",
+      "ClassRoom",
+      "AcademicYear",
+      "WakasekAssignment",
+      "SchoolStaffAssignment",
+    ],
+  }),
   query(getSarprasInventoryData, {
     entities: [
       "FacilityRoom",
@@ -173,6 +202,27 @@ export const schoolSpec: Spec = [
   query(getPublicSchoolSite, { entities: [...websiteEntities] }),
   query(getPublicSchoolContent, { entities: [...websiteEntities] }),
 
+  action(createStudentViolation, {
+    entities: ["StudentViolation", "StudentAffairsEvent", "SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(updateStudentViolation, {
+    entities: ["StudentViolation", "StudentAffairsEvent", "SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(saveStudentAchievement, {
+    entities: ["StudentAchievement", "StudentAffairsEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(createStudentCoaching, {
+    entities: ["StudentCoaching", "StudentAffairsEvent", "SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(updateStudentCoaching, {
+    entities: ["StudentCoaching", "StudentAffairsEvent", "SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(createStudentPermit, {
+    entities: ["StudentPermit", "StudentAffairsEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(updateStudentPermit, {
+    entities: ["StudentPermit", "StudentAffairsEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
   action(saveFacilityRoom, {
     entities: ["FacilityRoom", "User", "WakasekAssignment", "SchoolStaffAssignment"],
   }),
@@ -221,7 +271,7 @@ export const schoolSpec: Spec = [
   action(deleteTeacher, { entities: ["User", "TeacherProfile", "WakasekAssignment", "ClassRoom", "LmsCourse", "Placement"] }),
   action(createStudent, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   action(updateStudent, { entities: ["User", "StudentProfile", "ClassRoom"] }),
-  action(deleteStudent, { entities: ["User", "StudentProfile", "Placement"] }),
+  action(deleteStudent, { entities: ["User", "StudentProfile", "Placement", "StudentViolation", "StudentAchievement", "StudentCoaching", "StudentPermit"] }),
   action(saveDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "AcademicYear", "ClassRoom", "User", "StudentProfile"] }),
   action(importStudentsFromCsv, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   query(previewStudentsFromDapodik, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
@@ -244,6 +294,7 @@ export const schoolSpec: Spec = [
   action(saveSchoolWebsiteMedia, { entities: [...websiteEntities] }),
   action(deleteSchoolWebsiteMedia, { entities: [...websiteEntities] }),
 
+  route("StudentAffairsRoute", "/school/student-affairs", page(StudentAffairsPage, { authRequired: true })),
   route("SarprasInventoryRoute", "/school/sarpras", page(SarprasInventoryPage, { authRequired: true })),
   route("FollowUpWorkflowRoute", "/school/follow-up", page(FollowUpWorkflowPage, { authRequired: true })),
   route("SchoolDashboardRoute", "/school", page(SchoolDashboardPage, { authRequired: true })),

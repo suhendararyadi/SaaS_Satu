@@ -52,6 +52,11 @@ export const governanceSpec: Spec = [
       "FacilityRoom",
       "AssetItem",
       "AssetMaintenance",
+      "StudentViolation",
+      "StudentAchievement",
+      "StudentCoaching",
+      "StudentPermit",
+      "SchoolFollowUpCase",
     ],
   }),
   query(getWakaSupervisionData, {
@@ -79,6 +84,10 @@ export const governanceSpec: Spec = [
       "Company",
       "AttendanceLog",
       "DailyJournal",
+      "StudentViolation",
+      "StudentAchievement",
+      "StudentCoaching",
+      "StudentPermit",
     ],
   }),
 

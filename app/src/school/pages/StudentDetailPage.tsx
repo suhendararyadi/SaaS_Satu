@@ -94,7 +94,7 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
     );
   }
 
-  const { student, canManage } = query.data as any;
+  const { student, canManage, studentAffairs } = query.data as any;
   const profile = student.studentProfile || {};
   const totalFields = studentFormSections.reduce(
     (count, section) => count + section.fields.length,
@@ -309,6 +309,59 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
           ))}
         </div>
 
+        {studentAffairs && (
+          <M3Card variant="outlined" className="overflow-hidden">
+            <div className="flex flex-col gap-3 border-b border-md-outline-variant/35 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-md-primary-container text-md-primary">
+                  <M3Icon name="school" size={18} />
+                </span>
+                <div>
+                  <h2 className="text-[15px] font-semibold text-md-on-surface">Riwayat Kesiswaan</h2>
+                  <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">
+                    Presensi, pelanggaran, prestasi, pembinaan, perizinan, dan tindak lanjut siswa.
+                  </p>
+                </div>
+              </div>
+              <M3Button variant="tonal" size="sm" href={"/school/student-affairs?student=" + student.id} icon="open_in_new">
+                Buka Kesiswaan
+              </M3Button>
+            </div>
+
+            <div className="grid gap-2 border-b border-md-outline-variant/25 p-4 sm:grid-cols-2 lg:grid-cols-5">
+              <M3Card variant="filled" className="p-3"><p className="text-[10px] font-semibold uppercase tracking-[.05em] text-md-on-surface-variant">Pelanggaran Aktif</p><p className="mt-1 text-xl font-semibold text-md-on-surface">{studentAffairs.stats.openViolations}</p></M3Card>
+              <M3Card variant="filled" className="p-3"><p className="text-[10px] font-semibold uppercase tracking-[.05em] text-md-on-surface-variant">Prestasi</p><p className="mt-1 text-xl font-semibold text-md-on-surface">{studentAffairs.stats.achievements}</p></M3Card>
+              <M3Card variant="filled" className="p-3"><p className="text-[10px] font-semibold uppercase tracking-[.05em] text-md-on-surface-variant">Pembinaan Aktif</p><p className="mt-1 text-xl font-semibold text-md-on-surface">{studentAffairs.stats.openCoachings}</p></M3Card>
+              <M3Card variant="filled" className="p-3"><p className="text-[10px] font-semibold uppercase tracking-[.05em] text-md-on-surface-variant">Izin Aktif</p><p className="mt-1 text-xl font-semibold text-md-on-surface">{studentAffairs.stats.activePermits}</p></M3Card>
+              <M3Card variant="filled" className="p-3"><p className="text-[10px] font-semibold uppercase tracking-[.05em] text-md-on-surface-variant">Tindak Lanjut</p><p className="mt-1 text-xl font-semibold text-md-on-surface">{studentAffairs.stats.activeFollowUps}</p></M3Card>
+            </div>
+
+            {!studentAffairs.timeline?.length ? (
+              <div className="px-4 py-8 text-center text-[12px] text-md-on-surface-variant">Belum ada aktivitas Kesiswaan untuk siswa ini.</div>
+            ) : (
+              <div className="divide-y divide-md-outline-variant/25">
+                {studentAffairs.timeline.map((item: any) => {
+                  const icon = item.type === "VIOLATION" ? "warning" : item.type === "ACHIEVEMENT" ? "emoji_events" : item.type === "COACHING" ? "forum" : item.type === "PERMIT" ? "confirmation_number" : "fact_check";
+                  const label = item.type === "VIOLATION" ? "Pelanggaran" : item.type === "ACHIEVEMENT" ? "Prestasi" : item.type === "COACHING" ? "Pembinaan" : item.type === "PERMIT" ? "Perizinan" : "Presensi";
+                  return (
+                    <div key={item.id} className="flex items-start gap-3 px-4 py-3">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-md-surface-container-high text-md-on-surface-variant"><M3Icon name={icon} size={16} /></span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <M3Badge variant="outline" size="sm">{label}</M3Badge>
+                          {item.severity && <M3Badge variant={item.severity === "HIGH" || item.severity === "CRITICAL" ? "warning" : "outline"} size="sm">{item.severity}</M3Badge>}
+                        </div>
+                        <p className="mt-1.5 text-[12.5px] font-semibold text-md-on-surface">{item.title}</p>
+                        <p className="mt-0.5 text-[11px] text-md-on-surface-variant">{item.subtitle} · {formatDate(item.date)}</p>
+                      </div>
+                      <M3Badge variant="outline" size="sm">{item.status}</M3Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </M3Card>
+        )}
         {usesPkl && student.studentPlacements?.length > 0 && (
           <M3Card variant="outlined" className="overflow-hidden">
             <div className="flex items-start gap-3 border-b border-md-outline-variant/35 px-4 py-3.5">

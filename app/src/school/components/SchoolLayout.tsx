@@ -42,6 +42,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/departments", "Jurusan & Konsentrasi"],
   ["/school/classes", "Kelas & Rombel"],
   ["/school/teachers", "Guru & Tendik"],
+  ["/school/student-affairs", "Kesiswaan Terpadu"],
   ["/school/students", "Data Siswa"],
   ["/school/attendance", "Presensi Harian"],
   ["/school/import", "Import Data"],
@@ -254,6 +255,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       sections.push({ title: "TATA KELOLA", items: [
         { label: "Struktur & Penugasan", href: "/school/governance/organization", icon: "account_tree" },
         { label: "Tindak Lanjut", href: "/school/follow-up", icon: "assignment_turned_in" },
+        { label: "Kesiswaan Terpadu", href: "/school/student-affairs", icon: "school" },
         { label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" },
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
@@ -273,6 +275,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         ...(teacherDashboard?.assignments?.homeroomClass ? [
           { label: `Presensi ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/attendance", icon: "fact_check" },
           { label: `Wali ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/governance/walikelas", icon: "supervisor_account" },
+          { label: "Kesiswaan " + teacherDashboard.assignments.homeroomClass.name, href: "/school/student-affairs", icon: "school" },
         ] : []),
         ...(((teacherDashboard?.assignments?.wakasekRoles || []) as WakasekRoleCode[]).map((wakaRole) => ({
           label: WAKASEK_ROLE_META[wakaRole].label,
