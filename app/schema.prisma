@@ -253,6 +253,7 @@ model User {
   approvedStudentPermits    StudentPermit[]         @relation("PermitApprover")
   studentAffairsEvents      StudentAffairsEvent[]   @relation("AffairsEventStudent")
   actedStudentAffairsEvents StudentAffairsEvent[]   @relation("AffairsEventActor")
+  notificationStates        SchoolNotificationState[]
 
   paymentProcessorUserId        String?   @unique
   lemonSqueezyCustomerPortalUrl String? // Lemon Squeezy portal
@@ -312,6 +313,7 @@ model School {
   studentCoachings     StudentCoaching[]
   studentPermits       StudentPermit[]
   studentAffairsEvents StudentAffairsEvent[]
+  notificationStates   SchoolNotificationState[]
   site                 SchoolSite?
   siteContents         SchoolSiteContent[]
   siteNavItems         SchoolSiteNavItem[]
@@ -700,6 +702,21 @@ model StudentAffairsEvent {
   @@index([schoolId, studentId, createdAt])
   @@index([entityType, entityId, createdAt])
   @@index([actorId, createdAt])
+}
+
+model SchoolNotificationState {
+  id              String   @id @default(uuid())
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationKey String
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([schoolId, userId, notificationKey])
+  @@index([schoolId, userId, readAt])
 }
 
 model SchoolFollowUpCase {

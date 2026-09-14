@@ -16,6 +16,7 @@ import { SchoolWebsitePreviewPage } from "./pages/SchoolWebsitePreviewPage" with
 import { FollowUpWorkflowPage } from "./pages/FollowUpWorkflowPage" with { type: "ref" };
 import { SarprasInventoryPage } from "./pages/SarprasInventoryPage" with { type: "ref" };
 import { StudentAffairsPage } from "./pages/StudentAffairsPage" with { type: "ref" };
+import { NotificationCenterPage } from "./pages/NotificationCenterPage" with { type: "ref" };
 import {
   PublicSchoolHomePage,
   PublicSchoolNewsIndexPage,
@@ -122,11 +123,37 @@ import {
   createStudentPermit,
   updateStudentPermit,
 } from "./studentAffairsOperations" with { type: "ref" };
+import {
+  getNotificationCenterData,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from "./notificationOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
+const notificationEntities = [
+  "SchoolNotificationState",
+  "School",
+  "User",
+  "AcademicYear",
+  "ClassRoom",
+  "SchoolDailyAttendance",
+  "SchoolFollowUpCase",
+  "StudentViolation",
+  "StudentCoaching",
+  "StudentPermit",
+  "Placement",
+  "AttendanceLog",
+  "DailyJournal",
+  "WakasekAssignment",
+  "SchoolStaffAssignment",
+  "AssetMaintenance",
+  "AssetItem",
+  "DutyTeacherReport",
+] as const;
 
 export const schoolSpec: Spec = [
   query(getSchoolInfo, { entities: ["School", "User"] }),
+  query(getNotificationCenterData, { entities: [...notificationEntities] }),
   query(getDepartments, { entities: ["Department"] }),
   query(getAcademicYears, { entities: ["AcademicYear"] }),
   query(getClassRooms, { entities: ["ClassRoom", "Department", "AcademicYear", "User"] }),
@@ -201,6 +228,9 @@ export const schoolSpec: Spec = [
   query(getSchoolWebsitePreview, { entities: [...websiteEntities] }),
   query(getPublicSchoolSite, { entities: [...websiteEntities] }),
   query(getPublicSchoolContent, { entities: [...websiteEntities] }),
+
+  action(markNotificationRead, { entities: [...notificationEntities] }),
+  action(markAllNotificationsRead, { entities: [...notificationEntities] }),
 
   action(createStudentViolation, {
     entities: ["StudentViolation", "StudentAffairsEvent", "SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "AcademicYear", "WakasekAssignment", "SchoolStaffAssignment"],
@@ -294,6 +324,7 @@ export const schoolSpec: Spec = [
   action(saveSchoolWebsiteMedia, { entities: [...websiteEntities] }),
   action(deleteSchoolWebsiteMedia, { entities: [...websiteEntities] }),
 
+  route("NotificationCenterRoute", "/school/notifications", page(NotificationCenterPage, { authRequired: true })),
   route("StudentAffairsRoute", "/school/student-affairs", page(StudentAffairsPage, { authRequired: true })),
   route("SarprasInventoryRoute", "/school/sarpras", page(SarprasInventoryPage, { authRequired: true })),
   route("FollowUpWorkflowRoute", "/school/follow-up", page(FollowUpWorkflowPage, { authRequired: true })),

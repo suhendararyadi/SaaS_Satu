@@ -28,6 +28,7 @@ import {
   type M3DrawerSection,
 } from "../../client/components/m3";
 import { SchoolSpotlight } from "./SchoolSpotlight";
+import { NotificationBell } from "./NotificationBell";
 import { getSchoolCapabilities } from "../schoolCapabilities";
 import { WAKASEK_ROLE_META, type WakasekRoleCode } from "../wakasek";
 import { STAFF_ASSIGNMENT_META, type StaffAssignmentRoleCode } from "../staffAssignments";
@@ -42,6 +43,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/departments", "Jurusan & Konsentrasi"],
   ["/school/classes", "Kelas & Rombel"],
   ["/school/teachers", "Guru & Tendik"],
+  ["/school/notifications", "Notifikasi"],
   ["/school/student-affairs", "Kesiswaan Terpadu"],
   ["/school/students", "Data Siswa"],
   ["/school/attendance", "Presensi Harian"],
@@ -231,7 +233,10 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
   const studentHasPkl = usesPkl && !!studentDashboard?.pkl;
 
   const drawerSections: M3DrawerSection[] = (() => {
-    const sections: M3DrawerSection[] = [{ title: "UTAMA", items: [{ label: "Beranda", href: "/school", icon: "home" }] }];
+    const sections: M3DrawerSection[] = [{ title: "UTAMA", items: [
+      { label: "Beranda", href: "/school", icon: "home" },
+      { label: "Notifikasi", href: "/school/notifications", icon: "notifications" },
+    ] }];
     if (isSchoolAdmin) {
       sections.push({ title: "AKADEMIK", items: [
         { label: "Tahun Ajaran", href: "/school/academic-years", icon: "calendar_month" },
@@ -383,7 +388,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
             leading={<M3Button variant="icon" size="icon-md" onClick={() => setMobileDrawerOpen(true)} aria-label="Buka navigasi" title="Buka navigasi" icon={<Menu size={18} strokeWidth={1.8} aria-hidden="true" />} className="text-md-on-surface-variant hover:text-md-on-surface lg:hidden" />}
             title={getPageTitle(location.pathname)}
             subtitle={topBarContext}
-            actions={<>{isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}<button type="button" onClick={() => setSpotlightOpen(true)} aria-label="Buka Spotlight Search" title="Cari di School OS (⌘K)" className="inline-flex h-9 items-center gap-2 rounded-[10px] px-2.5 text-md-on-surface-variant transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/35 dark:hover:bg-white/[.075]"><Search size={17} strokeWidth={1.8} aria-hidden="true"/><span className="hidden text-[12.5px] font-medium md:inline">Cari</span><kbd className="hidden rounded-[6px] border border-black/[.08] bg-black/[.035] px-1.5 py-0.5 text-[10px] font-semibold text-md-on-surface-variant lg:inline dark:border-white/[.09] dark:bg-white/[.06]">⌘K</kbd></button><M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} /><M3AccountMenu user={user} /></>}
+            actions={<>{isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}<button type="button" onClick={() => setSpotlightOpen(true)} aria-label="Buka Spotlight Search" title="Cari di School OS (⌘K)" className="inline-flex h-9 items-center gap-2 rounded-[10px] px-2.5 text-md-on-surface-variant transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/35 dark:hover:bg-white/[.075]"><Search size={17} strokeWidth={1.8} aria-hidden="true"/><span className="hidden text-[12.5px] font-medium md:inline">Cari</span><kbd className="hidden rounded-[6px] border border-black/[.08] bg-black/[.035] px-1.5 py-0.5 text-[10px] font-semibold text-md-on-surface-variant lg:inline dark:border-white/[.09] dark:bg-white/[.06]">⌘K</kbd></button><NotificationBell /><M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} /><M3AccountMenu user={user} /></>}
           />
           <main className="v2-mobile-safe-bottom mx-auto w-full max-w-[1600px] flex-1 p-4 sm:p-5 lg:px-7 lg:py-6" id="main-content">{children}</main>
         </div>
