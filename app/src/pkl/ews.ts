@@ -30,6 +30,7 @@ export type PklEwsSummary = {
 
 type PlacementScope = {
   studentId?: string;
+  studentIds?: string[];
   teacherSupervisorId?: string;
   dudiMentorId?: string;
 };
@@ -67,7 +68,10 @@ export async function getPklEwsAlertsForScope(
     where: {
       schoolId,
       status: "ACTIVE",
-      ...placementScope,
+      ...(placementScope.studentId ? { studentId: placementScope.studentId } : {}),
+      ...(placementScope.studentIds?.length ? { studentId: { in: placementScope.studentIds } } : {}),
+      ...(placementScope.teacherSupervisorId ? { teacherSupervisorId: placementScope.teacherSupervisorId } : {}),
+      ...(placementScope.dudiMentorId ? { dudiMentorId: placementScope.dudiMentorId } : {}),
     },
     select: {
       id: true,

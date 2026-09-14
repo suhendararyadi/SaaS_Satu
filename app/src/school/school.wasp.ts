@@ -17,6 +17,7 @@ import { FollowUpWorkflowPage } from "./pages/FollowUpWorkflowPage" with { type:
 import { SarprasInventoryPage } from "./pages/SarprasInventoryPage" with { type: "ref" };
 import { StudentAffairsPage } from "./pages/StudentAffairsPage" with { type: "ref" };
 import { NotificationCenterPage } from "./pages/NotificationCenterPage" with { type: "ref" };
+import { EarlyWarningSystemPage } from "./pages/EarlyWarningSystemPage" with { type: "ref" };
 import {
   PublicSchoolHomePage,
   PublicSchoolNewsIndexPage,
@@ -128,20 +129,55 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "./notificationOperations" with { type: "ref" };
+import {
+  getUnifiedStudentRiskData,
+  ensureUnifiedRiskFollowUp,
+} from "./studentRiskOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
+const studentRiskEntities = [
+  "School",
+  "User",
+  "StudentProfile",
+  "ClassRoom",
+  "Department",
+  "AcademicYear",
+  "SchoolStaffAssignment",
+  "WakasekAssignment",
+  "SchoolDailyAttendance",
+  "StudentViolation",
+  "StudentCoaching",
+  "StudentPermit",
+  "LmsCourse",
+  "LmsAssignment",
+  "LmsSubmission",
+  "Placement",
+  "Company",
+  "AttendanceLog",
+  "DailyJournal",
+  "SchoolFollowUpCase",
+  "SchoolFollowUpEvent",
+] as const;
+
 const notificationEntities = [
   "SchoolNotificationState",
   "School",
   "User",
+  "StudentProfile",
   "AcademicYear",
   "ClassRoom",
+  "Department",
   "SchoolDailyAttendance",
   "SchoolFollowUpCase",
+  "SchoolFollowUpEvent",
   "StudentViolation",
   "StudentCoaching",
   "StudentPermit",
+  "LmsCourse",
+  "LmsAssignment",
+  "LmsSubmission",
   "Placement",
+  "Company",
   "AttendanceLog",
   "DailyJournal",
   "WakasekAssignment",
@@ -153,6 +189,7 @@ const notificationEntities = [
 
 export const schoolSpec: Spec = [
   query(getSchoolInfo, { entities: ["School", "User"] }),
+  query(getUnifiedStudentRiskData, { entities: [...studentRiskEntities] }),
   query(getNotificationCenterData, { entities: [...notificationEntities] }),
   query(getDepartments, { entities: ["Department"] }),
   query(getAcademicYears, { entities: ["AcademicYear"] }),
@@ -229,6 +266,7 @@ export const schoolSpec: Spec = [
   query(getPublicSchoolSite, { entities: [...websiteEntities] }),
   query(getPublicSchoolContent, { entities: [...websiteEntities] }),
 
+  action(ensureUnifiedRiskFollowUp, { entities: [...studentRiskEntities] }),
   action(markNotificationRead, { entities: [...notificationEntities] }),
   action(markAllNotificationsRead, { entities: [...notificationEntities] }),
 
@@ -325,6 +363,7 @@ export const schoolSpec: Spec = [
   action(deleteSchoolWebsiteMedia, { entities: [...websiteEntities] }),
 
   route("NotificationCenterRoute", "/school/notifications", page(NotificationCenterPage, { authRequired: true })),
+  route("EarlyWarningSystemRoute", "/school/ews", page(EarlyWarningSystemPage, { authRequired: true })),
   route("StudentAffairsRoute", "/school/student-affairs", page(StudentAffairsPage, { authRequired: true })),
   route("SarprasInventoryRoute", "/school/sarpras", page(SarprasInventoryPage, { authRequired: true })),
   route("FollowUpWorkflowRoute", "/school/follow-up", page(FollowUpWorkflowPage, { authRequired: true })),

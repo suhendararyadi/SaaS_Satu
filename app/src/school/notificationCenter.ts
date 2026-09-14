@@ -1,4 +1,5 @@
 export const NOTIFICATION_CATEGORIES = [
+  "STUDENT_RISK",
   "FOLLOW_UP",
   "STUDENT_AFFAIRS",
   "ATTENDANCE",
@@ -17,6 +18,7 @@ export const NOTIFICATION_CATEGORY_META: Record<
   NotificationCategoryCode,
   { label: string; icon: string; href: string }
 > = {
+  STUDENT_RISK: { label: "EWS Terpadu", icon: "health_and_safety", href: "/school/ews" },
   FOLLOW_UP: { label: "Tindak Lanjut", icon: "assignment_turned_in", href: "/school/follow-up" },
   STUDENT_AFFAIRS: { label: "Kesiswaan", icon: "school", href: "/school/student-affairs" },
   ATTENDANCE: { label: "Presensi", icon: "fact_check", href: "/school/attendance" },

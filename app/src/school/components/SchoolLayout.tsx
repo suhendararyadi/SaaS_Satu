@@ -54,7 +54,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/pkl/attendance", "Presensi PKL"],
   ["/school/pkl/journals", "Jurnal PKL"],
   ["/school/pkl/monitoring", "Monitoring PKL"],
-  ["/school/ews", "Early Warning System"],
+  ["/school/ews", "EWS Terpadu"],
   ["/school/sarpras", "Sarpras & Inventaris"],
   ["/school/follow-up", "Tindak Lanjut"],
   ["/school/governance/organization", "Struktur & Penugasan"],
@@ -231,6 +231,14 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
   const { usesDepartments, usesPkl } = getSchoolCapabilities(school.level);
   const teacherHasPkl = usesPkl && !!teacherDashboard?.pkl;
   const studentHasPkl = usesPkl && !!studentDashboard?.pkl;
+  const teacherHasEws = isTeacher && !!teacherDashboard && (
+    !!teacherDashboard.assignments?.homeroomClass ||
+    teacherHasPkl ||
+    (teacherDashboard.assignments?.wakasekRoles?.length ?? 0) > 0 ||
+    (teacherDashboard.assignments?.staffAssignments || []).some((assignment: any) =>
+      assignment.role === "PRINCIPAL" || assignment.role === "DEPARTMENT_HEAD"
+    )
+  );
 
   const drawerSections: M3DrawerSection[] = (() => {
     const sections: M3DrawerSection[] = [{ title: "UTAMA", items: [
@@ -252,7 +260,6 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Penempatan", href: "/school/pkl/placements", icon: "work" },
         { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },
         { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" },
-        { label: "Early Warning", href: "/school/ews", icon: "warning" },
       ] });
       sections.push({ title: "PUBLIKASI", items: [
         { label: "Website Sekolah", href: "/school/website", icon: "language" },
@@ -260,6 +267,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       sections.push({ title: "TATA KELOLA", items: [
         { label: "Struktur & Penugasan", href: "/school/governance/organization", icon: "account_tree" },
         { label: "Tindak Lanjut", href: "/school/follow-up", icon: "assignment_turned_in" },
+        { label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" },
         { label: "Kesiswaan Terpadu", href: "/school/student-affairs", icon: "school" },
         { label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" },
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
@@ -275,7 +283,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
       ] });
-      if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "Early Warning", href: "/school/ews", icon: "warning" }] });
+      if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }] });
       const responsibilities = [
         ...(teacherDashboard?.assignments?.homeroomClass ? [
           { label: `Presensi ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/attendance", icon: "fact_check" },
@@ -295,12 +303,15 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ];
       if (responsibilities.length) sections.push({ title: "TANGGUNG JAWAB", items: responsibilities });
       sections.push({ title: "LAYANAN", items: [{ label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" }] });
-      sections.push({ title: "LAPORAN", items: [{ label: "Laporan Saya", href: "/school/reports", icon: "description" }] });
+      sections.push({ title: "LAPORAN", items: [
+        ...(teacherHasEws ? [{ label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" }] : []),
+        { label: "Laporan Saya", href: "/school/reports", icon: "description" },
+      ] });
     } else if (isStudent) {
       sections.push({ title: "BELAJAR", items: [{ label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" }] });
       if (studentHasPkl) sections.push({ title: "PKL SAYA", items: [{ label: "Presensi PKL", href: "/school/pkl/attendance", icon: "location_on" }, { label: "Jurnal Kegiatan", href: "/school/pkl/journals", icon: "edit_note" }] });
     } else if (isDudiMentor) {
-      sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "Early Warning", href: "/school/ews", icon: "warning" }] });
+      sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" }] });
     }
     if (isPlatformAdmin) sections.push({ title: "SUPER ADMIN", items: [
       ...(user.isAdmin ? [{ label: "Dashboard Super Admin", href: "/admin", icon: "verified_user" }] : []),

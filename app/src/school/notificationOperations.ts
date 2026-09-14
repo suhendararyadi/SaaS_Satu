@@ -5,6 +5,7 @@ import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser } from "./authGuards";
 import { getSchoolCapabilities } from "./schoolCapabilities";
 import { getPklEwsAlertsForScope } from "../pkl/ews";
+import { buildStudentRiskOverview } from "./studentRiskService";
 import {
   DUTY_DAY_LABELS,
   isDutyAssignmentForDay,
@@ -159,6 +160,46 @@ async function collectCurrentNotifications(user: ReturnType<typeof ensureSchoolU
   const homeroomClassIds = homeroomClasses.map((item) => item.id);
 
   const notifications: NotificationSourceItem[] = [];
+
+  // EWS Gen-2: surface the highest cross-module student risks in the user's responsibility scope.
+  if (user.role !== "STUDENT") {
+    try {
+      const riskOverview = await buildStudentRiskOverview(user, { cacheMs: 60_000 });
+      const priorityProfiles = riskOverview.profiles
+        .filter((profile: any) =>
+          profile.level === "CRITICAL" ||
+          profile.level === "HIGH" ||
+          (profile.level === "MEDIUM" && profile.trend.code === "WORSENING"),
+        )
+        .slice(0, 5);
+
+      for (const profile of priorityProfiles) {
+        const topFactors = profile.signals
+          .slice(0, 2)
+          .map((item: any) => item.title)
+          .join("; ");
+        notifications.push({
+          key: notificationKey("STUDENT_RISK", profile.student.id),
+          category: "STUDENT_RISK",
+          severity: profile.level === "CRITICAL" ? "CRITICAL" : "WARNING",
+          title:
+            "EWS Terpadu · " +
+            profile.student.displayName +
+            " · skor " +
+            profile.score,
+          message:
+            (profile.student.classRoom?.name || "Tanpa rombel") +
+            (topFactors ? ". Faktor utama: " + topFactors : ". Profil risiko perlu ditinjau."),
+          href: "/school/ews?student=" + profile.student.id,
+          icon: NOTIFICATION_CATEGORY_META.STUDENT_RISK.icon,
+          updatedAt: profile.lastSignalAt ? new Date(profile.lastSignalAt) : riskOverview.generatedAt,
+          actionLabel: "Buka profil risiko",
+        });
+      }
+    } catch (error) {
+      if (!(error instanceof HttpError) || error.statusCode !== 403) throw error;
+    }
+  }
 
   // 1) Tindak lanjut: assigned to the user, plus leadership exceptions that need a decision.
   const followUps = await prisma.schoolFollowUpCase.findMany({

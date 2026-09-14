@@ -107,7 +107,7 @@ const attentionIconConfig: Record<string, { icon: LucideIcon; tile: string }> = 
   NO_ACTIVE_YEAR: { icon: CalendarX2, tile: "bg-[#FF3B30] dark:bg-[#FF453A]" },
   STUDENTS_WITHOUT_CLASS: { icon: UsersRound, tile: "bg-[#007AFF] dark:bg-[#0A84FF]" },
   TEACHERS_WITHOUT_COURSE: { icon: BookOpen, tile: "bg-[#8E8E93]" },
-  PKL_EWS_ALERTS: { icon: ShieldAlert, tile: "bg-[#FF9500] dark:bg-[#FF9F0A]" },
+  UNIFIED_EWS_RISK: { icon: ShieldAlert, tile: "bg-[#FF9500] dark:bg-[#FF9F0A]" },
 };
 
 function AttentionIcon({ code, severity }: { code: string; severity?: string }) {

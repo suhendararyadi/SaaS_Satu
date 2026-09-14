@@ -1,7 +1,7 @@
 import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import { ensureSchoolUser } from "./authGuards";
-import { getPklEwsAlertsForScope, summarizePklEwsAlerts } from "../pkl/ews";
+import { buildStudentRiskOverview } from "./studentRiskService";
 import { getSchoolCapabilities } from "./schoolCapabilities";
 import { isDutyAssignmentForDay, jakartaDutyDayCode, staffAssignmentDisplayTitle } from "./staffAssignments";
 
@@ -307,7 +307,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
   if (!isAdmin) throw new HttpError(403, "Dashboard ini hanya tersedia untuk administrator sekolah.");
 
   const todayDateOnly = localDateKey();
-  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, classAttendanceSources, ewsAlerts, followUpActiveCount, followUpOverdueCount, openStudentViolations, openStudentCoachings, overdueStudentPermits] = await Promise.all([
+  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, classAttendanceSources, riskOverview, followUpActiveCount, followUpOverdueCount, openStudentViolations, openStudentCoachings, overdueStudentPermits] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
       select: { id: true, name: true, level: true, tier: true, studentQuota: true },
@@ -347,7 +347,7 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
         department: { select: { code: true } },
       },
     }),
-    getPklEwsAlertsForScope(user.schoolId),
+    buildStudentRiskOverview(user, { cacheMs: 60_000 }),
     prisma.schoolFollowUpCase.count({
       where: { schoolId: user.schoolId, status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] } },
     }),
@@ -377,9 +377,15 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
 
   const [students, teachers, classRooms, lmsCourses, companies, placements] = counts;
   const capabilities = getSchoolCapabilities(school.level);
-  const ews = capabilities.usesPkl
-    ? summarizePklEwsAlerts(ewsAlerts)
-    : { totalAlerts: 0, high: 0, medium: 0, low: 0, affectedStudents: 0, affectedPlacements: 0 };
+  const ews = {
+    totalStudents: riskOverview.summary.totalStudents,
+    atRisk: riskOverview.summary.atRisk,
+    highOrCritical: riskOverview.summary.highOrCritical,
+    critical: riskOverview.summary.levelCounts.CRITICAL,
+    high: riskOverview.summary.levelCounts.HIGH,
+    medium: riskOverview.summary.levelCounts.MEDIUM,
+    worsening: riskOverview.summary.worsening,
+  };
   const studentAffairsAttentionCount =
     openStudentViolations + openStudentCoachings + overdueStudentPermits;
 
@@ -415,14 +421,16 @@ export const getSchoolAdminDashboardData = async (_args: unknown, context: { use
     ...(teachersWithoutCourse > 0
       ? [{ code: "TEACHERS_WITHOUT_COURSE", severity: "info" as const, label: "Guru belum memiliki ruang mapel", count: teachersWithoutCourse, destination: "/school/lms/courses" }]
       : []),
-    ...(ews.totalAlerts > 0
+    ...(ews.atRisk > 0
       ? [{
-          code: "PKL_EWS_ALERTS",
-          severity: ews.high > 0 ? ("warning" as const) : ("info" as const),
-          label: ews.high > 0
-            ? `Early Warning System: ${ews.high} prioritas tinggi`
-            : "Early Warning System perlu ditinjau",
-          count: ews.totalAlerts,
+          code: "UNIFIED_EWS_RISK",
+          severity: ews.highOrCritical > 0 ? ("warning" as const) : ("info" as const),
+          label: ews.critical > 0
+            ? "EWS Terpadu: " + ews.critical + " siswa risiko kritis"
+            : ews.high > 0
+              ? "EWS Terpadu: " + ews.high + " siswa risiko tinggi"
+              : "EWS Terpadu perlu ditinjau",
+          count: ews.atRisk,
           destination: "/school/ews",
         }]
       : []),
