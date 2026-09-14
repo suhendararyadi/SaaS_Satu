@@ -52,6 +52,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/pkl/journals", "Jurnal PKL"],
   ["/school/pkl/monitoring", "Monitoring PKL"],
   ["/school/ews", "Early Warning System"],
+  ["/school/sarpras", "Sarpras & Inventaris"],
   ["/school/follow-up", "Tindak Lanjut"],
   ["/school/governance/organization", "Struktur & Penugasan"],
   ["/school/governance/piket", "Guru Piket"],
@@ -253,6 +254,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       sections.push({ title: "TATA KELOLA", items: [
         { label: "Struktur & Penugasan", href: "/school/governance/organization", icon: "account_tree" },
         { label: "Tindak Lanjut", href: "/school/follow-up", icon: "assignment_turned_in" },
+        { label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" },
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
         { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
@@ -284,6 +286,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         }))),
       ];
       if (responsibilities.length) sections.push({ title: "TANGGUNG JAWAB", items: responsibilities });
+      sections.push({ title: "LAYANAN", items: [{ label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" }] });
       sections.push({ title: "LAPORAN", items: [{ label: "Laporan Saya", href: "/school/reports", icon: "description" }] });
     } else if (isStudent) {
       sections.push({ title: "BELAJAR", items: [{ label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" }] });

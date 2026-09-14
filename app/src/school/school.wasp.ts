@@ -14,6 +14,7 @@ import { SchoolSettingsPage } from "./pages/SchoolSettingsPage" with { type: "re
 import { WebsiteSchoolPage } from "./pages/WebsiteSchoolPage" with { type: "ref" };
 import { SchoolWebsitePreviewPage } from "./pages/SchoolWebsitePreviewPage" with { type: "ref" };
 import { FollowUpWorkflowPage } from "./pages/FollowUpWorkflowPage" with { type: "ref" };
+import { SarprasInventoryPage } from "./pages/SarprasInventoryPage" with { type: "ref" };
 import {
   PublicSchoolHomePage,
   PublicSchoolNewsIndexPage,
@@ -101,6 +102,15 @@ import {
   addFollowUpComment,
   ensurePklEwsFollowUp,
 } from "./followUpOperations" with { type: "ref" };
+import {
+  getSarprasInventoryData,
+  saveFacilityRoom,
+  saveAssetCategory,
+  saveAssetItem,
+  reportAssetMaintenance,
+  updateAssetMaintenance,
+  moveAssetItem,
+} from "./sarprasOperations" with { type: "ref" };
 
 const websiteEntities = ["School", "SchoolSite", "SchoolSiteContent", "SchoolSiteNavItem", "SchoolSiteMedia", "SchoolSiteRevision", "Department", "User"] as const;
 
@@ -131,6 +141,21 @@ export const schoolSpec: Spec = [
     entities: ["User", "StudentProfile", "TeacherProfile", "WakasekAssignment", "ClassRoom", "Department", "AcademicYear", "LmsCourse", "Company", "Placement", "SchoolSiteContent"],
   }),
 
+  query(getSarprasInventoryData, {
+    entities: [
+      "FacilityRoom",
+      "AssetCategory",
+      "AssetItem",
+      "AssetMaintenance",
+      "AssetMovement",
+      "SchoolFollowUpCase",
+      "SchoolFollowUpEvent",
+      "School",
+      "User",
+      "WakasekAssignment",
+      "SchoolStaffAssignment",
+    ],
+  }),
   query(getFollowUpWorkflowData, {
     entities: [
       "SchoolFollowUpCase",
@@ -148,6 +173,24 @@ export const schoolSpec: Spec = [
   query(getPublicSchoolSite, { entities: [...websiteEntities] }),
   query(getPublicSchoolContent, { entities: [...websiteEntities] }),
 
+  action(saveFacilityRoom, {
+    entities: ["FacilityRoom", "User", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(saveAssetCategory, {
+    entities: ["AssetCategory", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(saveAssetItem, {
+    entities: ["AssetItem", "AssetCategory", "FacilityRoom", "AssetMovement", "User", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(reportAssetMaintenance, {
+    entities: ["AssetItem", "AssetMaintenance", "SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(updateAssetMaintenance, {
+    entities: ["AssetItem", "AssetMaintenance", "SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
+  action(moveAssetItem, {
+    entities: ["AssetItem", "FacilityRoom", "AssetMovement", "User", "WakasekAssignment", "SchoolStaffAssignment"],
+  }),
   action(syncFollowUpFindings, {
     entities: ["SchoolFollowUpCase", "SchoolFollowUpEvent", "User", "ClassRoom", "SchoolDailyAttendance", "Placement", "AttendanceLog", "DailyJournal", "DutyTeacherReport", "WakasekAssignment"],
   }),
@@ -201,6 +244,7 @@ export const schoolSpec: Spec = [
   action(saveSchoolWebsiteMedia, { entities: [...websiteEntities] }),
   action(deleteSchoolWebsiteMedia, { entities: [...websiteEntities] }),
 
+  route("SarprasInventoryRoute", "/school/sarpras", page(SarprasInventoryPage, { authRequired: true })),
   route("FollowUpWorkflowRoute", "/school/follow-up", page(FollowUpWorkflowPage, { authRequired: true })),
   route("SchoolDashboardRoute", "/school", page(SchoolDashboardPage, { authRequired: true })),
   route("DepartmentsRoute", "/school/departments", page(DepartmentsPage, { authRequired: true })),

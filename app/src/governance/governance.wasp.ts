@@ -49,6 +49,9 @@ export const governanceSpec: Spec = [
       "Placement",
       "SchoolSite",
       "SchoolSiteContent",
+      "FacilityRoom",
+      "AssetItem",
+      "AssetMaintenance",
     ],
   }),
   query(getWakaSupervisionData, {

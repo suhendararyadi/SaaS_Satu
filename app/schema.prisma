@@ -95,6 +95,7 @@ enum FollowUpSourceType {
   DUTY_TEACHER
   HOMEROOM
   WAKASEK
+  SARPRAS
   SYSTEM
   MANUAL
 }
@@ -105,6 +106,37 @@ enum FollowUpEventType {
   STATUS_CHANGED
   COMMENT
   UPDATED
+}
+
+enum AssetCondition {
+  GOOD
+  FAIR
+  DAMAGED
+  LOST
+  MAINTENANCE
+}
+
+enum AssetStatus {
+  ACTIVE
+  INACTIVE
+  DISPOSED
+}
+
+enum AssetMaintenanceStatus {
+  REPORTED
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum AssetMovementType {
+  ACQUISITION
+  TRANSFER
+  REPAIR
+  RETURN
+  DISPOSAL
+  ADJUSTMENT
 }
 
 model User {
@@ -132,18 +164,23 @@ model User {
   teacherPlacements Placement[] @relation("TeacherPlacements")
   mentorPlacements  Placement[] @relation("MentorPlacements")
 
-  teacherCourses           LmsCourse[]             @relation("TeacherCourses")
-  attendanceRecords        LmsAttendanceRecord[]
-  assignmentSubmissions    LmsSubmission[]
-  assessmentResults        LmsAssessmentResult[]
-  dutyReports              DutyTeacherReport[]
-  dailyAttendances         SchoolDailyAttendance[] @relation("DailyAttendanceStudent")
-  recordedDailyAttendances SchoolDailyAttendance[] @relation("DailyAttendanceRecorder")
-  followUpSubjectCases     SchoolFollowUpCase[]    @relation("FollowUpSubjectStudent")
-  followUpAssignedCases    SchoolFollowUpCase[]    @relation("FollowUpAssignee")
-  followUpCreatedCases     SchoolFollowUpCase[]    @relation("FollowUpCreator")
-  followUpResolvedCases    SchoolFollowUpCase[]    @relation("FollowUpResolver")
-  followUpEvents           SchoolFollowUpEvent[]   @relation("FollowUpEventActor")
+  teacherCourses            LmsCourse[]             @relation("TeacherCourses")
+  attendanceRecords         LmsAttendanceRecord[]
+  assignmentSubmissions     LmsSubmission[]
+  assessmentResults         LmsAssessmentResult[]
+  dutyReports               DutyTeacherReport[]
+  dailyAttendances          SchoolDailyAttendance[] @relation("DailyAttendanceStudent")
+  recordedDailyAttendances  SchoolDailyAttendance[] @relation("DailyAttendanceRecorder")
+  followUpSubjectCases      SchoolFollowUpCase[]    @relation("FollowUpSubjectStudent")
+  followUpAssignedCases     SchoolFollowUpCase[]    @relation("FollowUpAssignee")
+  followUpCreatedCases      SchoolFollowUpCase[]    @relation("FollowUpCreator")
+  followUpResolvedCases     SchoolFollowUpCase[]    @relation("FollowUpResolver")
+  followUpEvents            SchoolFollowUpEvent[]   @relation("FollowUpEventActor")
+  facilityResponsibilities  FacilityRoom[]          @relation("FacilityResponsible")
+  assetResponsibilities     AssetItem[]             @relation("AssetResponsible")
+  reportedAssetMaintenances AssetMaintenance[]      @relation("MaintenanceReporter")
+  assignedAssetMaintenances AssetMaintenance[]      @relation("MaintenanceAssignee")
+  assetMovements            AssetMovement[]         @relation("AssetMovementActor")
 
   paymentProcessorUserId        String?   @unique
   lemonSqueezyCustomerPortalUrl String? // Lemon Squeezy portal
@@ -193,6 +230,11 @@ model School {
   wakasekAssignments WakasekAssignment[]
   staffAssignments   SchoolStaffAssignment[]
   followUpCases      SchoolFollowUpCase[]
+  facilityRooms      FacilityRoom[]
+  assetCategories    AssetCategory[]
+  assets             AssetItem[]
+  assetMaintenances  AssetMaintenance[]
+  assetMovements     AssetMovement[]
   site               SchoolSite?
   siteContents       SchoolSiteContent[]
   siteNavItems       SchoolSiteNavItem[]
@@ -327,6 +369,135 @@ model SchoolStaffAssignment {
   @@index([schoolId, teacherId, isActive])
   @@index([departmentId, role, isActive])
   @@index([academicYearId, isActive])
+}
+
+model FacilityRoom {
+  id                String   @id @default(uuid())
+  schoolId          String
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  code              String
+  name              String
+  type              String?
+  building          String?
+  floor             String?
+  responsibleUserId String?
+  responsibleUser   User?    @relation("FacilityResponsible", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+  notes             String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  assets        AssetItem[]
+  movementsFrom AssetMovement[] @relation("AssetMovementFromRoom")
+  movementsTo   AssetMovement[] @relation("AssetMovementToRoom")
+
+  @@unique([schoolId, code])
+  @@index([schoolId, isActive])
+  @@index([responsibleUserId])
+}
+
+model AssetCategory {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  code        String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assets AssetItem[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, name])
+}
+
+model AssetItem {
+  id                String         @id @default(uuid())
+  schoolId          String
+  school            School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  code              String
+  name              String
+  categoryId        String?
+  category          AssetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  roomId            String?
+  room              FacilityRoom?  @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  responsibleUserId String?
+  responsibleUser   User?          @relation("AssetResponsible", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+  brand             String?
+  model             String?
+  serialNumber      String?
+  quantity          Int            @default(1)
+  acquisitionDate   DateTime?
+  acquisitionSource String?
+  acquisitionValue  Decimal?       @db.Decimal(14, 2)
+  condition         AssetCondition @default(GOOD)
+  status            AssetStatus    @default(ACTIVE)
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  maintenances AssetMaintenance[]
+  movements    AssetMovement[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, condition, status])
+  @@index([schoolId, roomId])
+  @@index([categoryId])
+  @@index([responsibleUserId])
+}
+
+model AssetMaintenance {
+  id             String                 @id @default(uuid())
+  schoolId       String
+  school         School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assetId        String
+  asset          AssetItem              @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  issue          String
+  priority       FollowUpSeverity       @default(MEDIUM)
+  status         AssetMaintenanceStatus @default(REPORTED)
+  reportedById   String?
+  reportedBy     User?                  @relation("MaintenanceReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  assignedToId   String?
+  assignedTo     User?                  @relation("MaintenanceAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  reportedAt     DateTime               @default(now())
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  resolutionNote String?
+  vendor         String?
+  estimatedCost  Decimal?               @db.Decimal(14, 2)
+  actualCost     Decimal?               @db.Decimal(14, 2)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([schoolId, status, priority])
+  @@index([assetId, status])
+  @@index([assignedToId, status])
+}
+
+model AssetMovement {
+  id            String            @id @default(uuid())
+  schoolId      String
+  school        School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assetId       String
+  asset         AssetItem         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  type          AssetMovementType
+  fromRoomId    String?
+  fromRoom      FacilityRoom?     @relation("AssetMovementFromRoom", fields: [fromRoomId], references: [id], onDelete: SetNull)
+  toRoomId      String?
+  toRoom        FacilityRoom?     @relation("AssetMovementToRoom", fields: [toRoomId], references: [id], onDelete: SetNull)
+  performedById String?
+  performedBy   User?             @relation("AssetMovementActor", fields: [performedById], references: [id], onDelete: SetNull)
+  note          String?
+  movedAt       DateTime          @default(now())
+  createdAt     DateTime          @default(now())
+
+  @@index([schoolId, movedAt])
+  @@index([assetId, movedAt])
+  @@index([fromRoomId])
+  @@index([toRoomId])
+  @@index([performedById])
 }
 
 model SchoolFollowUpCase {

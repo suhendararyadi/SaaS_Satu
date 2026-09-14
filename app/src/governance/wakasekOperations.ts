@@ -182,54 +182,86 @@ async function getStudentAffairsData(schoolId: string) {
 }
 
 async function getFacilitiesData(schoolId: string) {
-  const [school, activeYear, totalStudents, studentsWithoutClass, departmentCount] = await Promise.all([
-    prisma.school.findUnique({ where: { id: schoolId }, select: { level: true } }),
-    prisma.academicYear.findFirst({
-      where: { schoolId, isActive: true },
-      select: { id: true, yearName: true, semester: true },
-    }),
-    prisma.user.count({ where: { schoolId, role: "STUDENT" } }),
-    prisma.user.count({ where: { schoolId, role: "STUDENT", classRoomId: null } }),
-    prisma.department.count({ where: { schoolId } }),
-  ]);
-
-  const capabilities = getSchoolCapabilities(school?.level);
-  const classes = activeYear
-    ? await prisma.classRoom.findMany({
-        where: { schoolId, academicYearId: activeYear.id },
+  const [rooms, statusGroups, conditionGroups, openMaintenance, attentionAssets, recentMaintenance] =
+    await Promise.all([
+      prisma.facilityRoom.count({ where: { schoolId, isActive: true } }),
+      prisma.assetItem.groupBy({
+        by: ["status"],
+        where: { schoolId },
+        _count: { _all: true },
+        _sum: { quantity: true },
+      }),
+      prisma.assetItem.groupBy({
+        by: ["condition"],
+        where: { schoolId, status: "ACTIVE" },
+        _sum: { quantity: true },
+      }),
+      prisma.assetMaintenance.count({
+        where: { schoolId, status: { in: ["REPORTED", "PLANNED", "IN_PROGRESS"] } },
+      }),
+      prisma.assetItem.findMany({
+        where: {
+          schoolId,
+          status: "ACTIVE",
+          condition: { in: ["FAIR", "DAMAGED", "LOST", "MAINTENANCE"] },
+        },
         select: {
           id: true,
+          code: true,
           name: true,
-          gradeLevel: true,
-          department: { select: { code: true, name: true } },
-          homeroomTeacher: { select: { name: true } },
-          _count: { select: { students: true } },
+          quantity: true,
+          condition: true,
+          room: { select: { code: true, name: true } },
+          responsibleUser: { select: { name: true } },
+          _count: {
+            select: {
+              maintenances: {
+                where: { status: { in: ["REPORTED", "PLANNED", "IN_PROGRESS"] } },
+              },
+            },
+          },
         },
-        orderBy: [{ gradeLevel: "asc" }, { name: "asc" }],
-      })
-    : [];
+        orderBy: [{ condition: "desc" }, { name: "asc" }],
+        take: 12,
+      }),
+      prisma.assetMaintenance.findMany({
+        where: { schoolId, status: { in: ["REPORTED", "PLANNED", "IN_PROGRESS"] } },
+        select: {
+          id: true,
+          status: true,
+          priority: true,
+          issue: true,
+          asset: { select: { id: true, code: true, name: true } },
+          assignedTo: { select: { name: true } },
+        },
+        orderBy: [{ priority: "desc" }, { reportedAt: "desc" }],
+        take: 8,
+      }),
+    ]);
 
-  const withoutHomeroom = classes.filter((classRoom) => !classRoom.homeroomTeacher).length;
+  const totalUnits = statusGroups
+    .filter((row) => row.status !== "DISPOSED")
+    .reduce((sum, row) => sum + (row._sum.quantity || 0), 0);
+  const totalRecords = statusGroups
+    .filter((row) => row.status !== "DISPOSED")
+    .reduce((sum, row) => sum + row._count._all, 0);
+  const unitByCondition = new Map(conditionGroups.map((row) => [row.condition, row._sum.quantity || 0]));
+  const attentionUnits =
+    (unitByCondition.get("FAIR") || 0) +
+    (unitByCondition.get("DAMAGED") || 0) +
+    (unitByCondition.get("LOST") || 0) +
+    (unitByCondition.get("MAINTENANCE") || 0);
 
   return {
     type: "SARPRAS" as const,
     metrics: [
-      { label: "Rombel aktif", value: classes.length, helper: activeYear ? `${activeYear.yearName} · ${activeYear.semester}` : "Belum ada tahun ajaran aktif", tone: "green" },
-      capabilities.usesDepartments
-        ? { label: "Jurusan / konsentrasi", value: departmentCount, helper: "Struktur layanan akademik", tone: "blue" }
-        : { label: "Siswa tertempatkan", value: Math.max(0, totalStudents - studentsWithoutClass), helper: "Sudah memiliki rombel", tone: "blue" },
-      { label: "Tanpa wali kelas", value: withoutHomeroom, helper: "Rombel perlu penanggung jawab", tone: withoutHomeroom ? "orange" : "teal" },
-      { label: "Siswa belum tertempatkan", value: studentsWithoutClass, helper: "Belum memiliki rombel", tone: studentsWithoutClass ? "orange" : "green" },
+      { label: "Unit inventaris", value: totalUnits, helper: String(totalRecords) + " record aset aktif", tone: "blue" },
+      { label: "Ruang / fasilitas", value: rooms, helper: "Ruang aktif terdata", tone: "teal" },
+      { label: "Perlu perhatian", value: attentionUnits, helper: "Cukup / rusak / hilang / maintenance", tone: attentionUnits ? "orange" : "green" },
+      { label: "Maintenance aktif", value: openMaintenance, helper: "Belum selesai", tone: openMaintenance ? "orange" : "green" },
     ],
-    classRows: classes.map((classRoom) => ({
-      id: classRoom.id,
-      name: classRoom.name,
-      gradeLevel: classRoom.gradeLevel,
-      departmentName: classRoom.department?.name || null,
-      departmentCode: classRoom.department?.code || null,
-      homeroomTeacherName: classRoom.homeroomTeacher?.name || null,
-      studentCount: classRoom._count.students,
-    })),
+    attentionAssets,
+    recentMaintenance,
   };
 }
 

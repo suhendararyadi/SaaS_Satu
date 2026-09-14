@@ -38,6 +38,7 @@ const SOURCE_META: Record<string, { label: string; icon: string }> = {
   DUTY_TEACHER: { label: "Guru Piket", icon: "schedule" },
   HOMEROOM: { label: "Wali Kelas", icon: "supervisor_account" },
   WAKASEK: { label: "Wakasek", icon: "verified_user" },
+  SARPRAS: { label: "Sarpras", icon: "inventory_2" },
   SYSTEM: { label: "Sistem", icon: "settings_suggest" },
   MANUAL: { label: "Manual", icon: "edit_note" },
 };

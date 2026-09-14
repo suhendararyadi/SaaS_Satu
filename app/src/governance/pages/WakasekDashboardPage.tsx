@@ -135,44 +135,77 @@ function FacilitiesPanel({ data, isAdmin }: { data: any; isAdmin: boolean }) {
     <div className="space-y-4">
       <M3Banner
         variant="standard"
-        headline="Kesiapan layanan dan ruang belajar"
-        supportingText="Panel Sarpras menggunakan data rombel aktif sebagai baseline operasional. Struktur inventaris aset fisik dapat ditambahkan kemudian tanpa mengubah model penugasan Wakasek."
-        icon="domain"
+        headline="Inventaris dan pemeliharaan Sarpras"
+        supportingText="Data ruang, aset fisik, kondisi, pemeliharaan, dan tindak lanjut sekarang dikelola sebagai inventaris operasional sekolah."
+        icon="inventory_2"
       />
       <div className="flex flex-wrap justify-end gap-2">
-        <M3Button href="/school/classes" variant="tonal" size="sm" icon="meeting_room">Kelas & Rombel</M3Button>
-        {isAdmin && <M3Button href="/school/settings" variant="outlined" size="sm" icon="settings">Pengaturan Sekolah</M3Button>}
+        <M3Button href="/school/sarpras" variant="tonal" size="sm" icon="inventory_2">Buka Inventaris</M3Button>
+        <M3Button href="/school/follow-up" variant="outlined" size="sm" icon="assignment_turned_in">Tindak Lanjut</M3Button>
+        {isAdmin && <M3Button href="/school/governance/organization" variant="outlined" size="sm" icon="account_tree">Penugasan</M3Button>}
       </div>
-      {!data.classRows?.length ? (
+
+      {!data.attentionAssets?.length ? (
         <M3EmptyState
-          icon="domain"
-          title="Belum ada rombel aktif"
-          description="Kesiapan sarana akademik akan muncul setelah rombel semester aktif tersedia."
+          icon="task_alt"
+          title="Tidak ada aset yang perlu perhatian"
+          description="Aset dengan kondisi cukup, rusak, hilang, atau dalam pemeliharaan akan muncul di sini."
         />
       ) : (
         <M3Card variant="outlined" className="overflow-hidden p-0">
           <M3Table>
             <M3TableHeader>
               <M3TableRow>
-                <M3TableHead>Rombel</M3TableHead>
-                <M3TableHead>Tingkat</M3TableHead>
-                <M3TableHead>Jurusan</M3TableHead>
-                <M3TableHead>Wali Kelas</M3TableHead>
-                <M3TableHead>Siswa</M3TableHead>
+                <M3TableHead>Kode</M3TableHead>
+                <M3TableHead>Aset</M3TableHead>
+                <M3TableHead>Lokasi</M3TableHead>
+                <M3TableHead>Kondisi</M3TableHead>
+                <M3TableHead>Unit</M3TableHead>
+                <M3TableHead>PIC</M3TableHead>
+                <M3TableHead>Maintenance</M3TableHead>
               </M3TableRow>
             </M3TableHeader>
             <M3TableBody>
-              {data.classRows.map((row: any) => (
+              {data.attentionAssets.map((row: any) => (
                 <M3TableRow key={row.id}>
+                  <M3TableCell className="font-mono text-[11.5px] font-semibold text-md-on-surface">{row.code}</M3TableCell>
                   <M3TableCell className="font-semibold text-md-on-surface">{row.name}</M3TableCell>
-                  <M3TableCell>{row.gradeLevel}</M3TableCell>
-                  <M3TableCell>{row.departmentCode || row.departmentName || "-"}</M3TableCell>
-                  <M3TableCell>{row.homeroomTeacherName || "Belum ditetapkan"}</M3TableCell>
-                  <M3TableCell>{row.studentCount}</M3TableCell>
+                  <M3TableCell>{row.room ? `${row.room.code} · ${row.room.name}` : "-"}</M3TableCell>
+                  <M3TableCell><M3Badge variant={row.condition === "DAMAGED" || row.condition === "LOST" ? "error" : "warning"} size="sm">{row.condition}</M3Badge></M3TableCell>
+                  <M3TableCell>{row.quantity}</M3TableCell>
+                  <M3TableCell>{row.responsibleUser?.name || "-"}</M3TableCell>
+                  <M3TableCell>{row._count.maintenances}</M3TableCell>
                 </M3TableRow>
               ))}
             </M3TableBody>
           </M3Table>
+        </M3Card>
+      )}
+
+      {!!data.recentMaintenance?.length && (
+        <M3Card variant="outlined" className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-md-on-surface">Maintenance aktif</p>
+              <p className="text-xs text-md-on-surface-variant">Laporan yang belum selesai.</p>
+            </div>
+            <M3Button href="/school/sarpras" variant="text" size="sm">Lihat Semua</M3Button>
+          </div>
+          <div className="space-y-2">
+            {data.recentMaintenance.map((item: any) => (
+              <div key={item.id} className="flex flex-col gap-2 rounded-[11px] border border-md-outline-variant/45 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[12.5px] font-semibold text-md-on-surface">{item.asset.code} · {item.asset.name}</p>
+                  <p className="mt-0.5 text-[11.5px] text-md-on-surface-variant">{item.issue}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <M3Badge variant={item.priority === "CRITICAL" ? "error" : item.priority === "HIGH" ? "warning" : "outline"} size="sm">{item.priority}</M3Badge>
+                  <M3Badge variant="outline" size="sm">{item.status}</M3Badge>
+                  <M3Badge variant="outline" size="sm">{item.assignedTo?.name || "Belum ada PIC"}</M3Badge>
+                </div>
+              </div>
+            ))}
+          </div>
         </M3Card>
       )}
     </div>
