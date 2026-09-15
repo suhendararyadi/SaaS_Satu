@@ -4,6 +4,7 @@ import { ensureSchoolUser } from "./authGuards";
 import { buildStudentRiskOverview } from "./studentRiskService";
 import { getSchoolCapabilities } from "./schoolCapabilities";
 import { isDutyAssignmentForDay, jakartaDutyDayCode, staffAssignmentDisplayTitle } from "./staffAssignments";
+import { getPklEwsAlertsForScope } from "../pkl/ews";
 
 function displayName(user: Pick<User, "name" | "email" | "username">) {
   return user.name || user.username || user.email || "Pengguna";
@@ -48,17 +49,22 @@ export const getStudentDashboardData = async (_args: unknown, context: { user?: 
 
   const now = new Date();
   const { start, end } = jakartaDayBounds(now);
+  const assignmentWindowStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const courses = student.classRoomId
     ? await prisma.lmsCourse.findMany({
-        where: { schoolId: user.schoolId, classRoomId: student.classRoomId },
+        where: {
+          schoolId: user.schoolId,
+          classRoomId: student.classRoomId,
+          academicYear: { isActive: true },
+        },
         orderBy: { subjectName: "asc" },
         select: {
           id: true,
           subjectName: true,
           teacher: { select: { name: true, email: true, username: true } },
           assignments: {
-            where: { deadline: { gte: now } },
+            where: { deadline: { gte: assignmentWindowStart } },
             orderBy: { deadline: "asc" },
             select: {
               id: true,
@@ -82,18 +88,21 @@ export const getStudentDashboardData = async (_args: unknown, context: { user?: 
       })
     : [];
 
-  const pendingAssignments = courses.flatMap((course) =>
-    course.assignments
-      .filter((assignment) => assignment.submissions.length === 0)
-      .map((assignment) => ({
-        assignmentId: assignment.id,
-        courseId: course.id,
-        courseName: course.subjectName,
-        title: assignment.title,
-        deadline: assignment.deadline,
-        submissionStatus: "PENDING" as const,
-      }))
-  );
+  const pendingAssignments = courses
+    .flatMap((course) =>
+      course.assignments
+        .filter((assignment) => assignment.submissions.length === 0)
+        .map((assignment) => ({
+          assignmentId: assignment.id,
+          courseId: course.id,
+          courseName: course.subjectName,
+          title: assignment.title,
+          deadline: assignment.deadline,
+          isOverdue: assignment.deadline < now,
+          submissionStatus: assignment.deadline < now ? ("OVERDUE" as const) : ("PENDING" as const),
+        }))
+    )
+    .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
 
   const upcomingAssessments = courses.flatMap((course) =>
     course.assessments.map((assessment) => ({
@@ -162,7 +171,7 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
       select: { id: true, name: true, email: true, username: true },
     }),
     prisma.lmsCourse.findMany({
-      where: { schoolId: user.schoolId, teacherId: user.id },
+      where: { schoolId: user.schoolId, teacherId: user.id, academicYear: { isActive: true } },
       orderBy: [{ academicYear: { isActive: "desc" } }, { subjectName: "asc" }],
       select: {
         id: true,
@@ -187,7 +196,11 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
         schoolId: user.schoolId,
         teacherId: user.id,
         isActive: true,
-        OR: [{ academicYearId: null }, { academicYear: { isActive: true } }],
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: new Date() } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
+          { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+        ],
       },
       select: {
         id: true,
@@ -217,7 +230,7 @@ export const getTeacherDashboardData = async (_args: unknown, context: { user?: 
         },
         _count: { select: { journals: { where: { status: "SUBMITTED" } } } },
       },
-    }),,
+    }),
     prisma.schoolFollowUpCase.count({
       where: {
         schoolId: user.schoolId,
@@ -514,27 +527,52 @@ export const getMentorDashboardData = async (_args: unknown, context: { user?: U
   const user = ensureSchoolUser(context);
   if (user.role !== "DUDI_MENTOR") throw new HttpError(403, "Dashboard ini hanya tersedia untuk pembimbing DUDI.");
 
-  const placements = await prisma.placement.findMany({
-    where: { schoolId: user.schoolId, dudiMentorId: user.id, status: "ACTIVE" },
-    orderBy: { startDate: "asc" },
-    select: {
-      id: true,
-      student: { select: { id: true, name: true, email: true, username: true } },
-      company: { select: { name: true } },
-      journals: {
-        where: { status: "SUBMITTED" },
-        orderBy: { date: "asc" },
-        take: 5,
-        select: { id: true, date: true, activityDescription: true },
+  const [placements, ewsAlerts, followUpActiveCount] = await Promise.all([
+    prisma.placement.findMany({
+      where: { schoolId: user.schoolId, dudiMentorId: user.id, status: "ACTIVE" },
+      orderBy: { startDate: "asc" },
+      select: {
+        id: true,
+        student: { select: { id: true, name: true, email: true, username: true } },
+        company: { select: { name: true } },
+        journals: {
+          where: { status: "SUBMITTED" },
+          orderBy: { date: "asc" },
+          take: 5,
+          select: { id: true, date: true, activityDescription: true },
+        },
+        _count: { select: { journals: { where: { status: "SUBMITTED" } } } },
       },
-      _count: { select: { journals: { where: { status: "SUBMITTED" } } } },
-    },
-  });
+    }),
+    getPklEwsAlertsForScope(user.schoolId, { dudiMentorId: user.id }),
+    prisma.schoolFollowUpCase.count({
+      where: {
+        schoolId: user.schoolId,
+        status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] },
+        OR: [
+          { assignedToId: user.id },
+          { createdById: user.id },
+          {
+            subjectStudent: {
+              studentPlacements: {
+                some: { dudiMentorId: user.id, status: "ACTIVE" },
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ]);
 
   return {
     role: "DUDI_MENTOR" as const,
     mentor: { id: user.id, displayName: displayName(user) },
     activePlacementCount: placements.length,
+    ews: {
+      total: ewsAlerts.length,
+      high: ewsAlerts.filter((item) => item.severity === "HIGH").length,
+    },
+    followUpActiveCount,
     placements: placements.map((placement) => ({
       id: placement.id,
       studentId: placement.student.id,

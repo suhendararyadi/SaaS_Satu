@@ -106,7 +106,9 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
             <p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{usesDepartments && homeroomClass.department?.name ? `${homeroomClass.department.name} · ` : ""}{homeroomClass.academicYear?.yearName} · {homeroomClass.academicYear?.semester}</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <M3Button variant="tonal" href="/school/attendance" size="sm" icon="fact_check">Presensi Kelas</M3Button>
             <M3Button variant="tonal" href="/school/student-affairs" size="sm" icon="school">Kesiswaan Kelas</M3Button>
+            <M3Button variant="outlined" href="/school/ews" size="sm" icon="health_and_safety">EWS Terpadu</M3Button>
             <M3Button variant="text" href="/school/reports" size="sm">Cetak rekap</M3Button>
           </div>
         </div>

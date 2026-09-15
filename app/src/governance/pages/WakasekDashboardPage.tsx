@@ -43,6 +43,8 @@ function CurriculumPanel({ data }: { data: any }) {
     <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
         <M3Button href="/school/lms/courses" variant="tonal" size="sm" icon="menu_book">Buka LMS & CBT</M3Button>
+        <M3Button href="/school/ews" variant="outlined" size="sm" icon="health_and_safety">EWS Terpadu</M3Button>
+        <M3Button href="/school/follow-up" variant="outlined" size="sm" icon="assignment_turned_in">Tindak Lanjut</M3Button>
         <M3Button href="/school/reports" variant="outlined" size="sm" icon="description">Laporan</M3Button>
       </div>
       {!data.teacherCompliance?.length ? (
@@ -94,6 +96,7 @@ function StudentAffairsPanel({ data, isAdmin }: { data: any; isAdmin: boolean })
       />
       <div className="flex flex-wrap justify-end gap-2">
         <M3Button href="/school/student-affairs" variant="tonal" size="sm" icon="school">Buka Kesiswaan</M3Button>
+        <M3Button href="/school/ews" variant="outlined" size="sm" icon="health_and_safety">EWS Terpadu</M3Button>
         <M3Button href="/school/follow-up" variant="outlined" size="sm" icon="assignment_turned_in">Tindak Lanjut</M3Button>
         {isAdmin && <M3Button href="/school/attendance" variant="outlined" size="sm" icon="fact_check">Presensi Harian</M3Button>}
         <M3Button href="/school/students" variant="outlined" size="sm" icon="groups">Data Siswa</M3Button>
@@ -294,7 +297,9 @@ function PublicRelationsPanel({ data, isAdmin }: { data: any; isAdmin: boolean }
         </M3Card>
         <div className="flex flex-wrap gap-2">
           {data.usesPkl && isAdmin && <M3Button href="/school/pkl/companies" variant="tonal" size="sm" icon="apartment">Mitra DUDI</M3Button>}
-          {data.usesPkl && <M3Button href="/school/pkl/placements" variant="outlined" size="sm" icon="work">Penempatan PKL</M3Button>}
+          {data.usesPkl && isAdmin && <M3Button href="/school/pkl/placements" variant="outlined" size="sm" icon="work">Penempatan PKL</M3Button>}
+          {data.usesPkl && <M3Button href="/school/ews" variant="outlined" size="sm" icon="health_and_safety">EWS Terpadu</M3Button>}
+          <M3Button href="/school/follow-up" variant="outlined" size="sm" icon="assignment_turned_in">Tindak Lanjut</M3Button>
           {isAdmin && <M3Button href="/school/website" variant="outlined" size="sm" icon="language">Website</M3Button>}
         </div>
       </div>
@@ -304,8 +309,8 @@ function PublicRelationsPanel({ data, isAdmin }: { data: any; isAdmin: boolean }
           icon="handshake"
           title="Mitra DUDI belum tersedia"
           description="Tambahkan mitra industri agar hubungan sekolah, PKL, dan penempatan siswa dapat dipantau dari panel ini."
-          actionLabel="Kelola Mitra DUDI"
-          actionHref="/school/pkl/companies"
+          actionLabel={isAdmin ? "Kelola Mitra DUDI" : undefined}
+          actionHref={isAdmin ? "/school/pkl/companies" : undefined}
         />
       ) : (
         <M3Card variant="outlined" className="overflow-hidden p-0">

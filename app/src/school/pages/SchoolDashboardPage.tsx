@@ -174,6 +174,8 @@ function StudentDashboard() {
 
   const data = query.data;
   const pendingAssessments = data.upcomingAssessments.filter((assessment: any) => assessment.attemptStatus !== "COMPLETED");
+  const overdueAssignments = data.pendingAssignments.filter((assignment: any) => assignment.isOverdue);
+  const upcomingAssignments = data.pendingAssignments.filter((assignment: any) => !assignment.isOverdue);
   const nextAssignment = data.pendingAssignments[0];
   const nextAssessment = pendingAssessments[0];
 
@@ -190,9 +192,10 @@ function StudentDashboard() {
     <div className="space-y-5">
       <DashboardIntro title={`Halo, ${data.student.displayName}`} note={`${formatDate(new Date())} · ${data.student.classRoom.name}`} />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <M3StatCard label="Ruang belajar" value={data.courses.length} tone="blue" href="/school/lms/courses" />
-        <M3StatCard label="Tugas belum selesai" value={data.pendingAssignments.length} tone="orange" />
+        <M3StatCard label="Tugas terlambat" value={overdueAssignments.length} tone={overdueAssignments.length ? "orange" : "green"} />
+        <M3StatCard label="Tugas mendatang" value={upcomingAssignments.length} tone="blue" />
         <M3StatCard label="CBT mendatang" value={pendingAssessments.length} tone="teal" />
       </div>
 
@@ -202,7 +205,7 @@ function StudentDashboard() {
             <ListDot tone={nextAssignment || nextAssessment ? "primary" : "success"} />
             <div className="min-w-0">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">Prioritas berikutnya</p>
-              {nextAssignment ? <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssignment.title}</h3><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{nextAssignment.courseName} · tenggat {formatDateTime(nextAssignment.deadline)}</p></> : nextAssessment ? <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssessment.title}</h3><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{nextAssessment.courseName} · mulai {formatDateTime(nextAssessment.startsAt)}</p></> : <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">Tidak ada pekerjaan mendesak</h3><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">Tugas dan CBT yang perlu ditangani akan muncul di sini.</p></>}
+              {nextAssignment ? <><div className="flex flex-wrap items-center gap-1.5"><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssignment.title}</h3>{nextAssignment.isOverdue && <M3Badge variant="error" size="sm">Terlambat</M3Badge>}</div><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{nextAssignment.courseName} · tenggat {formatDateTime(nextAssignment.deadline)}</p></> : nextAssessment ? <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssessment.title}</h3><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{nextAssessment.courseName} · mulai {formatDateTime(nextAssessment.startsAt)}</p></> : <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">Tidak ada pekerjaan mendesak</h3><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">Tugas dan CBT yang perlu ditangani akan muncul di sini.</p></>}
             </div>
           </div>
           {(nextAssignment || nextAssessment) && <M3Button href={`/school/lms/courses/${(nextAssignment || nextAssessment).courseId}`} variant="filled" size="sm">Buka kelas</M3Button>}
@@ -213,7 +216,7 @@ function StudentDashboard() {
         <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="student-work-title">
           <SectionTitle title="Tugas dan CBT" note="Pekerjaan belajar yang masih aktif." trailing={<M3Badge variant="outline">{data.pendingAssignments.length + pendingAssessments.length}</M3Badge>} />
           <div className="hig-list mt-4">
-            {data.pendingAssignments.slice(0, 4).map((assignment: any) => <a key={assignment.assignmentId} href={`/school/lms/courses/${assignment.courseId}`} className="hig-list-row"><ListDot tone="primary" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{assignment.title}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{assignment.courseName} · {formatDateTime(assignment.deadline)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+            {data.pendingAssignments.slice(0, 4).map((assignment: any) => <a key={assignment.assignmentId} href={`/school/lms/courses/${assignment.courseId}`} className="hig-list-row"><ListDot tone={assignment.isOverdue ? "warning" : "primary"} /><span className="min-w-0 flex-1"><span className="flex items-center gap-1.5"><span className="block truncate text-[13px] font-medium text-md-on-surface">{assignment.title}</span>{assignment.isOverdue && <M3Badge variant="error" size="sm">Terlambat</M3Badge>}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{assignment.courseName} · {formatDateTime(assignment.deadline)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
             {pendingAssessments.slice(0, 3).map((assessment: any) => <a key={assessment.assessmentId} href={`/school/lms/courses/${assessment.courseId}`} className="hig-list-row"><ListDot tone="warning" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{assessment.title}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{assessment.courseName} · {formatDateTime(assessment.startsAt)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
             {!data.pendingAssignments.length && !pendingAssessments.length && <M3EmptyState compact icon="task_alt" title="Semua tertangani" description="Tidak ada tugas atau CBT aktif yang menunggu." />}
           </div>
@@ -399,10 +402,16 @@ function MentorDashboard() {
 
   return (
     <div className="space-y-5">
-      <DashboardIntro title={`Halo, ${data.mentor.displayName}`} note={`${formatDate(new Date())} · Ringkasan bimbingan PKL`} actions={<M3Button variant="text" href="/school/pkl/journals" size="sm">Buka jurnal</M3Button>} />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <DashboardIntro
+        title={`Halo, ${data.mentor.displayName}`}
+        note={`${formatDate(new Date())} · Ringkasan bimbingan PKL`}
+        actions={<div className="flex flex-wrap gap-1"><M3Button variant="text" href="/school/pkl/journals" size="sm">Jurnal</M3Button><M3Button variant="text" href="/school/ews" size="sm">EWS</M3Button><M3Button variant="text" href="/school/follow-up" size="sm">Tindak Lanjut</M3Button></div>}
+      />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <M3StatCard label="Siswa PKL aktif" value={data.activePlacementCount} tone="blue" />
-        <M3StatCard label="Jurnal menunggu" value={pendingJournals} tone="orange" href="/school/pkl/journals" />
+        <M3StatCard label="Jurnal menunggu" value={pendingJournals} tone={pendingJournals ? "orange" : "green"} href="/school/pkl/journals" />
+        <M3StatCard label="Sinyal EWS" value={data.ews.total} tone={data.ews.high ? "orange" : data.ews.total ? "amber" : "green"} href="/school/ews" />
+        <M3StatCard label="Tindak lanjut aktif" value={data.followUpActiveCount} tone={data.followUpActiveCount ? "orange" : "green"} href="/school/follow-up" />
       </div>
       <section className="hig-grouped-surface p-4 sm:p-5">
         <SectionTitle title="Siswa bimbingan" note="Hanya penempatan yang berada dalam relasi bimbingan Anda." />

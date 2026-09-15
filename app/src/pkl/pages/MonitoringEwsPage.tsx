@@ -83,7 +83,7 @@ export function MonitoringEwsPage({ user }: { user: AuthUser }) {
             </p>
           </div>
           <M3Button variant="text" size="sm" href="/school/ews" icon="shield">
-            Early Warning System
+            EWS Terpadu
           </M3Button>
         </div>
 

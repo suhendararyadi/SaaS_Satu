@@ -311,7 +311,12 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       sections.push({ title: "BELAJAR", items: [{ label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" }] });
       if (studentHasPkl) sections.push({ title: "PKL SAYA", items: [{ label: "Presensi PKL", href: "/school/pkl/attendance", icon: "location_on" }, { label: "Jurnal Kegiatan", href: "/school/pkl/journals", icon: "edit_note" }] });
     } else if (isDudiMentor) {
-      sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }, { label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" }] });
+      sections.push({ title: "PKL BIMBINGAN", items: [
+        { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },
+        { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" },
+        { label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" },
+        { label: "Tindak Lanjut", href: "/school/follow-up", icon: "assignment_turned_in" },
+      ] });
     }
     if (isPlatformAdmin) sections.push({ title: "SUPER ADMIN", items: [
       ...(user.isAdmin ? [{ label: "Dashboard Super Admin", href: "/admin", icon: "verified_user" }] : []),

@@ -30,7 +30,7 @@ import { getSchoolCapabilities } from "../../school/schoolCapabilities";
 import { DUTY_DAY_LABELS, isDutyAssignmentForDay, jakartaDutyDayCode, type DutyDayCode } from "../../school/staffAssignments";
 
 export function GuruPiketPage({ user }: { user: AuthUser }) {
-  const { data: dutyReports, isLoading, refetch } = useQuery(getDutyTeacherReports);
+  const { data: dutyReports, isLoading, error: dutyReportsError, refetch } = useQuery(getDutyTeacherReports);
   const { data: homeroomClass } = useQuery(getHomeroomDashboardData);
   const { data: school } = useQuery(getSchoolInfo);
   const { data: organization } = useQuery(getSchoolOrganizationData);
@@ -85,6 +85,21 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
       setSubmitting(false);
     }
   };
+
+  if (dutyReportsError && !isAdmin) {
+    return (
+      <SchoolLayout user={user}>
+        <M3Banner
+          variant="warning"
+          headline="Panel Guru Piket tidak tersedia"
+          supportingText={(dutyReportsError as any)?.message || "Akun Anda tidak memiliki penugasan Guru Piket aktif."}
+          actionLabel="Kembali ke Dashboard"
+          actionHref="/school"
+          icon="event_busy"
+        />
+      </SchoolLayout>
+    );
+  }
 
   return (
     <SchoolLayout user={user}>

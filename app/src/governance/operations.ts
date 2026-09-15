@@ -4,6 +4,7 @@ import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { requireTeacher } from "../school/authGuards";
 import { isDutyAssignmentForDay, jakartaDutyDayCode } from "../school/staffAssignments";
+import { canReadDutyTeacherReports } from "./dutyTeacherAccess";
 
 // ==========================================
 // 1. Waka Kurikulum Supervision Operations
@@ -95,6 +96,44 @@ export const getWakaSupervisionData = async (_args: unknown, context: { user?: U
 
 export const getDutyTeacherReports = async (_args: unknown, context: { user?: User }) => {
   const user = requireTeacher(context);
+  const isAdmin = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
+  const now = new Date();
+  const activeWindow = {
+    isActive: true,
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+      { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+    ],
+  };
+
+  const [configuredAssignmentCount, myAssignmentCount] = isAdmin
+    ? [0, 0]
+    : await Promise.all([
+        prisma.schoolStaffAssignment.count({
+          where: {
+            schoolId: user.schoolId,
+            role: "DUTY_TEACHER",
+            ...activeWindow,
+          },
+        }),
+        prisma.schoolStaffAssignment.count({
+          where: {
+            schoolId: user.schoolId,
+            teacherId: user.id,
+            role: "DUTY_TEACHER",
+            ...activeWindow,
+          },
+        }),
+      ]);
+
+  if (!canReadDutyTeacherReports({
+    isAdmin,
+    configuredAssignmentCount,
+    hasActiveAssignment: myAssignmentCount > 0,
+  })) {
+    throw new HttpError(403, "Riwayat Guru Piket hanya tersedia untuk guru yang memiliki penugasan piket aktif.");
+  }
 
   return prisma.dutyTeacherReport.findMany({
     where: { schoolId: user.schoolId },
@@ -118,18 +157,32 @@ export const createDutyTeacherReport = async (rawArgs: unknown, context: { user?
 
   const isAdmin = !!teacher.isAdmin || teacher.role === "SUPERADMIN" || teacher.role === "SCHOOL_ADMIN";
   if (!isAdmin) {
+    const now = new Date();
     const activeAssignments = await prisma.schoolStaffAssignment.findMany({
       where: {
         schoolId: teacher.schoolId,
         teacherId: teacher.id,
         role: "DUTY_TEACHER",
         isActive: true,
-        OR: [{ academicYearId: null }, { academicYear: { isActive: true } }],
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+          { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+        ],
       },
       select: { dutyDays: true },
     });
     const configuredDutyCount = await prisma.schoolStaffAssignment.count({
-      where: { schoolId: teacher.schoolId, role: "DUTY_TEACHER", isActive: true },
+      where: {
+        schoolId: teacher.schoolId,
+        role: "DUTY_TEACHER",
+        isActive: true,
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+          { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+        ],
+      },
     });
 
     const today = jakartaDutyDayCode();
@@ -167,6 +220,7 @@ export const getHomeroomDashboardData = async (_args: unknown, context: { user?:
   const homeroomClass = await prisma.classRoom.findFirst({
     where: {
       schoolId: user.schoolId,
+      academicYear: { isActive: true },
       ...(user.isAdmin ? {} : { homeroomTeacherId: user.id }),
     },
     include: {

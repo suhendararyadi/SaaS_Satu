@@ -71,7 +71,7 @@ export const governanceSpec: Spec = [
     ],
   }),
   query(getDutyTeacherReports, {
-    entities: ["DutyTeacherReport", "User"],
+    entities: ["DutyTeacherReport", "User", "SchoolStaffAssignment", "AcademicYear"],
   }),
   query(getHomeroomDashboardData, {
     entities: [
