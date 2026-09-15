@@ -71,6 +71,7 @@ Production runtime pada snapshot 15 September 2026:
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
 - detail baseline data tenant: [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md)
+- baseline master data terbaru: [`RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md)
 
 Fondasi **Dapodik Student Database** dari `783ff2c` + runtime fix `2c07ede` tetap menjadi kontrak model/import siswa. Migration Dapodik bersifat additive dan sudah applied.
 
@@ -247,13 +248,40 @@ Backup pra-write:
 
 Payload/JSON/base64/script sementara yang memuat PII sudah dibersihkan dari VPS setelah verifikasi.
 
-### Unfinished: mapping rombel A–G
+### Mapping A–G sudah authoritative dan LIVE
 
-50 rombel sudah terhubung ke seluruh 1.539 siswa, tetapi relasi Program/Konsentrasi Keahlian belum diisi. Nama rombel menggunakan kode seperti `X A_1`, `XI B_3`, `XII F_1`; arti kode **A–G belum memiliki sumber authoritative**.
+Workbook resmi profil satuan pendidikan tanggal 14 September 2026 menyediakan mapping melalui sheet **Rombongan Belajar**. Mapping sudah ditulis ke production:
 
-**Jangan menebak mapping A–G.** Tahap berikutnya adalah mendapatkan mapping resmi A–G → Program/Konsentrasi Keahlian SMKN 12 Garut, lalu melakukan relasi tenant-scoped dengan backup dan verifikasi agregat per program.
+- A → Agribisnis Tanaman Pangan dan Hortikultura (Program: Agribisnis Tanaman)
+- B → Teknik Sepeda Motor (Program: Teknik Otomotif)
+- C → Desain Komunikasi Visual
+- D → Bisnis Retail (Program: Pemasaran)
+- E → Layanan Perbankan Syariah (Program: Akuntansi dan Keuangan Lembaga)
+- F → Agribisnis Perbenihan Tanaman (Program: Agribisnis Tanaman)
+- G → Agribisnis Perikanan Air Tawar (Program: Agribisnis Perikanan)
 
-Lihat release/handoff lengkap: [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md).
+Seluruh **50 rombel** sudah memiliki `departmentId` dan `homeroomTeacherId`. Distribusi siswa per kode: A 240, B 383, C 289, D 240, E 222, F 75, G 90; total tetap **1.539**.
+
+Lihat baseline import lengkap: [`RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md).
+
+## 3.4 SMKN 12 Garut — PTK, organisasi, dan Sarpras (15 September 2026)
+
+Master data production terbaru:
+
+- **103 PTK / TeacherProfile**: 80 Guru, 22 Tenaga Kependidikan, 1 Kepala Sekolah;
+- **0 Auth/login PTK** dibuat;
+- **4 Wakasek**;
+- **43 SchoolStaffAssignment** hasil sumber profil resmi, termasuk 1 Kepala Sekolah, 7 assignment kepala program/konsentrasi, 22 Tenaga Kependidikan, dan 13 tugas struktural lain;
+- **75 FacilityRoom**;
+- **816 AssetItem / 2.512 unit sarana**;
+- kondisi sarana: **1.464 GOOD/laik** dan **1.048 DAMAGED/tidak laik**;
+- **17 record aset** sengaja belum dihubungkan ke `roomId` karena nama prasarana sumber ganda; lokasi asli tetap ada pada notes dan tidak boleh ditebak.
+
+Backup sebelum import:
+
+`/home/ubuntu/backups/SaaS_Satu/pre-smkn12-profile-ptk-sarpras-20260915.dump`
+
+Sheet agregat Peserta Didik tidak dipakai untuk overwrite database detail. Sheet Blockgrant juga tidak dipaksakan karena belum ada model canonical. Field PTK yang belum memiliki field canonical (mis. NUPTK/NIK/tempat-tanggal lahir/detail sertifikasi) tidak dimasukkan ke kolom dengan makna yang salah.
 
 ## 4. Website Sekolah CMS — LIVE
 
@@ -440,6 +468,7 @@ Jangan menambah capability infra tersebut sebagai placeholder visual sebelum per
 - [`RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md`](./RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md) — release record global Spotlight Search `Cmd/Ctrl+K`
 - [`RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md`](./RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md) — release record database siswa Dapodik + detail per siswa
 - [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md) — baseline production SMKN 12 Garut setelah import Dapodik nyata
+- [`RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md) — import profil/PTK/program/Sarpras SMKN 12 Garut
 - [`DEMO_DATA.md`](./DEMO_DATA.md) — demo seed safety
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — historical development chronology
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — architecture/security boundaries

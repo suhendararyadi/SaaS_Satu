@@ -10,6 +10,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Snapshot lintas chat/sesi yang harus dibaca sebelum melanjutkan School OS.
    - Mencatat worktree/branch aktif, pointer production terakhir, status seed demo, guardrails, dan pekerjaan berikutnya yang belum selesai.
    - Baseline tenant terbaru: [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md).
+   - Baseline master data terbaru: [`RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md).
 
 2. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
    - Spesifikasi stack teknologi (Wasp v0.25, React 19, Node.js 24, Prisma, PostgreSQL).

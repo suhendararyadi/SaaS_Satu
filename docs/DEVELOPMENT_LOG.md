@@ -708,3 +708,48 @@ Pekerjaan lanjutan yang sengaja belum dilakukan: mapping kode rombel **A–G** k
 Rangkaian source yang sudah live setelah fondasi Dapodik juga mencakup adaptasi fitur per jenjang, presensi harian, panel Wakasek modular, organization assignment center, follow-up workflow, sarpras, Kesiswaan Terpadu, notification center, EWS lintas modul generasi kedua, dan hardening panel non-admin; current source/runtime commit pada snapshot ini adalah `24cb787`.
 
 Handoff rinci: `docs/RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`.
+
+---
+
+## 15 September 2026 — SMKN 12 Garut profile/PTK/program/Sarpras import
+
+Workbook resmi profil satuan pendidikan SMKN 12 Garut (unduh 14 September 2026) diaudit dan dipakai sebagai sumber authoritative tambahan setelah import siswa detail.
+
+Sebelum mutation dibuat backup:
+
+`/home/ubuntu/backups/SaaS_Satu/pre-smkn12-profile-ptk-sarpras-20260915.dump`
+
+Backup diverifikasi melalui `pg_restore -l`, berukuran 1.430.726 byte dan mode 600.
+
+Import production:
+
+- profil School yang didukung schema diperbarui (alamat, kota, provinsi, telepon, email);
+- 103 PTK masuk sebagai 103 `User` role TEACHER + 103 `TeacherProfile`, tanpa membuat Auth/login;
+- workbook memberi mapping authoritative A–G dan mapping tersebut ditulis menjadi 7 Department;
+- 50/50 rombel aktif dihubungkan ke Department dan wali kelas;
+- 4 Wakasek dibuat;
+- 43 penugasan organisasi dibuat dari data resmi (PRINCIPAL 1, DEPARTMENT_HEAD 7, OTHER 35);
+- 75 prasarana masuk sebagai `FacilityRoom`;
+- 816 record sarana masuk sebagai `AssetItem`, total 2.512 unit;
+- kondisi sarana: 1.464 unit GOOD/laik dan 1.048 unit DAMAGED/tidak laik;
+- 17 record sarana tidak diberi `roomId` karena nama prasarana sumber ganda dan tidak boleh ditebak.
+
+Mapping resmi:
+
+- A — Agribisnis Tanaman Pangan dan Hortikultura (Program Agribisnis Tanaman)
+- B — Teknik Sepeda Motor (Program Teknik Otomotif)
+- C — Desain Komunikasi Visual
+- D — Bisnis Retail (Program Pemasaran)
+- E — Layanan Perbankan Syariah (Program Akuntansi dan Keuangan Lembaga)
+- F — Agribisnis Perbenihan Tanaman (Program Agribisnis Tanaman)
+- G — Agribisnis Perikanan Air Tawar (Program Agribisnis Perikanan)
+
+Dry-run pertama sengaja gagal dan rollback ketika assertion menemukan matcher `Kepala Sekolah` terlalu longgar dan ikut menangkap empat Wakasek. Matcher diperbaiki menjadi hanya `Jenis PTK = Kepala Sekolah`; dry-run kedua PASS seluruh assertion. Production transaction berikutnya COMMIT dengan hasil yang sama.
+
+Distribusi setelah mapping: A 9 rombel/240 siswa, B 12/383, C 9/289, D 7/240, E 7/222, F 3/75, G 3/90; total 50 rombel/1.539 siswa.
+
+Tenant isolation tetap: SMKN 1 Rongga 21 siswa, SMPN 1 Gununghalu 0 siswa. Service tetap active, backend/static tetap `24cb787-panel-hardening`, `/school` dan `/auth/me` HTTP 200.
+
+Sheet agregat Peserta Didik tidak dipakai untuk overwrite baseline siswa detail. Blockgrant dan field profil/PTK yang belum memiliki model canonical tidak dipaksa masuk ke tabel/kolom lain.
+
+Handoff rinci: `docs/RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`.

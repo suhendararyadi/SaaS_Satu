@@ -75,30 +75,21 @@ Payload sementara, JSON hasil ekstraksi, data base64, dan script import sementar
 
 Jangan menyalin raw student PII ke dokumentasi, memory agent, issue text, log debug, atau artefak generatif.
 
-## Unfinished mapping: program/konsentrasi keahlian
+## Mapping program/konsentrasi keahlian — RESOLVED 15 September 2026
 
-Semua **50 rombel sudah ada dan sudah terhubung ke 1.539 siswa**, tetapi rombel belum dipetakan ke Program/Konsentrasi Keahlian karena file Dapodik yang dipakai hanya menyediakan nama rombel seperti:
+Pada saat onboarding siswa selesai, mapping A–G memang belum diketahui dan **tidak ditebak**. Status tersebut sekarang sudah resolved berdasarkan workbook resmi profil satuan pendidikan tanggal 14 September 2026, sheet **Rombongan Belajar**.
 
-- `X A_1`
-- `XI B_3`
-- `XII F_1`
+Mapping production terbaru:
 
-Arti kode **A–G belum memiliki sumber authoritative** di konteks proyek.
+- A → Agribisnis Tanaman Pangan dan Hortikultura
+- B → Teknik Sepeda Motor
+- C → Desain Komunikasi Visual
+- D → Bisnis Retail
+- E → Layanan Perbankan Syariah
+- F → Agribisnis Perbenihan Tanaman
+- G → Agribisnis Perikanan Air Tawar
 
-### Rule
-
-**Jangan menebak arti A–G.**
-
-Tahap berikutnya yang direkomendasikan:
-
-1. dapatkan mapping resmi A–G → Program/Konsentrasi Keahlian SMKN 12 Garut;
-2. cocokkan mapping dengan 50 rombel yang sudah ada;
-3. tulis relasi program/konsentrasi secara tenant-scoped;
-4. verifikasi jumlah rombel dan siswa per program;
-5. pastikan tenant lain tetap tidak berubah;
-6. buat backup sebelum mutation material.
-
-Setelah mapping authoritative tersedia, relasi rombel dapat menjadi basis pengelompokan seluruh 1.539 siswa menurut program/konsentrasi tanpa mengubah identitas siswa.
+Seluruh 50 rombel sudah mempunyai Department dan wali kelas. Detail authoritative beserta parent Program Keahlian, PTK, organisasi, dan Sarpras ada di [`RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md).
 
 ## Account policy
 
