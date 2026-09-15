@@ -3,6 +3,8 @@
 Date: **13 September 2026 (Asia/Jakarta)**
 Status: **LIVE**
 
+> **Historical data note (15 Sep 2026):** angka 21 student users/profiles pada dokumen ini adalah preservation proof sebelum import Dapodik nyata ke tenant SMKN 12 Garut. Baseline production terbaru adalah 1.539 StudentProfile / 50 rombel pada SMKN 12 Garut. Lihat [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md).
+
 ## Summary
 
 School OS now uses a Dapodik-aligned student profile as the canonical structure for the school student database.

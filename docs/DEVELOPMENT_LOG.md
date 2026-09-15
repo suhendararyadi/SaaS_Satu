@@ -679,3 +679,32 @@ Quality gate:
 - final exact read-only detail query PASS.
 
 Tidak ada row dari file contoh Dapodik yang masuk ke production.
+
+---
+
+## 15 September 2026 — SMKN 12 Garut production onboarding + Dapodik student import
+
+Konteks produksi School OS berpindah ke tenant **SMKN 12 Garut**. Runtime yang aktif pada saat handoff adalah backend/static `24cb787-panel-hardening` dengan `saas-satu.service` active.
+
+Baseline data setelah import Dapodik production:
+
+- 1.539 siswa berhasil ditulis sebagai 1.539 `StudentProfile`;
+- 50 rombel terisi dan seluruh siswa memiliki rombel;
+- pencocokan `Rombel Saat Ini` Dapodik ke rombel School OS 100%;
+- distribusi: X 570, XI 456, XII 513;
+- tidak ada akun/login siswa yang dibuat;
+- tidak ada duplikasi NISN/NIK/NIPD pada record yang diterima;
+- dua baris sumber sengaja tidak ditulis karena konflik NIK yang sama; identitas siswa tidak disalin ke dokumentasi permanen;
+- tenant lain tetap terisolasi: SMKN 1 Rongga 21 siswa, SMPN 1 Gununghalu 0 siswa.
+
+Backup pra-write:
+
+`/home/ubuntu/backups/SaaS_Satu/pre-smkn12-student-write-20260915T2238WIB.dump`
+
+Artefak sementara yang membawa PII (payload, JSON ekstraksi, base64, script import sementara) telah dibersihkan setelah verifikasi.
+
+Pekerjaan lanjutan yang sengaja belum dilakukan: mapping kode rombel **A–G** ke Program/Konsentrasi Keahlian. Semua 50 rombel sudah ada, tetapi mapping jurusan tidak boleh ditebak tanpa sumber authoritative dari sekolah. Setelah mapping resmi tersedia, relasi harus ditulis tenant-scoped, diawali backup dan diakhiri verifikasi agregat per program serta tenant isolation.
+
+Rangkaian source yang sudah live setelah fondasi Dapodik juga mencakup adaptasi fitur per jenjang, presensi harian, panel Wakasek modular, organization assignment center, follow-up workflow, sarpras, Kesiswaan Terpadu, notification center, EWS lintas modul generasi kedua, dan hardening panel non-admin; current source/runtime commit pada snapshot ini adalah `24cb787`.
+
+Handoff rinci: `docs/RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`.

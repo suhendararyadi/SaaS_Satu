@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last updated: **13 September 2026 (Asia/Jakarta)**.
+Last updated: **15 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Jika isi dokumen bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot ini.
 
@@ -22,6 +22,16 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Inner input chrome fix: `5eb8b87` — `fix(school): remove Spotlight inner input chrome`
 - Dapodik-aligned student database: `783ff2c` — `feat(school): build Dapodik student database`
 - Student detail AcademicYear runtime fix: `2c07ede` — `fix(school): correct student detail academic year`
+- School-level feature adaptation: `128ef87` — `feat(school): adapt features by school level`
+- Daily student attendance + homeroom scope: `985df7e` / `0a5ecc5`
+- Modular Wakasek panels: `618703b`
+- Organization assignment center: `edd4bc4`
+- Integrated follow-up workflow: `05db875`
+- Sarpras inventory & maintenance: `32c7fc9`
+- Kesiswaan Terpadu: `e64d1ff`
+- Notification center: `fbd7fd3`
+- EWS lintas modul generasi kedua: `27d1b34`
+- Current production/source head at this snapshot: `24cb787` — `fix(school): harden non-admin panels`
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -52,24 +62,19 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production saat ini memakai release final **Dapodik Student Database**:
+Production runtime pada snapshot 15 September 2026:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/2c07ede-student-detail-fix`
-- **static current**: `/var/www/saas-satu/releases/2c07ede-student-detail-fix`
-- runtime source commit: `2c07ede4e57189c29a2a4b0f3616fb3f820ff77b`
-- immediate backend rollback: `/home/ubuntu/deployments/SaaS_Satu/releases/783ff2c-dapodik-student-database`
-- immediate static rollback: `/var/www/saas-satu/releases/783ff2c-dapodik-student-database`
-- `saas-satu.service`: active
-- `/school/students`: HTTP 200
-- `/school/students/new`: HTTP 200
-- `/school/import`: HTTP 200
-- `/auth/me`: HTTP 200
-- unauthenticated student detail/import/create/update operations: HTTP 401
-- Prisma migration status: **Database schema is up to date**
-- recent student-detail 500 setelah cutover final: **0**
-- recent `/auth/me` 500 setelah cutover final: **0**
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/24cb787-panel-hardening`
+- **static current**: `/var/www/saas-satu/releases/24cb787-panel-hardening`
+- runtime/source commit: `24cb787` — `fix(school): harden non-admin panels`
+- `saas-satu.service`: **active**
+- branch pengembangan aktif: `redesign/apple-hig`
+- tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
+- detail baseline data tenant: [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md)
 
-Migration Dapodik bersifat additive dan sudah applied. Tidak ada row dari file contoh Dapodik yang diimpor ke production. Production verification mencatat `student_users=21`, `student_profiles=21`, dan `dapodik_imported=0`, sehingga student existing tetap utuh dan contoh file hanya dipakai sebagai referensi struktur.
+Fondasi **Dapodik Student Database** dari `783ff2c` + runtime fix `2c07ede` tetap menjadi kontrak model/import siswa. Migration Dapodik bersifat additive dan sudah applied.
+
+Angka `student_users=21`, `student_profiles=21`, dan `dapodik_imported=0` yang dicatat pada release 13 September adalah **historical pre-import preservation proof** untuk tenant lama, bukan jumlah siswa production saat ini. Setelah onboarding SMKN 12 Garut, baseline production tenant aktif adalah **1.539 StudentProfile pada 50 rombel**, tanpa pembuatan akun/login siswa.
 
 ## 3.1 School OS Spotlight Search — LIVE
 
@@ -212,6 +217,43 @@ Jadi tidak ada contoh Dapodik yang masuk ke database dan student existing tetap 
 
 Pada rollout awal `783ff2c`, authenticated detail sempat 500 karena select salah memakai `AcademicYear.name`. Schema yang benar memakai `yearName` + `semester`. Bug tersebut diperbaiki di `2c07ede`; setelah cutover final, count `get-school-student-detail 500` pada verification window = **0**.
 
+
+## 3.3 SMKN 12 Garut — Production student baseline (15 September 2026)
+
+Konteks tenant aktif untuk kelanjutan pekerjaan adalah **SMKN 12 Garut**.
+
+Hasil import Dapodik production:
+
+- **1.539 siswa / 1.539 StudentProfile**;
+- **50 rombel**;
+- **0 siswa tanpa rombel**;
+- **0 kegagalan import** pada baris yang diterima;
+- **0 duplikasi NISN, NIK, dan NIPD/NIS** pada data yang diterima;
+- **0 akun/login siswa dibuat**;
+- matching `Rombel Saat Ini` Dapodik → rombel School OS: **100%**;
+- distribusi tingkat: X **570**, XI **456**, XII **513**.
+
+Dua baris sumber tidak ditulis karena konflik NIK yang sama. Identitas siswa sengaja **tidak disimpan** di dokumentasi permanen. Jangan memperbaiki konflik tersebut dengan tebakan atau nilai sintetis; tunggu data authoritative sekolah/Dapodik.
+
+Tenant-isolation proof sesudah import:
+
+- SMKN 12 Garut: **1.539** siswa;
+- SMKN 1 Rongga: tetap **21** siswa;
+- SMPN 1 Gununghalu: tetap **0** siswa.
+
+Backup pra-write:
+
+`/home/ubuntu/backups/SaaS_Satu/pre-smkn12-student-write-20260915T2238WIB.dump`
+
+Payload/JSON/base64/script sementara yang memuat PII sudah dibersihkan dari VPS setelah verifikasi.
+
+### Unfinished: mapping rombel A–G
+
+50 rombel sudah terhubung ke seluruh 1.539 siswa, tetapi relasi Program/Konsentrasi Keahlian belum diisi. Nama rombel menggunakan kode seperti `X A_1`, `XI B_3`, `XII F_1`; arti kode **A–G belum memiliki sumber authoritative**.
+
+**Jangan menebak mapping A–G.** Tahap berikutnya adalah mendapatkan mapping resmi A–G → Program/Konsentrasi Keahlian SMKN 12 Garut, lalu melakukan relasi tenant-scoped dengan backup dan verifikasi agregat per program.
+
+Lihat release/handoff lengkap: [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md).
 
 ## 4. Website Sekolah CMS — LIVE
 
@@ -397,6 +439,7 @@ Jangan menambah capability infra tersebut sebagai placeholder visual sebelum per
 - [`RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md`](./RELEASE_2026-09-11_WEBSITE_SEKOLAH_PHASE2.md) — release record Phase 2 + public redesign
 - [`RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md`](./RELEASE_2026-09-11_SCHOOL_SPOTLIGHT.md) — release record global Spotlight Search `Cmd/Ctrl+K`
 - [`RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md`](./RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md) — release record database siswa Dapodik + detail per siswa
+- [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md) — baseline production SMKN 12 Garut setelah import Dapodik nyata
 - [`DEMO_DATA.md`](./DEMO_DATA.md) — demo seed safety
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — historical development chronology
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — architecture/security boundaries
