@@ -5,6 +5,7 @@ import { AcademicYearsPage } from "./pages/AcademicYearsPage" with { type: "ref"
 import { ClassRoomsPage } from "./pages/ClassRoomsPage" with { type: "ref" };
 import { TeachersPage } from "./pages/TeachersPage" with { type: "ref" };
 import { TeacherDetailPage } from "./pages/TeacherDetailPage" with { type: "ref" };
+import { TeacherEditPage } from "./pages/TeacherEditPage" with { type: "ref" };
 import { StudentsPage } from "./pages/StudentsPage" with { type: "ref" };
 import { DailyAttendancePage } from "./pages/DailyAttendancePage" with { type: "ref" };
 import { StudentDetailPage } from "./pages/StudentDetailPage" with { type: "ref" };
@@ -58,7 +59,7 @@ import {
   createStudent,
   updateStudent,
 } from "./studentOperations" with { type: "ref" };
-import { getSchoolTeacherDetail } from "./teacherOperations" with { type: "ref" };
+import { getSchoolTeacherDetail, updateSchoolTeacherProfile } from "./teacherOperations" with { type: "ref" };
 import {
   getStudentDashboardData,
   getTeacherDashboardData,
@@ -198,6 +199,7 @@ export const schoolSpec: Spec = [
   query(getClassRooms, { entities: ["ClassRoom", "Department", "AcademicYear", "User"] }),
   query(getSchoolTeachers, { entities: ["User", "TeacherProfile", "WakasekAssignment", "SchoolStaffAssignment", "AcademicYear", "Department", "ClassRoom"] }),
   query(getSchoolTeacherDetail, { entities: ["User", "TeacherProfile", "WakasekAssignment", "SchoolStaffAssignment", "AcademicYear", "Department", "ClassRoom"] }),
+  action(updateSchoolTeacherProfile, { entities: ["User", "TeacherProfile"] }),
   query(getSchoolStudents, { entities: ["User", "StudentProfile", "ClassRoom", "Placement"] }),
   query(getDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
   query(getDailyAttendanceReportData, { entities: ["SchoolDailyAttendance", "School", "AcademicYear", "ClassRoom", "Department", "User", "StudentProfile"] }),
@@ -375,6 +377,7 @@ export const schoolSpec: Spec = [
   route("AcademicYearsRoute", "/school/academic-years", page(AcademicYearsPage, { authRequired: true })),
   route("ClassRoomsRoute", "/school/classes", page(ClassRoomsPage, { authRequired: true })),
   route("TeachersRoute", "/school/teachers", page(TeachersPage, { authRequired: true })),
+  route("TeacherEditRoute", "/school/teachers/:id/edit", page(TeacherEditPage, { authRequired: true })),
   route("TeacherDetailRoute", "/school/teachers/:id", page(TeacherDetailPage, { authRequired: true })),
   route("StudentsRoute", "/school/students", page(StudentsPage, { authRequired: true })),
   route("DailyAttendanceRoute", "/school/attendance", page(DailyAttendancePage, { authRequired: true })),

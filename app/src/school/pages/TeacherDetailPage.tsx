@@ -1,6 +1,6 @@
 import React from "react";
 import { type AuthUser } from "wasp/auth";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { getSchoolTeacherDetail, useQuery } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
 import {
@@ -59,6 +59,7 @@ function initials(name: string) {
 export function TeacherDetailPage({ user }: { user: AuthUser }) {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const query = useQuery(
     getSchoolTeacherDetail,
     { id },
@@ -140,12 +141,26 @@ export function TeacherDetailPage({ user }: { user: AuthUser }) {
               variant="filled"
               size="md"
               icon="edit"
-              href={"/school/teachers?edit=" + teacher.id}
+              href={"/school/teachers/" + teacher.id + "/edit"}
             >
               Edit Data
             </M3Button>
           )}
         </div>
+
+        {searchParams.get("saved") === "1" && (
+          <M3Banner
+            variant="success"
+            headline="Data PTK berhasil diperbarui"
+            supportingText="Perubahan profil telah tersimpan. Penugasan struktur sekolah tidak berubah."
+            dismissible
+            onDismiss={() => {
+              const next = new URLSearchParams(searchParams);
+              next.delete("saved");
+              setSearchParams(next, { replace: true });
+            }}
+          />
+        )}
 
         {!canManage && (
           <M3Banner
@@ -383,7 +398,7 @@ export function TeacherDetailPage({ user }: { user: AuthUser }) {
               variant="tonal"
               size="sm"
               icon="edit"
-              href={"/school/teachers?edit=" + teacher.id}
+              href={"/school/teachers/" + teacher.id + "/edit"}
             >
               Edit Data Dasar
             </M3Button>

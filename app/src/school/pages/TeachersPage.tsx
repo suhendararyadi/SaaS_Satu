@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
 import { Link } from "react-router";
 import {
   useQuery,
   getSchoolTeachers,
   createTeacher,
-  updateTeacher,
   deleteTeacher,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
@@ -39,8 +38,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
   const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   // CRUD Modal States
-  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [nip, setNip] = useState("");
   const [title, setTitle] = useState("");
@@ -58,8 +56,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
   const [deleteErrorMsg, setDeleteErrorMsg] = useState("");
 
   const handleOpenAddModal = () => {
-    setModalMode("create");
-    setSelectedTeacherId(null);
+    setIsCreateOpen(true);
     setName("");
     setNip("");
     setTitle("");
@@ -70,42 +67,10 @@ export function TeachersPage({ user }: { user: AuthUser }) {
     setErrorMsg("");
   };
 
-  const handleOpenEditModal = (t: any) => {
-    setModalMode("edit");
-    setSelectedTeacherId(t.id);
-    setName(t.name || "");
-    setNip(t.teacherProfile?.nip || "");
-    setTitle(t.teacherProfile?.title || "");
-    setEmail(t.email || "");
-    setPhone(t.teacherProfile?.phone || "");
-    setRole(t.role === "SCHOOL_ADMIN" ? "SCHOOL_ADMIN" : "TEACHER");
-    const assignedRoles = (t.wakasekAssignments || []).map((assignment: any) => assignment.role) as WakasekRoleCode[];
-    setWakasekRoles(assignedRoles.length ? assignedRoles : t.teacherProfile?.isWaka ? ["KURIKULUM"] : []);
-    setErrorMsg("");
-  };
-
   const handleCloseModal = () => {
-    setModalMode(null);
-    setSelectedTeacherId(null);
+    setIsCreateOpen(false);
     setErrorMsg("");
   };
-
-  useEffect(() => {
-    if (!canManage || !teachers?.length || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const editId = params.get("edit");
-    if (!editId) return;
-    const target = teachers.find((teacher) => teacher.id === editId);
-    if (!target) return;
-    handleOpenEditModal(target);
-    params.delete("edit");
-    const next = params.toString();
-    window.history.replaceState(
-      {},
-      "",
-      window.location.pathname + (next ? "?" + next : ""),
-    );
-  }, [canManage, teachers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,30 +82,16 @@ export function TeachersPage({ user }: { user: AuthUser }) {
     setSubmitting(true);
 
     try {
-      if (modalMode === "create") {
-        await createTeacher({
-          name: name.trim(),
-          nip: nip.trim() || undefined,
-          title: title.trim() || undefined,
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-          role,
-          wakasekRoles,
-        });
-        setSuccessMsg(`Guru "${name.trim()}" berhasil ditambahkan.`);
-      } else if (modalMode === "edit" && selectedTeacherId) {
-        await updateTeacher({
-          id: selectedTeacherId,
-          name: name.trim(),
-          nip: nip.trim() || undefined,
-          title: title.trim() || undefined,
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-          role,
-          wakasekRoles,
-        });
-        setSuccessMsg(`Data guru "${name.trim()}" berhasil diperbarui.`);
-      }
+      await createTeacher({
+        name: name.trim(),
+        nip: nip.trim() || undefined,
+        title: title.trim() || undefined,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        role,
+        wakasekRoles,
+      });
+      setSuccessMsg(`Guru "${name.trim()}" berhasil ditambahkan.`);
       handleCloseModal();
       await refetch();
     } catch (err: any) {
@@ -400,7 +351,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                           size="icon-sm"
                           icon="edit"
                           aria-label={"Edit " + (t.name || t.email)}
-                          onClick={() => handleOpenEditModal(t)}
+                          href={"/school/teachers/" + t.id + "/edit"}
                         />
                         <M3Button
                           variant="text"
@@ -456,16 +407,12 @@ export function TeachersPage({ user }: { user: AuthUser }) {
           </div>
         )}
 
-        {/* Dialog Modal Tambah / Edit Guru */}
+        {/* Dialog Modal Tambah Guru */}
         <M3Dialog
-          isOpen={modalMode !== null}
+          isOpen={isCreateOpen}
           onClose={handleCloseModal}
-          title={modalMode === "create" ? "Tambah Guru Baru" : "Edit Data Guru"}
-          subtitle={
-            modalMode === "create"
-              ? "Lengkapi identitas guru, peran akun, dan penugasan."
-              : "Perbarui data profil dan hak akses guru di sekolah."
-          }
+          title="Tambah Guru Baru"
+          subtitle="Lengkapi identitas guru, peran akun, dan penugasan."
           icon={<M3Icon name="school" size={24} className="text-md-primary" />}
           actions={
             <>
@@ -483,7 +430,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                 onClick={handleSubmit}
                 isLoading={submitting}
               >
-                {modalMode === "create" ? "Simpan Guru" : "Simpan Perubahan"}
+                Simpan Guru
               </M3Button>
             </>
           }
