@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { type AuthUser } from "wasp/auth";
 import { Link } from "react-router";
 import {
@@ -89,6 +89,23 @@ export function TeachersPage({ user }: { user: AuthUser }) {
     setSelectedTeacherId(null);
     setErrorMsg("");
   };
+
+  useEffect(() => {
+    if (!canManage || !teachers?.length || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get("edit");
+    if (!editId) return;
+    const target = teachers.find((teacher) => teacher.id === editId);
+    if (!target) return;
+    handleOpenEditModal(target);
+    params.delete("edit");
+    const next = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (next ? "?" + next : ""),
+    );
+  }, [canManage, teachers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,7 +258,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               />
             </div>
             <M3Badge variant="secondary" size="md">
-              {totalItems} Guru
+              {totalItems} PTK
             </M3Badge>
           </div>
         </M3Card>
@@ -280,14 +297,17 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                   <M3TableRow key={t.id}>
                     <M3TableCell>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-md-on-surface">
+                        <Link
+                          to={"/school/teachers/" + t.id}
+                          className="font-semibold text-md-on-surface hover:text-md-primary hover:underline"
+                        >
                           {t.name || t.email}{" "}
                           {t.teacherProfile?.title && (
                             <span className="font-normal text-md-on-surface-variant">
                               {t.teacherProfile.title}
                             </span>
                           )}
-                        </span>
+                        </Link>
                         <span className="text-xs text-md-on-surface-variant font-mono">
                           NIP: {t.teacherProfile?.nip || "-"}
                         </span>
@@ -370,11 +390,18 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                         <M3Button
                           variant="tonal"
                           size="sm"
-                          icon="edit"
-                          onClick={() => handleOpenEditModal(t)}
+                          icon="visibility"
+                          href={"/school/teachers/" + t.id}
                         >
-                          Edit
+                          Detail
                         </M3Button>
+                        <M3Button
+                          variant="icon"
+                          size="icon-sm"
+                          icon="edit"
+                          aria-label={"Edit " + (t.name || t.email)}
+                          onClick={() => handleOpenEditModal(t)}
+                        />
                         <M3Button
                           variant="text"
                           size="sm"

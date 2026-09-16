@@ -400,12 +400,43 @@ model TeacherProfile {
   id     String  @id @default(uuid())
   userId String  @unique
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Core/legacy fields kept for compatibility with existing teacher workflows.
   nip    String?
-  title  String? // "S.Kom., M.T."
+  title  String? // Display/legacy academic title.
   phone  String?
   // Legacy compatibility flag. New Wakasek access is stored in WakasekAssignment.
   // During migration, existing true values are mapped to KURIKULUM.
   isWaka Boolean @default(false)
+
+  // Dapodik-aligned PTK profile. All fields are nullable so existing tenants
+  // remain valid and schools can complete data progressively.
+  nuptk               String?
+  gender              String?
+  birthPlace          String?
+  birthDate           DateTime?
+  nik                 String?
+  employmentStatus    String?
+  ptkType             String?
+  frontTitle          String?
+  backTitle           String?
+  educationLevel      String?
+  educationMajor      String?
+  certification       String?
+  workStartDate       DateTime?
+  additionalDuties    String?
+  subjectsTaught      String?
+  additionalDutyHours Int?
+  teachingHours       Int?
+  totalTeachingHours  Int?
+  studentLoad         String?
+  competencies        String?
+  jobTitle            String?
+  dapodikImportedAt   DateTime?
+
+  @@index([nip])
+  @@index([nuptk])
+  @@index([nik])
 }
 
 model WakasekAssignment {

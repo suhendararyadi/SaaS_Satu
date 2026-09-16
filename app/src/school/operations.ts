@@ -592,7 +592,7 @@ export const deleteClassRoom = async (rawArgs: unknown, context: { user?: User }
 export const getSchoolTeachers = async (_args: unknown, context: { user?: User }) => {
   const user = requireSchoolDirectoryAccess(context);
 
-  return prisma.user.findMany({
+  const teachers = await prisma.user.findMany({
     where: {
       schoolId: user.schoolId,
       role: { in: ["TEACHER", "SCHOOL_ADMIN"] },
@@ -628,6 +628,26 @@ export const getSchoolTeachers = async (_args: unknown, context: { user?: User }
     },
     orderBy: { name: "asc" },
   });
+
+  const canViewSensitiveIdentifiers =
+    !!user.isAdmin ||
+    user.role === "SUPERADMIN" ||
+    user.role === "SCHOOL_ADMIN";
+
+  if (canViewSensitiveIdentifiers) return teachers;
+
+  return teachers.map((teacher) => ({
+    ...teacher,
+    teacherProfile: teacher.teacherProfile
+      ? {
+          ...teacher.teacherProfile,
+          nuptk: null,
+          nik: null,
+          birthPlace: null,
+          birthDate: null,
+        }
+      : null,
+  }));
 };
 
 const getSchoolStudentsSchema = z.object({
