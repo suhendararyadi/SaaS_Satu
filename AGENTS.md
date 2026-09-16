@@ -4,7 +4,7 @@ This project is a multi-tenant school SaaS built on top of Open SaaS and Wasp, w
 
 ## Persistent project context
 
-Before changing School OS, read [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md). It records the active worktree/branch, current production pointers, demo-data state, safety constraints, and the next unfinished work. Then read the area-specific source of truth linked from that document.
+Before changing School OS, read [`docs/AI_AGENT_HANDOFF.md`](./docs/AI_AGENT_HANDOFF.md) first for the compact verified production snapshot, then read [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md) for the full persistent context. These documents record the active worktree/branch, production pointers, tenant baselines, privacy/safety constraints, deployment contract, and continuation point. Then read the area-specific source of truth linked from them.
 
 Do not assume `main` contains the latest School OS work. The current School OS development line is maintained in the worktree/branch recorded in `docs/PROJECT_CONTEXT.md`; verify repository state before editing.
 

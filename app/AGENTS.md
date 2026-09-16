@@ -15,16 +15,19 @@ Always fetch and verify your knowledge against the Open SaaS documentation befor
 
 Remember, this template is built on the Wasp framework. If, at any time, the Open SaaS docs fail to provide enough information about a certain feature, make sure to check out the Wasp docs [LLMs.txt index](https://wasp.sh/llms.txt).
 
-<!-- MATERIAL_3:START -->
-## Design System: Google Material 3 (Material You)
-The SaaS application uses the Google Material 3 (M3) design system.
-Key characteristics:
-- Dynamic color roles (Primary, On-Primary, Primary Container, Secondary, Tertiary, Surface, Surface Container Low/High, Outline, Error)
-- Google Material 3 typography scale (Headline, Title, Body, Label) using Roboto / Google Sans
-- Google Material 3 shapes (rounded-[16px] for cards, rounded-full for buttons/chips/pills, rounded-[28px] for dialogs/FAB)
-- Material 3 elevation (Level 0 to Level 5)
-- Standard M3 components: Navigation Drawer, Top App Bar, M3Button, M3Card, M3TextField, M3Chip, M3Badge, M3Dialog, M3Tabs
-<!-- MATERIAL_3:END -->
+<!-- SCHOOL_OS_UI:START -->
+## Active Design System: School OS (Apple HIG-inspired)
+
+The active visual contract for the school application is **School OS**, inspired by Apple Human Interface Guidelines. Read `../docs/AI_AGENT_HANDOFF.md`, `../docs/PROJECT_CONTEXT.md`, and `../docs/UI_UX_APPLE_HIG.md` before UI work.
+
+Key rules:
+- macOS-like compact desktop shell, grouped surfaces, thin separators, restrained stroke icons, system typography/colors;
+- responsive iOS-like mobile behavior with role-aware navigation and safe-area handling;
+- real production data only; never invent dashboard metrics;
+- tenant isolation and authorization are server-side boundaries, regardless of UI visibility;
+- existing `components/m3/` and `M3*` names are legacy compatibility APIs only and **do not** make Material 3 the active design authority;
+- do not redesign new School OS work back toward Material 3.
+<!-- SCHOOL_OS_UI:END -->
 
 <!-- ANTI_SLOP:START -->
 ## Anti-Slop Guidelines (R-01 - R-38)

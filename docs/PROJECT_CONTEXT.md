@@ -1,8 +1,8 @@
 # School OS — Persistent Project Context
 
-Last updated: **16 September 2026 (Asia/Jakarta)**.
+Last verified: **16 September 2026, 16:30 WIB (Asia/Jakarta)**.
 
-Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Jika isi dokumen bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot ini.
+Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Agen baru harus membaca [`AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md) terlebih dahulu sebagai ringkasan cepat, lalu dokumen ini untuk konteks lengkap. Jika dokumentasi bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot.
 
 ## 1. Source tree aktif
 
@@ -33,7 +33,9 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - EWS lintas modul generasi kedua: `27d1b34`
 - Dapodik PTK detail profiles: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
 - Complete Dapodik PTK profile editor: `03655f4` — `feat(school): add complete PTK profile editor`
-- Current production/source head at this snapshot: `03655f4` — `feat(school): add complete PTK profile editor`
+- Current production application commit: `03655f4` — `feat(school): add complete PTK profile editor`
+- Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
+- AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 16 September 2026 at 16:30 WIB.
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.

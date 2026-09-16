@@ -6,6 +6,11 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
 
 ## 📚 Daftar Isi Dokumentasi
 
+0. [**AI Agent Handoff (`AI_AGENT_HANDOFF.md`)**](./AI_AGENT_HANDOFF.md)
+   - Snapshot ringkas dan terverifikasi untuk agen AI yang melanjutkan proyek.
+   - Memuat release production aktif, baseline SMKN 12 Garut, kontrak Dapodik siswa/PTK, guardrail privacy, mapping A–G, deployment contract, backup penting, dan urutan dokumen yang harus dibaca.
+   - Baca file ini **sebelum** `PROJECT_CONTEXT.md` saat memulai sesi/agen baru.
+
 1. [**Konteks Proyek Aktif (`PROJECT_CONTEXT.md`)**](./PROJECT_CONTEXT.md)
    - Snapshot lintas chat/sesi yang harus dibaca sebelum melanjutkan School OS.
    - Mencatat worktree/branch aktif, pointer production terakhir, status seed demo, guardrails, dan pekerjaan berikutnya yang belum selesai.

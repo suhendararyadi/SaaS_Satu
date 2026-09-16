@@ -825,3 +825,31 @@ Quality gate:
 - rollback target `e212f56-ptk-detail`.
 
 Handoff: `docs/RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md`.
+
+---
+
+## 16 September 2026 — AI agent handoff & documentation synchronization
+
+Dokumentasi dan artefak konteks agen disinkronkan ulang setelah rollout complete Dapodik PTK editor.
+
+Verifikasi read-only sebelum update dokumentasi:
+
+- production backend: `03655f4-ptk-editor`;
+- production static: `03655f4-ptk-editor`;
+- `saas-satu.service`: active;
+- SMKN 12 Garut students: **1.539**;
+- TeacherProfile: **103**;
+- Auth PTK: **0**;
+- repository documentation head sebelum refresh: `9094228bd04a`.
+
+Perubahan dokumentasi/artefak:
+
+- dibuat `docs/AI_AGENT_HANDOFF.md` sebagai entry point ringkas dan permanen untuk agen AI baru;
+- `AGENTS.md` root sekarang mewajibkan membaca AI handoff sebelum `PROJECT_CONTEXT.md`;
+- `app/AGENTS.md` diperbaiki: Material 3 tidak lagi disebut sebagai design authority aktif; School OS Apple HIG-inspired adalah kontrak aktif, sedangkan nama `M3*` hanya compatibility layer;
+- `docs/README.md` ditambah indeks AI Agent Handoff;
+- `docs/PROJECT_CONTEXT.md` diberi timestamp verifikasi 16:30 WIB dan pointer ke artefak handoff;
+- release documents PTK tetap dipertahankan sebagai immutable historical/verification records;
+- tidak ada perubahan data production, schema, migration, atau deployment pada refresh dokumentasi ini.
+
+Privacy contract tetap: raw student/PTK PII tidak disalin ke dokumentasi atau native agent memory.
