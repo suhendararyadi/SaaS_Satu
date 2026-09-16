@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last updated: **15 September 2026 (Asia/Jakarta)**.
+Last updated: **16 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Jika isi dokumen bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot ini.
 
@@ -31,7 +31,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Kesiswaan Terpadu: `e64d1ff`
 - Notification center: `fbd7fd3`
 - EWS lintas modul generasi kedua: `27d1b34`
-- Current production/source head at this snapshot: `24cb787` — `fix(school): harden non-admin panels`
+- Dapodik PTK detail profiles: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
+- Current production/source head at this snapshot: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -62,11 +63,11 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production runtime pada snapshot 15 September 2026:
+Production runtime pada snapshot 16 September 2026:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/24cb787-panel-hardening`
-- **static current**: `/var/www/saas-satu/releases/24cb787-panel-hardening`
-- runtime/source commit: `24cb787` — `fix(school): harden non-admin panels`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/e212f56-ptk-detail`
+- **static current**: `/var/www/saas-satu/releases/e212f56-ptk-detail`
+- runtime/source commit: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
 - `saas-satu.service`: **active**
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
@@ -281,7 +282,24 @@ Backup sebelum import:
 
 `/home/ubuntu/backups/SaaS_Satu/pre-smkn12-profile-ptk-sarpras-20260915.dump`
 
-Sheet agregat Peserta Didik tidak dipakai untuk overwrite database detail. Sheet Blockgrant juga tidak dipaksakan karena belum ada model canonical. Field PTK yang belum memiliki field canonical (mis. NUPTK/NIK/tempat-tanggal lahir/detail sertifikasi) tidak dimasukkan ke kolom dengan makna yang salah.
+Sheet agregat Peserta Didik tidak dipakai untuk overwrite database detail. Sheet Blockgrant juga tidak dipaksakan karena belum ada model canonical.
+
+### Detail PTK Dapodik — LIVE 16 September 2026
+
+`TeacherProfile` sekarang memiliki field Dapodik PTK yang nullable untuk NUPTK, JK, tempat/tanggal lahir, NIK, status kepegawaian, jenis PTK, gelar, pendidikan/prodi, sertifikasi, TMT kerja, tugas tambahan, mata pelajaran, JJM, beban siswa, kompetensi, jabatan PTK, dan `dapodikImportedAt`.
+
+- **103/103 PTK** SMKN 12 Garut sudah dibackfill dari workbook resmi;
+- NUPTK 100, NIK 103, NIP 96;
+- **0 Auth/login PTK** tetap dipertahankan;
+- detail route: `/school/teachers/:id`;
+- NUPTK/NIK/tempat-tanggal lahir hanya dikirim kepada admin;
+- viewer directory non-admin menerima projection yang sudah dimasking;
+- semua 50 wali kelas/rombel tetap terhubung;
+- migration: `20260916013500_add_dapodik_teacher_profile`;
+- backup pra-migrasi: `/home/ubuntu/backups/SaaS_Satu/pre-ptk-detail-dapodik-20260916.dump`;
+- release: `e212f56-ptk-detail`.
+
+Detail lengkap: [`RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md).
 
 ## 4. Website Sekolah CMS — LIVE
 
@@ -469,6 +487,7 @@ Jangan menambah capability infra tersebut sebagai placeholder visual sebelum per
 - [`RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md`](./RELEASE_2026-09-13_DAPODIK_STUDENT_DATABASE.md) — release record database siswa Dapodik + detail per siswa
 - [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md) — baseline production SMKN 12 Garut setelah import Dapodik nyata
 - [`RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md) — import profil/PTK/program/Sarpras SMKN 12 Garut
+- [`RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md) — halaman detail Guru & Tendik + profil PTK Dapodik
 - [`DEMO_DATA.md`](./DEMO_DATA.md) — demo seed safety
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — historical development chronology
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — architecture/security boundaries

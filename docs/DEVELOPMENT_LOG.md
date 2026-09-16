@@ -753,3 +753,37 @@ Tenant isolation tetap: SMKN 1 Rongga 21 siswa, SMPN 1 Gununghalu 0 siswa. Servi
 Sheet agregat Peserta Didik tidak dipakai untuk overwrite baseline siswa detail. Blockgrant dan field profil/PTK yang belum memiliki model canonical tidak dipaksa masuk ke tabel/kolom lain.
 
 Handoff rinci: `docs/RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`.
+
+---
+
+## 16 September 2026 — Dapodik PTK detail profiles
+
+School OS menambahkan halaman detail Guru & Tenaga Kependidikan yang mengikuti pola detail siswa dan memakai field PTK dari workbook resmi Profil Satuan Pendidikan SMKN 12 Garut.
+
+Implementasi:
+- migration additive `20260916013500_add_dapodik_teacher_profile`;
+- `TeacherProfile` diperluas dengan 22 field Dapodik nullable + index NIP/NUPTK/NIK;
+- route baru `/school/teachers/:id`;
+- query detail tenant-scoped dan directory-capability-scoped;
+- NUPTK, NIK, tempat lahir, tanggal lahir dimasking untuk viewer non-admin;
+- daftar Guru & Tendik juga dimasking dan sekarang mempunyai link/tombol Detail;
+- 103 PTK production dibackfill dari workbook resmi tanpa membuat Auth/login.
+
+Backup:
+`/home/ubuntu/backups/SaaS_Satu/pre-ptk-detail-dapodik-20260916.dump`
+
+Backfill production: 103/103 imported; NUPTK 100; NIK 103; NIP 96; komposisi 80 Guru, 22 Tendik, 1 Kepala Sekolah; Auth PTK 0; siswa tetap 1.539; 50 wali kelas tetap terhubung.
+
+Quality gate:
+- Prisma validate PASS;
+- full Vitest `NODE_ENV=test`: 134/134 PASS pada 23 file;
+- Wasp production build PASS;
+- generated server bundle PASS;
+- Vite SSR/client production build PASS;
+- deploy preflight PASS;
+- production release `e212f56-ptk-detail`;
+- `/school` 200, `/school/teachers` 200, `/auth/me` 200;
+- unauthenticated `get-school-teacher-detail` 401;
+- service active dan rollback target tetap `24cb787-panel-hardening`.
+
+Handoff: `docs/RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`.
