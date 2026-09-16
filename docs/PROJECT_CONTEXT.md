@@ -36,9 +36,32 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Current production application commit: `03655f4` — `feat(school): add complete PTK profile editor`
 - Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
 - AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 16 September 2026 at 16:30 WIB.
-- `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
+- Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md). Critical confirmed context is now independent of the project worktree.
+- `.agent/` adalah operational Project/RASMIC memory yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status, tetapi jangan mengandalkannya sebagai satu-satunya memory permanen.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
+
+## 2.1 Persistent memory architecture
+
+High-value confirmed knowledge School OS sekarang dipromosikan ke **MSO Agent Memory global** di luar folder proyek:
+
+`/home/ubuntu/.mso/agent-memory`
+
+Global memory menyimpan claim terpilih seperti identitas proyek/tenant, baseline production, mapping program A–G, kontrak Dapodik siswa/PTK, privacy/tenant isolation, design contract, deployment contract, current release, backup penting, dan kontrak memory itu sendiri.
+
+Repo-local `.agent/memory/` tetap dipakai untuk task/debug/test/failure dan evidence operasional. Workflow/experience memory tetap terpisah di `/home/ubuntu/.mso/skill-memory.json`.
+
+Manifest OS-global:
+
+`/home/ubuntu/.mso/MEMORY_ARCHITECTURE.md`
+
+Snapshot awal:
+
+`/home/ubuntu/backups/MSO/global-agent-memory-20260916T1656WIB.tar.gz`
+
+Source of truth dokumentasi: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md).
+
+Raw student/PTK PII dan secrets tidak boleh dimasukkan ke global memory.
 
 ## 2. Design contract aktif
 

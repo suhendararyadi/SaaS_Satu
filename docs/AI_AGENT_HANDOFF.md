@@ -200,14 +200,25 @@ For a new agent:
 
 ## 12. Durable AI memory
 
-Native project memory is stored under `.agent/memory/`. Important confirmed records include:
+Critical long-term knowledge now has a **VPS-global persistent layer** outside the project:
 
-- SMKN 12 production student baseline;
-- authoritative master-data/PTK/program/Sarpras baseline;
-- Dapodik PTK detail rollout;
-- complete Dapodik PTK editor rollout.
+`/home/ubuntu/.mso/agent-memory`
 
-Do not store raw student/PTK PII in agent memory. Store counts, decisions, schema contracts, provenance, release ids, and safety constraints instead.
+This is the durable authority for high-value confirmed `project.school_os.*` semantic/procedural claims and remains available if this worktree is deleted or re-cloned.
+
+Global manifest:
+
+`/home/ubuntu/.mso/MEMORY_ARCHITECTURE.md`
+
+Initial verified snapshot:
+
+`/home/ubuntu/backups/MSO/global-agent-memory-20260916T1656WIB.tar.gz`
+
+Repo-local memory under `.agent/memory/` still exists, but it is **operational Project/RASMIC memory**, not the sole permanent store. It is appropriate for tasks, debug/test evidence, failures, and local decisions.
+
+Full contract: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md).
+
+Do not store raw student/PTK PII, credentials, tokens, or private keys in either global or repo-local memory. Promote globally only confirmed high-value counts, decisions, schema/contracts, provenance, release ids, and safety constraints.
 
 ## 13. Current continuation point
 
@@ -216,7 +227,7 @@ The PTK detail + complete edit flow is finished and live. No application-code ta
 Before starting the next feature:
 
 - inspect current runtime/repository state;
-- retrieve project memory;
+- retrieve VPS-global Agent Memory for `project.school_os.*`, then project-local memory as needed;
 - preserve the SMKN 12 Garut production baseline;
 - use authoritative data for identity/program mappings;
 - update this handoff again after any verified production change.

@@ -4,7 +4,9 @@ This project is a multi-tenant school SaaS built on top of Open SaaS and Wasp, w
 
 ## Persistent project context
 
-Before changing School OS, read [`docs/AI_AGENT_HANDOFF.md`](./docs/AI_AGENT_HANDOFF.md) first for the compact verified production snapshot, then read [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md) for the full persistent context. These documents record the active worktree/branch, production pointers, tenant baselines, privacy/safety constraints, deployment contract, and continuation point. Then read the area-specific source of truth linked from them.
+Before changing School OS, retrieve VPS-global MSO Agent Memory for relevant `project.school_os.*` claims when available, then read [`docs/AI_AGENT_HANDOFF.md`](./docs/AI_AGENT_HANDOFF.md) for the compact verified production snapshot and [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md) for the full persistent context. These documents record the active worktree/branch, production pointers, tenant baselines, privacy/safety constraints, deployment contract, and continuation point. Then read the area-specific source of truth linked from them.
+
+Memory architecture is documented in [`docs/GLOBAL_PERSISTENT_MEMORY.md`](./docs/GLOBAL_PERSISTENT_MEMORY.md). Global Agent Memory is the durable high-value knowledge layer; `.agent/memory` is operational project memory and must not be treated as the sole permanent store.
 
 Do not assume `main` contains the latest School OS work. The current School OS development line is maintained in the worktree/branch recorded in `docs/PROJECT_CONTEXT.md`; verify repository state before editing.
 

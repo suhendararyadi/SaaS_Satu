@@ -853,3 +853,38 @@ Perubahan dokumentasi/artefak:
 - tidak ada perubahan data production, schema, migration, atau deployment pada refresh dokumentasi ini.
 
 Privacy contract tetap: raw student/PTK PII tidak disalin ke dokumentasi atau native agent memory.
+
+---
+
+## 16 September 2026 — Global persistent Agent Memory rollout
+
+Memory permanen School OS dipindahkan dari ketergantungan tunggal pada repo-local `.agent/memory` menjadi arsitektur berlapis.
+
+Implementasi OS-global:
+
+- MSO Agent Memory aktif di `/home/ubuntu/.mso/agent-memory`;
+- root/principal directory permission: `0700`;
+- `MEMORY.md`, `USER.md`, `records-v1.json`: `0600`;
+- global manifest: `/home/ubuntu/.mso/MEMORY_ARCHITECTURE.md`;
+- snapshot awal: `/home/ubuntu/backups/MSO/global-agent-memory-20260916T1656WIB.tar.gz`;
+- snapshot diverifikasi readable dan mode `0600`.
+
+Confirmed high-value claims yang dipromosikan mencakup identity/active tenant, production baseline, mapping A–G, student/PTK contract, design contract, security/tenant contract, deployment contract, current release, backup locations, documentation entrypoint, serta memory architecture.
+
+Mutable claims memakai replace/supersede semantics agar claim resolved terbaru menggantikan nilai lama tanpa menghilangkan provenance.
+
+Verifikasi retrieval global tanpa project path berhasil untuk:
+
+- baseline SMKN 12 Garut;
+- Apple HIG design authority;
+- deployment contract;
+- release production `03655f4-ptk-editor`;
+- global memory architecture.
+
+Repo-local `.agent/memory` **tidak dihapus** dan tetap dipakai sebagai operational Project/RASMIC memory. `~/.mso/skill-memory.json` tetap menjadi workflow/experience memory.
+
+Privacy rule: raw student/PTK PII, credentials, tokens, passwords, dan private keys tidak dipromosikan ke global memory.
+
+Dokumentasi: `docs/GLOBAL_PERSISTENT_MEMORY.md`.
+
+Tidak ada perubahan aplikasi production, schema, database, atau deployment.

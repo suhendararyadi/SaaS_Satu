@@ -11,6 +11,10 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Memuat release production aktif, baseline SMKN 12 Garut, kontrak Dapodik siswa/PTK, guardrail privacy, mapping A–G, deployment contract, backup penting, dan urutan dokumen yang harus dibaca.
    - Baca file ini **sebelum** `PROJECT_CONTEXT.md` saat memulai sesi/agen baru.
 
+0.1. [**Global Persistent Memory (`GLOBAL_PERSISTENT_MEMORY.md`)**](./GLOBAL_PERSISTENT_MEMORY.md)
+   - Arsitektur memory permanen VPS di luar folder proyek.
+   - Menjelaskan `~/.mso/agent-memory`, Project/RASMIC memory `.agent/memory`, workflow memory, promotion policy, privacy, backup, dan recovery contract.
+
 1. [**Konteks Proyek Aktif (`PROJECT_CONTEXT.md`)**](./PROJECT_CONTEXT.md)
    - Snapshot lintas chat/sesi yang harus dibaca sebelum melanjutkan School OS.
    - Mencatat worktree/branch aktif, pointer production terakhir, status seed demo, guardrails, dan pekerjaan berikutnya yang belum selesai.
