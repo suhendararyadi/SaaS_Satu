@@ -32,7 +32,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Notification center: `fbd7fd3`
 - EWS lintas modul generasi kedua: `27d1b34`
 - Dapodik PTK detail profiles: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
-- Current production/source head at this snapshot: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
+- Complete Dapodik PTK profile editor: `03655f4` — `feat(school): add complete PTK profile editor`
+- Current production/source head at this snapshot: `03655f4` — `feat(school): add complete PTK profile editor`
 - `.agent/` adalah artefak workflow lokal yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status.
 
 Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
@@ -65,9 +66,9 @@ Domain: `https://sekolah.suhendararyadi.com`.
 
 Production runtime pada snapshot 16 September 2026:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/e212f56-ptk-detail`
-- **static current**: `/var/www/saas-satu/releases/e212f56-ptk-detail`
-- runtime/source commit: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/03655f4-ptk-editor`
+- **static current**: `/var/www/saas-satu/releases/03655f4-ptk-editor`
+- runtime/source commit: `03655f4` — `feat(school): add complete PTK profile editor`
 - `saas-satu.service`: **active**
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
@@ -297,9 +298,14 @@ Sheet agregat Peserta Didik tidak dipakai untuk overwrite database detail. Sheet
 - semua 50 wali kelas/rombel tetap terhubung;
 - migration: `20260916013500_add_dapodik_teacher_profile`;
 - backup pra-migrasi: `/home/ubuntu/backups/SaaS_Satu/pre-ptk-detail-dapodik-20260916.dump`;
-- release: `e212f56-ptk-detail`.
+- detail release foundation: `e212f56-ptk-detail`;
+- edit route lengkap: `/school/teachers/:id/edit`;
+- edit action hanya untuk admin dan tidak mengubah Wakasek/wali kelas/struktur organisasi;
+- current production release: `03655f4-ptk-editor`.
 
-Detail lengkap: [`RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md).
+Detail lengkap:
+- [`RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md)
+- [`RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md`](./RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md)
 
 ## 4. Website Sekolah CMS — LIVE
 

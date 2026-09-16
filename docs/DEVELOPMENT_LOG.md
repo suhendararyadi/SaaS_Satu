@@ -787,3 +787,41 @@ Quality gate:
 - service active dan rollback target tetap `24cb787-panel-hardening`.
 
 Handoff: `docs/RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`.
+
+---
+
+## 16 September 2026 — Complete Dapodik PTK profile editor
+
+Form edit lama Guru & Tendik yang hanya menangani data dasar diganti dengan halaman edit lengkap berbasis field PTK Dapodik.
+
+Implementasi:
+- route baru `/school/teachers/:id/edit`;
+- halaman `TeacherEditPage` memakai empat kelompok: Data Utama, Kualifikasi & Sertifikasi, Beban Kerja & Mengajar, Kontak & Akun School OS;
+- field sensitif diberi penanda visual dan tetap hanya dapat diedit melalui action admin;
+- action baru `updateSchoolTeacherProfile` menggunakan `requireSchoolAdmin` dan tenant scope `schoolId`;
+- validasi duplikasi NIP/NUPTK/NIK dalam tenant dan email lintas user;
+- action hanya menyentuh `User` dan `TeacherProfile`; WakasekAssignment, homeroom ClassRoom, SchoolStaffAssignment, username, dan Auth tidak disentuh;
+- tombol Edit di daftar dan detail PTK diarahkan ke editor lengkap;
+- modal daftar sekarang khusus Tambah Guru;
+- setelah save, detail PTK menampilkan success banner.
+
+Database impact:
+- tidak ada perubahan schema/migration;
+- tidak ada bulk mutation production;
+- baseline sesudah rollout tetap 1.539 siswa, 103 TeacherProfile, dan 0 Auth PTK.
+
+Quality gate:
+- targeted tests 9/9 PASS;
+- full Vitest `NODE_ENV=test`: **136/136 PASS** pada 23 file;
+- Wasp production build PASS;
+- generated server bundle PASS;
+- Vite SSR/client production build PASS;
+- immutable preflight PASS;
+- production release `03655f4-ptk-editor`;
+- `/school` 200, `/school/teachers` 200, edit route 200;
+- unauthenticated `update-school-teacher-profile` 401;
+- repeat deploy idempotent true;
+- service active;
+- rollback target `e212f56-ptk-detail`.
+
+Handoff: `docs/RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md`.
