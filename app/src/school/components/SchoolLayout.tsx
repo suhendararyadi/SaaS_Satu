@@ -257,11 +257,15 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ] });
       sections.push({ title: "PEMBELAJARAN", items: [{ label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" }] });
       if (usesPkl) sections.push({ title: "PKL", items: [
+        { label: "Ringkasan PKL", href: "/school/pkl", icon: "dashboard" },
         { label: "Fondasi PKL", href: "/school/pkl/foundation", icon: "hub" },
         { label: "Mitra DUDI", href: "/school/pkl/companies", icon: "apartment" },
         { label: "Penempatan", href: "/school/pkl/placements", icon: "work" },
+        { label: "Presensi PKL", href: "/school/pkl/attendance", icon: "location_on" },
         { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },
         { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" },
+        { label: "Laporan PKL", href: "/school/pkl/reports", icon: "description" },
+        { label: "Import PKL", href: "/school/pkl/import", icon: "upload_file" },
       ] });
       sections.push({ title: "PUBLIKASI", items: [
         { label: "Website Sekolah", href: "/school/website", icon: "language" },
@@ -285,7 +289,13 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
       ] });
-      if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [{ label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" }] });
+      if (teacherHasPkl) sections.push({ title: "PKL BIMBINGAN", items: [
+        { label: "Ringkasan PKL", href: "/school/pkl", icon: "dashboard" },
+        { label: "Presensi Siswa", href: "/school/pkl/attendance", icon: "fact_check" },
+        { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },
+        { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" },
+        { label: "Laporan PKL", href: "/school/pkl/reports", icon: "description" },
+      ] });
       const responsibilities = [
         ...(teacherDashboard?.assignments?.homeroomClass ? [
           { label: `Presensi ${teacherDashboard.assignments.homeroomClass.name}`, href: "/school/attendance", icon: "fact_check" },
@@ -311,11 +321,18 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ] });
     } else if (isStudent) {
       sections.push({ title: "BELAJAR", items: [{ label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" }] });
-      if (studentHasPkl) sections.push({ title: "PKL SAYA", items: [{ label: "Presensi PKL", href: "/school/pkl/attendance", icon: "location_on" }, { label: "Jurnal Kegiatan", href: "/school/pkl/journals", icon: "edit_note" }] });
+      if (studentHasPkl) sections.push({ title: "PKL SAYA", items: [
+        { label: "Ringkasan PKL", href: "/school/pkl", icon: "dashboard" },
+        { label: "Presensi PKL", href: "/school/pkl/attendance", icon: "location_on" },
+        { label: "Jurnal Kegiatan", href: "/school/pkl/journals", icon: "edit_note" },
+      ] });
     } else if (isDudiMentor) {
       sections.push({ title: "PKL BIMBINGAN", items: [
+        { label: "Ringkasan PKL", href: "/school/pkl", icon: "dashboard" },
+        { label: "Presensi Siswa", href: "/school/pkl/attendance", icon: "fact_check" },
         { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },
         { label: "Monitoring PKL", href: "/school/pkl/monitoring", icon: "monitor_heart" },
+        { label: "Laporan PKL", href: "/school/pkl/reports", icon: "description" },
         { label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" },
         { label: "Tindak Lanjut", href: "/school/follow-up", icon: "assignment_turned_in" },
       ] });
@@ -342,13 +359,13 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     if (isStudent) return [
       { label: "Beranda", href: "/school", icon: "home" },
       { label: "Kelas", href: "/school/lms/courses", icon: "menu_book" },
-      ...(studentHasPkl ? [{ label: "PKL", href: "/school/pkl/journals", icon: "work" }] : []),
+      ...(studentHasPkl ? [{ label: "PKL", href: "/school/pkl", icon: "work" }] : []),
       { label: "Saya", href: "/account", icon: "person" },
     ];
     if (isTeacher) return [
       { label: "Beranda", href: "/school", icon: "home" },
       { label: "LMS", href: "/school/lms/courses", icon: "menu_book" },
-      ...(teacherHasPkl ? [{ label: "PKL", href: "/school/pkl/journals", icon: "work" }] : []),
+      ...(teacherHasPkl ? [{ label: "PKL", href: "/school/pkl", icon: "work" }] : []),
       { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
     ];
     if (isSchoolAdmin) return [

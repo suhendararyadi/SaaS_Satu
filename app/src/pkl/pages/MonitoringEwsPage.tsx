@@ -226,7 +226,7 @@ export function MonitoringEwsPage({ user }: { user: AuthUser }) {
                         Tindak lanjuti
                       </M3Button>
                       <span className="text-[11.5px] font-medium text-md-primary opacity-80 group-hover:opacity-100">
-                        {item.category === "JOURNAL" ? "Buka jurnal" : "Buka presensi"}
+                        {item.category === "JOURNAL" || item.category === "REVIEW" ? "Buka jurnal" : item.category === "READINESS" ? "Buka penempatan" : item.category === "PLACEMENT" ? "Buka monitoring" : "Buka presensi"}
                       </span>
                       <span className="text-[20px] font-light text-md-on-surface-variant/40" aria-hidden="true">›</span>
                     </div>
@@ -255,14 +255,22 @@ export function MonitoringEwsPage({ user }: { user: AuthUser }) {
           <div className="border-b border-md-outline-variant px-4 py-2.5 sm:px-5">
             <h3 id="pkl-ews-rules-title" className="text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">Aturan deteksi saat ini</h3>
           </div>
-          <div className="grid divide-y divide-md-outline-variant sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+          <div className="grid divide-y divide-md-outline-variant sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-y-0">
             <div className="px-4 py-3 sm:px-5">
-              <p className="text-[12px] font-semibold text-md-on-surface">Presensi</p>
-              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Belum pernah presensi menjadi prioritas tinggi; check-in di luar radius menjadi perhatian sedang.</p>
+              <p className="text-[12px] font-semibold text-md-on-surface">Readiness</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Placement PLANNED dicek untuk periode, tanggal, DUDI, konsentrasi, kuota, Guru dan Pembimbing DUDI.</p>
             </div>
             <div className="px-4 py-3 sm:px-5">
-              <p className="text-[12px] font-semibold text-md-on-surface">Jurnal</p>
-              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Belum ada jurnal menjadi perhatian sedang; jurnal terakhir tertunda ≥3 hari menjadi prioritas tinggi.</p>
+              <p className="text-[12px] font-semibold text-md-on-surface">Presensi</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Belum pernah presensi, ALPA berulang, dan check-in di luar radius menjadi sinyal risiko.</p>
+            </div>
+            <div className="px-4 py-3 sm:px-5">
+              <p className="text-[12px] font-semibold text-md-on-surface">Jurnal & Review</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Jurnal kosong/tertunda dan review yang mandek ≥2 hari ikut dipantau.</p>
+            </div>
+            <div className="px-4 py-3 sm:px-5">
+              <p className="text-[12px] font-semibold text-md-on-surface">Penyelesaian</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">PKL mendekati selesai tanpa jurnal APPROVED dinaikkan sebagai perhatian administrasi.</p>
             </div>
           </div>
         </section>

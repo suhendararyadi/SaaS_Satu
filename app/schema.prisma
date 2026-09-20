@@ -302,6 +302,8 @@ model School {
   companyDepartments   CompanyDepartment[]
   pklCompanyCapacities PklCompanyCapacity[]
   dudiMentorProfiles   DudiMentorProfile[]
+  pklWorkSchedules      PklWorkSchedule[]
+  pklPlacementEvents    PklPlacementEvent[]
   lmsCourses           LmsCourse[]
   dutyReports          DutyTeacherReport[]
   dailyAttendances     SchoolDailyAttendance[]
@@ -336,6 +338,7 @@ model Department {
   staffAssignments SchoolStaffAssignment[]
   companyLinks     CompanyDepartment[]
   pklCapacities    PklCompanyCapacity[]
+  placements       Placement[]
 
   @@unique([schoolId, code])
 }
@@ -933,6 +936,7 @@ model Company {
   departmentLinks      CompanyDepartment[]
   pklCapacities        PklCompanyCapacity[]
   mentors              DudiMentorProfile[]
+  workSchedules         PklWorkSchedule[]
 
   @@unique([schoolId, code])
   @@index([schoolId, name])
@@ -954,6 +958,7 @@ model PklPeriod {
   updatedAt      DateTime             @updatedAt
   placements     Placement[]
   capacities     PklCompanyCapacity[]
+  workSchedules  PklWorkSchedule[]
 
   @@unique([schoolId, name])
   @@index([schoolId, isActive, startDate])
@@ -1017,66 +1022,161 @@ model DudiMentorProfile {
 }
 
 model Placement {
-  id                  String     @id @default(uuid())
+  id                  String      @id @default(uuid())
   schoolId            String
-  school              School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school              School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   studentId           String
-  student             User       @relation("StudentPlacements", fields: [studentId], references: [id], onDelete: Cascade)
+  student             User        @relation("StudentPlacements", fields: [studentId], references: [id], onDelete: Cascade)
   companyId           String
-  company             Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company             Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   pklPeriodId         String?
-  pklPeriod           PklPeriod? @relation(fields: [pklPeriodId], references: [id], onDelete: SetNull)
+  pklPeriod           PklPeriod?  @relation(fields: [pklPeriodId], references: [id], onDelete: SetNull)
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   teacherSupervisorId String?
-  teacherSupervisor   User?      @relation("TeacherPlacements", fields: [teacherSupervisorId], references: [id])
+  teacherSupervisor   User?       @relation("TeacherPlacements", fields: [teacherSupervisorId], references: [id])
   dudiMentorId        String?
-  dudiMentor          User?      @relation("MentorPlacements", fields: [dudiMentorId], references: [id])
+  dudiMentor          User?       @relation("MentorPlacements", fields: [dudiMentorId], references: [id])
   startDate           DateTime
   endDate             DateTime
-  status              String     @default("ACTIVE") // "ACTIVE", "COMPLETED", "CANCELED"
+  status              String      @default("ACTIVE") // "PLANNED", "ACTIVE", "COMPLETED", "CANCELED"
+  notes               String?
+  source              String      @default("MANUAL")
+  readinessCheckedAt  DateTime?
+  activatedAt         DateTime?
+  completedAt         DateTime?
+  canceledAt          DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   attendances AttendanceLog[]
   journals    DailyJournal[]
+  events      PklPlacementEvent[]
 
   @@index([schoolId, studentId, status])
   @@index([schoolId, companyId, status])
   @@index([schoolId, pklPeriodId, status])
+  @@index([schoolId, departmentId, status])
   @@index([schoolId, teacherSupervisorId])
   @@index([schoolId, dudiMentorId])
 }
 
 model AttendanceLog {
-  id             String    @id @default(uuid())
-  placementId    String
-  placement      Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
-  timestamp      DateTime  @default(now())
-  dateOnly       String // "YYYY-MM-DD"
-  type           String // "CHECK_IN", "CHECK_OUT"
-  status         String // "HADIR", "TERLAMBAT", "IZIN", "SAKIT", "ALPA", "LIBUR"
-  latitude       Float?
-  longitude      Float?
-  distanceMeters Float?
-  photoUrl       String?
-  notes          String?
+  id                 String    @id @default(uuid())
+  placementId        String
+  placement          Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  timestamp          DateTime  @default(now())
+  dateOnly           String // "YYYY-MM-DD"
+  type               String // "CHECK_IN", "CHECK_OUT", "EXCEPTION"
+  status             String // "HADIR", "TERLAMBAT", "IZIN", "SAKIT", "ALPA", "LIBUR"
+  geofenceStatus     String? // "INSIDE", "OUTSIDE", "UNVERIFIED"
+  scheduleStatus     String? // "ON_TIME", "LATE", "UNSCHEDULED"
+  latitude           Float?
+  longitude          Float?
+  distanceMeters     Float?
+  photoUrl           String?
+  evidenceUrl        String?
+  notes              String?
+  isManualCorrection Boolean   @default(false)
+  correctedById      String?
+  correctedAt        DateTime?
+  correctionReason   String?
 
   @@unique([placementId, dateOnly, type])
   @@index([placementId, dateOnly])
+  @@index([status, dateOnly])
 }
 
 model DailyJournal {
-  id                  String    @id @default(uuid())
-  placementId         String
-  placement           Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
-  date                DateTime  @default(now())
-  activityDescription String
-  obstacleDescription String?
-  photoUrl            String?
-  status              String    @default("SUBMITTED") // "DRAFT", "SUBMITTED", "APPROVED", "REVISION"
-  feedback            String?
-  score               Int? // 0-100
-  approvedAt          DateTime?
-  approvedById        String?
+  id                    String    @id @default(uuid())
+  placementId           String
+  placement             Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  date                  DateTime  @default(now())
+  dateOnly              String?
+  activityDescription   String
+  obstacleDescription   String?
+  competencies          String?
+  reflection            String?
+  photoUrl              String?
+  evidenceUrl           String?
+  status                String    @default("DRAFT") // "DRAFT", "SUBMITTED", "APPROVED", "REVISION"
+  feedback              String?
+  score                 Int? // Legacy aggregate score, 0-100.
+  approvedAt            DateTime?
+  approvedById          String?
+  revisionCount         Int       @default(0)
+  submittedAt           DateTime?
+  lastRevisionAt        DateTime?
+  teacherReviewStatus   String?
+  teacherFeedback       String?
+  teacherScore          Int?
+  teacherReviewedAt     DateTime?
+  teacherReviewedById   String?
+  mentorReviewStatus    String?
+  mentorFeedback        String?
+  mentorScore           Int?
+  mentorReviewedAt      DateTime?
+  mentorReviewedById    String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  revisions             DailyJournalRevision[]
 
   @@index([placementId, date])
+  @@index([placementId, dateOnly])
+  @@index([status, submittedAt])
+}
+
+model DailyJournalRevision {
+  id         String       @id @default(uuid())
+  journalId  String
+  journal    DailyJournal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  revisionNo Int
+  actorId    String?
+  reason     String?
+  snapshot   Json
+  createdAt  DateTime     @default(now())
+
+  @@unique([journalId, revisionNo])
+  @@index([journalId, createdAt])
+}
+
+model PklWorkSchedule {
+  id            String    @id @default(uuid())
+  schoolId      String
+  school        School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  periodId      String
+  period        PklPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workingDays   String    @default("1,2,3,4,5")
+  checkInStart  String?
+  lateAfter     String?
+  checkOutStart String?
+  checkOutEnd   String?
+  isActive      Boolean   @default(true)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([periodId, companyId])
+  @@index([schoolId, periodId, companyId])
+}
+
+model PklPlacementEvent {
+  id             String    @id @default(uuid())
+  schoolId       String
+  school         School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  placementId    String
+  placement      Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  eventType      String
+  actorId        String?
+  reason         String?
+  snapshotBefore Json?
+  snapshotAfter  Json?
+  createdAt      DateTime  @default(now())
+
+  @@index([schoolId, placementId, createdAt])
+  @@index([schoolId, eventType, createdAt])
 }
 
 model LmsCourse {
