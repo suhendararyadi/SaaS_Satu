@@ -16,6 +16,10 @@ ALTER TABLE "Company"
   ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
+-- Existing Company rows need a value during the additive ALTER, but Prisma
+-- @updatedAt is application-managed and has no database default.
+ALTER TABLE "Company" ALTER COLUMN "updatedAt" DROP DEFAULT;
+
 CREATE TABLE "PklPeriod" (
   "id" TEXT NOT NULL,
   "schoolId" TEXT NOT NULL,
