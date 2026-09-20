@@ -34,7 +34,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Dapodik PTK detail profiles: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
 - Complete Dapodik PTK profile editor: `03655f4` — `feat(school): add complete PTK profile editor`
 - PKL Foundation Generasi Kedua: `45a11a5` — final app commit for Gen2 foundation compatibility
-- Current production application commit: `45a11a5` — PKL Foundation Generasi Kedua
+- PKL Gen2 full workflow suite: `5aee74e` — Placement/Readiness/Attendance/Journal/EWS/Role Panel/Reports/Import
+- Current production application commit: `5aee74e` — complete PKL Generasi Kedua workflow suite
 - Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
 - AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 20 September 2026.
 - Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md). Critical confirmed context is now independent of the project worktree.
@@ -92,10 +93,10 @@ Domain: `https://sekolah.suhendararyadi.com`.
 
 Production runtime pada snapshot 20 September 2026:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/45a11a5-pkl-foundation-gen2`
-- **static current**: `/var/www/saas-satu/releases/45a11a5-pkl-foundation-gen2`
-- runtime/source commit: `45a11a5` — PKL Foundation Generasi Kedua
-- previous known stable app release: `03655f4-ptk-editor`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/5aee74e-pkl-gen2-full`
+- **static current**: `/var/www/saas-satu/releases/5aee74e-pkl-gen2-full`
+- runtime/source commit: `5aee74e` — complete PKL Generasi Kedua workflow suite
+- rollback release: `45a11a5-pkl-foundation-gen2`
 - `saas-satu.service`: **active**
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
@@ -349,7 +350,7 @@ Schema additive:
 
 Admin dapat mengelola periode PKL, Pembimbing DUDI, relasi DUDI ↔ konsentrasi, dan kapasitas per Periode × DUDI × Konsentrasi. Master Pembimbing DUDI tidak membuat Auth/password/username otomatis. Delete mentor memakai archive semantics.
 
-Placement Gen1 tetap backward-compatible dan masih memakai `Company.maxQuota`; capacity Gen2 baru akan menjadi enforcement source saat Penempatan PKL Gen2 dikerjakan.
+Foundation tetap backward-compatible dengan legacy actions. Workspace Placement Gen2 sekarang memakai `PklCompanyCapacity` per Period × DUDI × concentration sebagai enforcement source; legacy `Company.maxQuota` hanya dipertahankan untuk compatibility path lama.
 
 Migration production:
 
@@ -366,7 +367,33 @@ Quality gate: 141/141 tests PASS, Wasp/server/Vite builds PASS, migration clone 
 
 Detail: [`RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md`](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md).
 
-Next planned PKL phase: **Penempatan PKL Generasi Kedua**.
+PKL Foundation dilanjutkan oleh full workflow suite `5aee74e-pkl-gen2-full`; lihat release Gen2 workflow di bawah.
+
+## 3.6 PKL Generasi Kedua Workflow Suite — LIVE 20 September 2026
+
+Production release: `5aee74e-pkl-gen2-full`.
+
+Live routes:
+
+- `/school/pkl` — role-aware PKL summary;
+- `/school/pkl/placements` — Placement Gen2 workspace;
+- `/school/pkl/attendance` — Attendance Gen2;
+- `/school/pkl/journals` — Journal Gen2;
+- `/school/pkl/monitoring` — EWS Gen2;
+- `/school/pkl/reports` — reports/export;
+- `/school/pkl/import` — XLSX/CSV preview-validate-commit.
+
+New schema includes `PklWorkSchedule`, `PklPlacementEvent`, `DailyJournalRevision`, placement readiness/lifecycle metadata, attendance geofence/schedule/correction metadata, and independent Teacher/DUDI journal review metadata.
+
+Migration: `20260920010500_add_pkl_gen2_workflows` with SHA-256 `bcb47307076429be5f49b75120fb629874f697b9605845b85afb253a512f878a`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-workflows-20260920.dump`.
+
+Quality gate: 148/148 tests PASS, Wasp/server/Vite PASS, clone migration verification PASS, production migration PASS, immutable deploy PASS, repeat deploy idempotent true.
+
+SMKN 12 Garut remains free of synthetic PKL production data: all PKL foundation/workflow row counts remain 0.
+
+Detail: [`RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md).
 
 ## 4. Website Sekolah CMS — LIVE
 

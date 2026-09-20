@@ -936,3 +936,45 @@ Quality gate:
 Handoff: `docs/RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md`.
 
 Next: **Penempatan PKL Generasi Kedua**.
+
+---
+
+## 20 September 2026 — PKL Generasi Kedua workflow suite
+
+Full PKL Gen2 roadmap completed and deployed.
+
+Scope:
+
+- Placement Gen2 workspace with Period/Department/DUDI eligibility, live `PklCompanyCapacity`, bulk plotting, server over-capacity guard, Guru + DUDI Mentor assignment, PLANNED/ACTIVE/COMPLETED/CANCELED lifecycle, edit, transfer, and event history;
+- readiness check before activation;
+- Attendance Gen2 with placement/period date enforcement, geofence, work schedule, late detection, Izin/Sakit, ALPA/LIBUR admin correction, and optional signed S3 evidence;
+- Journal Gen2 with draft/submit/revision/approve, competencies, reflection, documentation, revision history, and independent Teacher/DUDI review;
+- EWS Gen2 for readiness, no attendance, repeated ALPA/out-of-radius, stale journals, review delay, and nearing end without approved journal;
+- role-aware PKL dashboard;
+- reports with print/Save PDF and Excel-compatible CSV export;
+- PKL XLSX/CSV import with templates, preview, validation, preview hash, atomic commit, and no auto-login provisioning.
+
+Database:
+
+- backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-workflows-20260920.dump`;
+- migration: `20260920010500_add_pkl_gen2_workflows`;
+- checksum: `bcb47307076429be5f49b75120fb629874f697b9605845b85afb253a512f878a`;
+- dry-run clone PASS before production;
+- migration backfilled 7 historical journals from other tenants for date/submission compatibility;
+- SMKN 12 Garut remained 1,539 students / 103 PTK / zero PKL data.
+
+Quality:
+
+- targeted PKL tests 12/12 PASS;
+- full Vitest **148/148 PASS** / 26 files;
+- Prisma validate PASS;
+- Wasp build PASS;
+- server bundle PASS;
+- Vite SSR/client PASS;
+- preflight PASS;
+- production release `5aee74e-pkl-gen2-full`;
+- all PKL routes 200;
+- sensitive unauth operations 401;
+- repeated deploy idempotent true.
+
+Handoff: `docs/RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`.

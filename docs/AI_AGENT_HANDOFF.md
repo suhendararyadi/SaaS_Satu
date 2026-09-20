@@ -14,11 +14,11 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Repository baseline: `/home/ubuntu/projects/SaaS_Satu`.
 - Active School OS worktree: `/home/ubuntu/projects/SaaS_Satu-hardening`.
 - Active branch: `redesign/apple-hig`.
-- Application release commit: `45a11a546fe4b6f2fefad46d2120cac7d30de25a` — PKL Foundation Generasi Kedua final compatibility commit.
-- Production release: `45a11a5-pkl-foundation-gen2`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/45a11a5-pkl-foundation-gen2`.
-- Current static pointer: `/var/www/saas-satu/releases/45a11a5-pkl-foundation-gen2`.
-- Previous known stable application release: `03655f4-ptk-editor`.
+- Application release commit: `5aee74e9edeecd3c23533ce6b1ccfb28f8dcc8c1` — complete PKL Generasi Kedua workflow suite.
+- Production release: `5aee74e-pkl-gen2-full`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/5aee74e-pkl-gen2-full`.
+- Current static pointer: `/var/www/saas-satu/releases/5aee74e-pkl-gen2-full`.
+- Rollback release: `45a11a5-pkl-foundation-gen2`.
 - Service: `saas-satu.service` **active**.
 
 ## 2. Production baseline — SMKN 12 Garut
@@ -140,6 +140,28 @@ No synthetic PKL data has been inserted for SMKN 12 Garut. Verified post-rollout
 
 Release handoff: [`RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md`](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md).
 
+## 5.2 PKL Generasi Kedua Workflow Suite — LIVE
+
+The complete Gen2 workflow is now live:
+
+- role-aware summary: `/school/pkl`;
+- Placement Gen2: period/concentration-aware workspace, eligible DUDI, live quota, bulk placement, `PLANNED / ACTIVE / COMPLETED / CANCELED`, edit, transfer, and event history;
+- PKL Readiness Check before activation;
+- Attendance Gen2: active/date enforcement, geofence metadata, DUDI work schedule, late status, Izin/Sakit, ALPA/LIBUR admin correction, and optional S3 selfie/evidence;
+- Journal Gen2: Draft/Submit/Revision/Approved, competency/reflection/documentation, revision snapshots, independent Teacher + DUDI Mentor review;
+- Monitoring/EWS Gen2: readiness, attendance, journal, review-delay, and near-completion signals;
+- role panels for Admin/Teacher/Student/DUDI Mentor;
+- print-ready reports + browser PDF + Excel-compatible CSV;
+- PKL import for DUDI/Mentor/Capacity/Placement using XLSX/CSV preview → validation → commit.
+
+Migration: `20260920010500_add_pkl_gen2_workflows`.
+
+Release: `5aee74e-pkl-gen2-full`.
+
+No synthetic PKL data was inserted for SMKN 12 Garut. Current PKL rows for Company/Period/Mentor/Capacity/Placement/Attendance/Journal/Schedule/Event remain **0**.
+
+Release handoff: [`RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md).
+
 ## 6. Active design contract
 
 The active UI system is **School OS — Apple HIG-inspired**.
@@ -189,27 +211,26 @@ Do not bypass service-control guards with force kills or ad-hoc production proce
 
 For frontend-only changes, prefer the bounded static-only preflight/deploy path.
 
-## 9. Latest production rollout verification — PKL Foundation Gen2
+## 9. Latest production rollout verification — PKL Gen2 Full
 
-PKL Foundation Generasi Kedua quality gate:
+PKL Generasi Kedua full-suite quality gate:
 
-- Foundation policy tests: **5/5 PASS**;
-- full Vitest: **141/141 PASS** across **24 files**;
+- targeted PKL tests: **12/12 PASS**;
+- full Vitest: **148/148 PASS** across **26 files**;
 - Prisma validation: PASS;
 - migration dry-run on restored production clone: PASS;
-- Wasp production build: PASS;
+- Wasp build: PASS;
 - generated server bundle: PASS;
-- Vite SSR/client: PASS;
+- Vite SSR/client builds: PASS;
 - immutable deploy preflight: PASS;
 - production deploy: PASS;
 - repeat deploy: idempotent PASS;
-- `/school`: HTTP 200;
-- `/school/pkl/foundation`: HTTP 200;
-- `/school/pkl/companies`: HTTP 200;
-- unauthenticated foundation query/action: HTTP 401;
-- final baseline: **1,539 students / 103 PTK / zero PKL foundation & placement rows**.
+- all PKL routes including dashboard/placement/attendance/journal/monitoring/reports/import: HTTP 200;
+- unauthenticated sensitive Gen2 operations: HTTP 401;
+- migration checksum verified;
+- final SMKN 12 baseline: **1,539 students / 103 PTK / zero PKL production data**.
 
-The earlier PTK editor release `03655f4-ptk-editor` remains an important historical/known-stable release, but is no longer the current application release.
+Rollback release: `45a11a5-pkl-foundation-gen2`.
 
 ## 10. Backups that matter
 
@@ -221,6 +242,8 @@ The earlier PTK editor release `03655f4-ptk-editor` remains an important histori
   `/home/ubuntu/backups/SaaS_Satu/pre-ptk-detail-dapodik-20260916.dump`
 - pre PKL Foundation Gen2 migration:
   `/home/ubuntu/backups/SaaS_Satu/pre-pkl-foundation-gen2-20260920.dump`
+- pre PKL Gen2 workflow migration:
+  `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-workflows-20260920.dump`
 
 Do not delete these as routine cleanup.
 
@@ -234,8 +257,9 @@ For a new agent:
 4. [RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md);
 5. [RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md);
 6. [RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md](./RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md);
-7. [RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md) for current PKL continuation;
-8. area-specific docs such as `UI_UX_APPLE_HIG.md`, `ARCHITECTURE.md`, `MODULES_GUIDE.md`, and `DEMO_DATA.md`.
+7. [RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md);
+8. [RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md) — current PKL state;
+9. area-specific docs such as `UI_UX_APPLE_HIG.md`, `ARCHITECTURE.md`, `MODULES_GUIDE.md`, and `DEMO_DATA.md`.
 
 ## 12. Durable AI memory
 
@@ -261,7 +285,7 @@ Do not store raw student/PTK PII, credentials, tokens, or private keys in either
 
 ## 13. Current continuation point
 
-PKL Foundation Generasi Kedua is finished and live. The next planned PKL phase is **Penempatan PKL Generasi Kedua**.
+PKL Foundation + the complete PKL Generasi Kedua workflow suite are finished and live. Until authoritative PKL data is supplied, do not seed synthetic PKL production records; focus only on review/refinement or approved next features.
 
 Before starting the next feature:
 
