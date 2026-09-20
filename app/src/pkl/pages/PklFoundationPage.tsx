@@ -30,8 +30,11 @@ import {
   M3TextField,
 } from "../../client/components/m3";
 
-function isoDate(value: any) {
-  return value ? String(value).slice(0, 10) : "";
+function isoDate(value: unknown) {
+  if (!value) return "";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.valueOf())) return String(value).slice(0, 10);
+  return date.toISOString().slice(0, 10);
 }
 
 export function PklFoundationPage({ user }: { user: AuthUser }) {

@@ -78,6 +78,13 @@ const statusLabel: Record<string, string> = {
   INACTIVE: "Nonaktif",
 };
 
+function dateInput(value: unknown): string {
+  if (!value) return "";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.valueOf())) return String(value).slice(0, 10);
+  return date.toISOString().slice(0, 10);
+}
+
 export function CompaniesPage({ user }: { user: AuthUser }) {
   const companiesQuery = useQuery(getCompanies);
   const departmentsQuery = useQuery(getDepartments);
@@ -139,8 +146,8 @@ export function CompaniesPage({ user }: { user: AuthUser }) {
       radiusMeters: company.radiusMeters || 100,
       maxQuota: company.maxQuota || 5,
       partnershipStatus: company.partnershipStatus || "ACTIVE",
-      partnershipStartDate: company.partnershipStartDate?.slice?.(0, 10) || "",
-      partnershipEndDate: company.partnershipEndDate?.slice?.(0, 10) || "",
+      partnershipStartDate: dateInput(company.partnershipStartDate),
+      partnershipEndDate: dateInput(company.partnershipEndDate),
       mouNumber: company.mouNumber || "",
       notes: company.notes || "",
       isActive: company.isActive !== false,
