@@ -59,7 +59,7 @@ Manifest OS-global:
 
 Latest verified snapshot:
 
-`/home/ubuntu/backups/MSO/global-agent-memory-20260920T0731WIB.tar.gz`
+`/home/ubuntu/backups/MSO/global-agent-memory-20260920T1758WIB.tar.gz`
 
 Source of truth dokumentasi: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md).
 
