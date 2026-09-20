@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last verified: **16 September 2026, 16:30 WIB (Asia/Jakarta)**.
+Last verified: **20 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Agen baru harus membaca [`AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md) terlebih dahulu sebagai ringkasan cepat, lalu dokumen ini untuk konteks lengkap. Jika dokumentasi bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot.
 
@@ -33,7 +33,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - EWS lintas modul generasi kedua: `27d1b34`
 - Dapodik PTK detail profiles: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
 - Complete Dapodik PTK profile editor: `03655f4` — `feat(school): add complete PTK profile editor`
-- Current production application commit: `03655f4` — `feat(school): add complete PTK profile editor`
+- PKL Foundation Generasi Kedua: `45a11a5` — final app commit for Gen2 foundation compatibility
+- Current production application commit: `45a11a5` — PKL Foundation Generasi Kedua
 - Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
 - AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 16 September 2026 at 16:30 WIB.
 - Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md). Critical confirmed context is now independent of the project worktree.
@@ -89,11 +90,12 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production runtime pada snapshot 16 September 2026:
+Production runtime pada snapshot 20 September 2026:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/03655f4-ptk-editor`
-- **static current**: `/var/www/saas-satu/releases/03655f4-ptk-editor`
-- runtime/source commit: `03655f4` — `feat(school): add complete PTK profile editor`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/45a11a5-pkl-foundation-gen2`
+- **static current**: `/var/www/saas-satu/releases/45a11a5-pkl-foundation-gen2`
+- runtime/source commit: `45a11a5` — PKL Foundation Generasi Kedua
+- previous known stable app release: `03655f4-ptk-editor`
 - `saas-satu.service`: **active**
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
@@ -331,6 +333,40 @@ Sheet agregat Peserta Didik tidak dipakai untuk overwrite database detail. Sheet
 Detail lengkap:
 - [`RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md)
 - [`RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md`](./RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md)
+
+## 3.5 PKL Foundation Generasi Kedua — LIVE 20 September 2026
+
+Foundation Gen2 sekarang tersedia di `/school/pkl/foundation`.
+
+Schema additive:
+
+- `PklPeriod`;
+- `CompanyDepartment`;
+- `PklCompanyCapacity`;
+- `DudiMentorProfile`;
+- richer `Company` partnership metadata;
+- nullable `Placement.pklPeriodId`.
+
+Admin dapat mengelola periode PKL, Pembimbing DUDI, relasi DUDI ↔ konsentrasi, dan kapasitas per Periode × DUDI × Konsentrasi. Master Pembimbing DUDI tidak membuat Auth/password/username otomatis. Delete mentor memakai archive semantics.
+
+Placement Gen1 tetap backward-compatible dan masih memakai `Company.maxQuota`; capacity Gen2 baru akan menjadi enforcement source saat Penempatan PKL Gen2 dikerjakan.
+
+Migration production:
+
+- `20260920002500_add_pkl_foundation_gen2`;
+- `20260920003500_align_company_updated_at_default`.
+
+Backup pra-migrasi:
+
+`/home/ubuntu/backups/SaaS_Satu/pre-pkl-foundation-gen2-20260920.dump`
+
+Post-rollout SMKN 12 Garut tetap tidak memiliki synthetic PKL data: Company 0, PklPeriod 0, DudiMentorProfile 0, PklCompanyCapacity 0, Placement 0. Baseline siswa/PTK tetap 1.539/103.
+
+Quality gate: 141/141 tests PASS, Wasp/server/Vite builds PASS, migration clone verification PASS, immutable preflight/deploy PASS, repeat deploy idempotent true.
+
+Detail: [`RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md`](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md).
+
+Next planned PKL phase: **Penempatan PKL Generasi Kedua**.
 
 ## 4. Website Sekolah CMS — LIVE
 

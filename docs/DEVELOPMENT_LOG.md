@@ -888,3 +888,51 @@ Privacy rule: raw student/PTK PII, credentials, tokens, passwords, dan private k
 Dokumentasi: `docs/GLOBAL_PERSISTENT_MEMORY.md`.
 
 Tidak ada perubahan aplikasi production, schema, database, atau deployment.
+
+---
+
+## 20 September 2026 — PKL Foundation Generasi Kedua
+
+Foundation PKL dimodernisasi sebelum fase Penempatan PKL Gen2.
+
+Implementasi:
+
+- master `PklPeriod` terhubung opsional ke AcademicYear;
+- `Company` diperluas dengan code/legal name/contact/website/status & masa kemitraan/MoU/notes/archive state;
+- `CompanyDepartment` untuk relasi DUDI ↔ konsentrasi keahlian;
+- `PklCompanyCapacity` untuk quota Periode × DUDI × Konsentrasi;
+- `DudiMentorProfile` untuk master Pembimbing DUDI;
+- `Placement.pklPeriodId` nullable sebagai bridge menuju Placement Gen2;
+- route admin baru `/school/pkl/foundation`;
+- navigasi PKL admin menambahkan **Fondasi PKL**;
+- Mitra DUDI UI diperluas untuk profil kemitraan dan konsentrasi yang diterima;
+- mentor master tidak membuat Auth/password/username/login email; archive semantics dipakai untuk preservasi histori;
+- Placement Gen1 dan `Company.maxQuota` tetap backward-compatible.
+
+Database:
+
+- backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-foundation-gen2-20260920.dump`;
+- migration `20260920002500_add_pkl_foundation_gen2`;
+- migration `20260920003500_align_company_updated_at_default`;
+- migration diuji pada clone backup production sebelum diterapkan live;
+- post-rollout: Company 0, PklPeriod 0, DudiMentorProfile 0, PklCompanyCapacity 0, Placement 0 untuk SMKN 12 Garut;
+- tidak ada synthetic PKL data;
+- siswa/PTK tetap 1.539/103.
+
+Quality gate:
+
+- Prisma validate PASS;
+- Foundation tests 5/5 PASS;
+- full Vitest: **141/141 PASS** pada 24 file;
+- Wasp build PASS;
+- server bundle PASS;
+- Vite SSR/client PASS;
+- deploy preflight PASS;
+- production release `45a11a5-pkl-foundation-gen2`;
+- `/school/pkl/foundation` 200;
+- unauthenticated foundation query/action 401;
+- repeat deployment idempotent true.
+
+Handoff: `docs/RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md`.
+
+Next: **Penempatan PKL Generasi Kedua**.

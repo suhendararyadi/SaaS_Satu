@@ -1,6 +1,6 @@
 # School OS — AI Agent Handoff
 
-Last verified: **16 September 2026, 16:30 WIB (Asia/Jakarta)**.
+Last verified: **20 September 2026 (Asia/Jakarta)**.
 
 This is the fast, durable entry point for any AI agent continuing School OS work. Read this file first, then [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) for the full persistent context and the release documents linked below.
 
@@ -14,16 +14,16 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Repository baseline: `/home/ubuntu/projects/SaaS_Satu`.
 - Active School OS worktree: `/home/ubuntu/projects/SaaS_Satu-hardening`.
 - Active branch: `redesign/apple-hig`.
-- Application release commit: `03655f4e810879f575064ea2c65d74245b608a58` — `feat(school): add complete PTK profile editor`.
-- Production release: `03655f4-ptk-editor`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/03655f4-ptk-editor`.
-- Current static pointer: `/var/www/saas-satu/releases/03655f4-ptk-editor`.
-- Rollback release: `e212f56-ptk-detail`.
+- Application release commit: `45a11a546fe4b6f2fefad46d2120cac7d30de25a` — PKL Foundation Generasi Kedua final compatibility commit.
+- Production release: `45a11a5-pkl-foundation-gen2`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/45a11a5-pkl-foundation-gen2`.
+- Current static pointer: `/var/www/saas-satu/releases/45a11a5-pkl-foundation-gen2`.
+- Previous known stable application release: `03655f4-ptk-editor`.
 - Service: `saas-satu.service` **active**.
 
 ## 2. Production baseline — SMKN 12 Garut
 
-Verified read-only on 16 September 2026:
+Verified on 20 September 2026:
 
 - students: **1,539**;
 - StudentProfile: **1,539**;
@@ -107,6 +107,38 @@ Privacy/security:
 - PTK profile edit must **not** modify WakasekAssignment, homeroom assignment, SchoolStaffAssignment, username, or Auth/login.
 
 Organization assignments are managed separately in the Structure & Assignment center.
+
+## 5.1 PKL Foundation Generasi Kedua — LIVE
+
+Production now includes the Gen2 foundation required before placement modernization.
+
+Admin route:
+
+- `/school/pkl/foundation`
+
+Foundation models/contracts:
+
+- `PklPeriod` — first-class PKL program/period linked optionally to AcademicYear;
+- `CompanyDepartment` — explicit DUDI ↔ concentration relation;
+- `PklCompanyCapacity` — quota per Period × DUDI × concentration;
+- `DudiMentorProfile` — managed industrial mentor master;
+- richer `Company` partnership profile: code, legal name, contact, website, partnership status/dates, MoU/PKS, notes, archive state;
+- optional `Placement.pklPeriodId`, ready for Placement Gen2.
+
+DUDI Mentor creation creates a master `User` role `DUDI_MENTOR` but **does not create Auth, password, username, or login email**. Archive semantics preserve history.
+
+Legacy `Company.maxQuota` remains active for Placement Gen1. The new period/concentration capacity is planning data until Placement Gen2 switches quota enforcement.
+
+No synthetic PKL data has been inserted for SMKN 12 Garut. Verified post-rollout counts:
+
+- Company: **0**
+- PklPeriod: **0**
+- DudiMentorProfile: **0**
+- PklCompanyCapacity: **0**
+- Placement: **0**
+- DUDI Mentor Auth: **0**
+
+Release handoff: [`RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md`](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md).
 
 ## 6. Active design contract
 
@@ -222,7 +254,7 @@ Do not store raw student/PTK PII, credentials, tokens, or private keys in either
 
 ## 13. Current continuation point
 
-The PTK detail + complete edit flow is finished and live. No application-code task is currently pending from that rollout.
+PKL Foundation Generasi Kedua is finished and live. The next planned PKL phase is **Penempatan PKL Generasi Kedua**.
 
 Before starting the next feature:
 
