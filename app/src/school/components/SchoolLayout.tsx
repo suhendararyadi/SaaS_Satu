@@ -49,6 +49,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/attendance", "Presensi Harian"],
   ["/school/import", "Import Data"],
   ["/school/lms/courses", "Pembelajaran"],
+  ["/school/pkl/foundation", "Fondasi PKL"],
   ["/school/pkl/companies", "Mitra DUDI"],
   ["/school/pkl/placements", "Penempatan PKL"],
   ["/school/pkl/attendance", "Presensi PKL"],
@@ -256,6 +257,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ] });
       sections.push({ title: "PEMBELAJARAN", items: [{ label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" }] });
       if (usesPkl) sections.push({ title: "PKL", items: [
+        { label: "Fondasi PKL", href: "/school/pkl/foundation", icon: "hub" },
         { label: "Mitra DUDI", href: "/school/pkl/companies", icon: "apartment" },
         { label: "Penempatan", href: "/school/pkl/placements", icon: "work" },
         { label: "Jurnal Siswa", href: "/school/pkl/journals", icon: "edit_note" },

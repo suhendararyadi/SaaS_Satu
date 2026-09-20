@@ -6,6 +6,13 @@ import { ensureSchoolUser, requireSchoolAdmin, requireStudent, requirePklAccess,
 import { type SchoolScopedUser } from "../school/types";
 import { calculateDistanceMeters, isWithinGeofence } from "./geofence";
 import { getPklEwsAlertsForScope } from "./ews";
+import {
+  isValidPklDateRange,
+  normalizeOptionalPklText,
+  normalizePklCode,
+  parsePklDate,
+  PKL_PARTNERSHIP_STATUSES,
+} from "./foundationPolicy";
 
 
 function getPklPlacementScope(user: SchoolScopedUser) {
@@ -37,8 +44,13 @@ export const getCompanies = async (_args: unknown, context: { user?: User }) => 
           },
         },
       },
+      departmentLinks: {
+        where: { isActive: true },
+        include: { department: { select: { id: true, code: true, name: true } } },
+        orderBy: { department: { code: "asc" } },
+      },
       _count: {
-        select: { placements: true },
+        select: { placements: true, mentors: true, pklCapacities: true },
       },
     },
     orderBy: { name: "asc" },
@@ -46,33 +58,96 @@ export const getCompanies = async (_args: unknown, context: { user?: User }) => 
 };
 
 const companySchema = z.object({
+  code: z.string().trim().max(40).optional().nullable(),
   name: z.string().min(2, "Nama perusahaan minimal 2 karakter"),
+  legalName: z.string().trim().max(240).optional().nullable(),
   industrySector: z.string().optional(),
   address: z.string().min(3, "Alamat wajib diisi"),
+  phone: z.string().trim().max(80).optional().nullable(),
+  email: z.string().trim().email("Format email mitra tidak valid").max(320).optional().nullable().or(z.literal("")),
+  website: z.string().trim().url("Format website harus URL lengkap").max(500).optional().nullable().or(z.literal("")),
   picName: z.string().optional(),
   picPhone: z.string().optional(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
   radiusMeters: z.number().int().min(10).max(5000).default(100),
   maxQuota: z.number().int().min(1).default(5),
+  partnershipStatus: z.enum(PKL_PARTNERSHIP_STATUSES).default("ACTIVE"),
+  partnershipStartDate: z.string().optional().nullable(),
+  partnershipEndDate: z.string().optional().nullable(),
+  mouNumber: z.string().trim().max(160).optional().nullable(),
+  notes: z.string().trim().max(5000).optional().nullable(),
+  isActive: z.boolean().default(true),
 });
+
+function parseCompanyPartnershipDates(
+  startValue?: string | null,
+  endValue?: string | null,
+) {
+  const partnershipStartDate = parsePklDate(startValue);
+  const partnershipEndDate = parsePklDate(endValue);
+  if (startValue && !partnershipStartDate) {
+    throw new HttpError(400, "Tanggal mulai kerja sama tidak valid.");
+  }
+  if (endValue && !partnershipEndDate) {
+    throw new HttpError(400, "Tanggal selesai kerja sama tidak valid.");
+  }
+  if (!isValidPklDateRange(partnershipStartDate, partnershipEndDate)) {
+    throw new HttpError(400, "Tanggal mulai kerja sama harus lebih awal daripada tanggal selesai.");
+  }
+  return { partnershipStartDate, partnershipEndDate };
+}
+
+async function ensureUniqueCompanyCode(
+  schoolId: string,
+  code: string | null,
+  excludeId?: string,
+) {
+  if (!code) return;
+  const duplicate = await prisma.company.findFirst({
+    where: {
+      schoolId,
+      code,
+      ...(excludeId ? { NOT: { id: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (duplicate) throw new HttpError(400, "Kode mitra sudah digunakan: " + code);
+}
 
 export const createCompany = async (rawArgs: unknown, context: { user?: User }) => {
   const admin = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(companySchema, rawArgs);
+  const code = normalizePklCode(args.code);
+  const { partnershipStartDate, partnershipEndDate } = parseCompanyPartnershipDates(
+    args.partnershipStartDate,
+    args.partnershipEndDate,
+  );
+  await ensureUniqueCompanyCode(admin.schoolId, code);
 
   return prisma.company.create({
     data: {
       schoolId: admin.schoolId,
+      code,
       name: args.name.trim(),
+      legalName: normalizeOptionalPklText(args.legalName),
       industrySector: args.industrySector?.trim() || null,
       address: args.address.trim(),
+      phone: normalizeOptionalPklText(args.phone),
+      email: normalizeOptionalPklText(args.email),
+      website: normalizeOptionalPklText(args.website),
       picName: args.picName?.trim() || null,
       picPhone: args.picPhone?.trim() || null,
       latitude: args.latitude ?? null,
       longitude: args.longitude ?? null,
       radiusMeters: args.radiusMeters,
       maxQuota: args.maxQuota,
+      partnershipStatus: args.partnershipStatus,
+      partnershipStartDate,
+      partnershipEndDate,
+      mouNumber: normalizeOptionalPklText(args.mouNumber),
+      notes: normalizeOptionalPklText(args.notes),
+      isActive: args.isActive,
     },
   });
 };
@@ -90,18 +165,36 @@ export const updateCompany = async (rawArgs: unknown, context: { user?: User }) 
   });
   if (!existing) throw new HttpError(404, "Data perusahaan tidak ditemukan.");
 
+  const code = normalizePklCode(args.code);
+  const { partnershipStartDate, partnershipEndDate } = parseCompanyPartnershipDates(
+    args.partnershipStartDate,
+    args.partnershipEndDate,
+  );
+  await ensureUniqueCompanyCode(admin.schoolId, code, args.id);
+
   return prisma.company.update({
     where: { id: args.id },
     data: {
+      code,
       name: args.name.trim(),
+      legalName: normalizeOptionalPklText(args.legalName),
       industrySector: args.industrySector?.trim() || null,
       address: args.address.trim(),
+      phone: normalizeOptionalPklText(args.phone),
+      email: normalizeOptionalPklText(args.email),
+      website: normalizeOptionalPklText(args.website),
       picName: args.picName?.trim() || null,
       picPhone: args.picPhone?.trim() || null,
       latitude: args.latitude ?? null,
       longitude: args.longitude ?? null,
       radiusMeters: args.radiusMeters,
       maxQuota: args.maxQuota,
+      partnershipStatus: args.partnershipStatus,
+      partnershipStartDate,
+      partnershipEndDate,
+      mouNumber: normalizeOptionalPklText(args.mouNumber),
+      notes: normalizeOptionalPklText(args.notes),
+      isActive: args.isActive,
     },
   });
 };
@@ -116,14 +209,22 @@ export const deleteCompany = async (rawArgs: unknown, context: { user?: User }) 
 
   const company = await prisma.company.findFirst({
     where: { id, schoolId: admin.schoolId },
-    include: { _count: { select: { placements: true } } },
+    include: {
+      _count: {
+        select: { placements: true, mentors: true, pklCapacities: true },
+      },
+    },
   });
   if (!company) throw new HttpError(404, "Data perusahaan tidak ditemukan.");
 
-  if (company._count.placements > 0) {
+  if (
+    company._count.placements > 0 ||
+    company._count.mentors > 0 ||
+    company._count.pklCapacities > 0
+  ) {
     throw new HttpError(
       400,
-      `Tidak dapat menghapus DUDI ini karena memiliki ${company._count.placements} riwayat penempatan siswa.`
+      "Mitra DUDI tidak dapat dihapus karena sudah memiliki histori penempatan, pembimbing DUDI, atau konfigurasi kapasitas. Nonaktifkan mitra agar histori tetap terjaga.",
     );
   }
 

@@ -219,40 +219,41 @@ model User {
   classRoom       ClassRoom?  @relation("StudentClass", fields: [classRoomId], references: [id])
   homeroomClasses ClassRoom[] @relation("HomeroomClasses")
 
-  studentPlacements Placement[] @relation("StudentPlacements")
-  teacherPlacements Placement[] @relation("TeacherPlacements")
-  mentorPlacements  Placement[] @relation("MentorPlacements")
+  studentPlacements Placement[]        @relation("StudentPlacements")
+  teacherPlacements Placement[]        @relation("TeacherPlacements")
+  mentorPlacements  Placement[]        @relation("MentorPlacements")
+  dudiMentorProfile DudiMentorProfile?
 
-  teacherCourses            LmsCourse[]             @relation("TeacherCourses")
+  teacherCourses            LmsCourse[]               @relation("TeacherCourses")
   attendanceRecords         LmsAttendanceRecord[]
   assignmentSubmissions     LmsSubmission[]
   assessmentResults         LmsAssessmentResult[]
   dutyReports               DutyTeacherReport[]
-  dailyAttendances          SchoolDailyAttendance[] @relation("DailyAttendanceStudent")
-  recordedDailyAttendances  SchoolDailyAttendance[] @relation("DailyAttendanceRecorder")
-  followUpSubjectCases      SchoolFollowUpCase[]    @relation("FollowUpSubjectStudent")
-  followUpAssignedCases     SchoolFollowUpCase[]    @relation("FollowUpAssignee")
-  followUpCreatedCases      SchoolFollowUpCase[]    @relation("FollowUpCreator")
-  followUpResolvedCases     SchoolFollowUpCase[]    @relation("FollowUpResolver")
-  followUpEvents            SchoolFollowUpEvent[]   @relation("FollowUpEventActor")
-  facilityResponsibilities  FacilityRoom[]          @relation("FacilityResponsible")
-  assetResponsibilities     AssetItem[]             @relation("AssetResponsible")
-  reportedAssetMaintenances AssetMaintenance[]      @relation("MaintenanceReporter")
-  assignedAssetMaintenances AssetMaintenance[]      @relation("MaintenanceAssignee")
-  assetMovements            AssetMovement[]         @relation("AssetMovementActor")
-  studentViolations         StudentViolation[]      @relation("ViolationStudent")
-  reportedStudentViolations StudentViolation[]      @relation("ViolationReporter")
-  handledStudentViolations  StudentViolation[]      @relation("ViolationHandler")
-  studentAchievements       StudentAchievement[]    @relation("AchievementStudent")
-  recordedAchievements      StudentAchievement[]    @relation("AchievementRecorder")
-  studentCoachings          StudentCoaching[]       @relation("CoachingStudent")
-  recordedStudentCoachings  StudentCoaching[]       @relation("CoachingRecorder")
-  assignedStudentCoachings  StudentCoaching[]       @relation("CoachingAssignee")
-  studentPermits            StudentPermit[]         @relation("PermitStudent")
-  recordedStudentPermits    StudentPermit[]         @relation("PermitRecorder")
-  approvedStudentPermits    StudentPermit[]         @relation("PermitApprover")
-  studentAffairsEvents      StudentAffairsEvent[]   @relation("AffairsEventStudent")
-  actedStudentAffairsEvents StudentAffairsEvent[]   @relation("AffairsEventActor")
+  dailyAttendances          SchoolDailyAttendance[]   @relation("DailyAttendanceStudent")
+  recordedDailyAttendances  SchoolDailyAttendance[]   @relation("DailyAttendanceRecorder")
+  followUpSubjectCases      SchoolFollowUpCase[]      @relation("FollowUpSubjectStudent")
+  followUpAssignedCases     SchoolFollowUpCase[]      @relation("FollowUpAssignee")
+  followUpCreatedCases      SchoolFollowUpCase[]      @relation("FollowUpCreator")
+  followUpResolvedCases     SchoolFollowUpCase[]      @relation("FollowUpResolver")
+  followUpEvents            SchoolFollowUpEvent[]     @relation("FollowUpEventActor")
+  facilityResponsibilities  FacilityRoom[]            @relation("FacilityResponsible")
+  assetResponsibilities     AssetItem[]               @relation("AssetResponsible")
+  reportedAssetMaintenances AssetMaintenance[]        @relation("MaintenanceReporter")
+  assignedAssetMaintenances AssetMaintenance[]        @relation("MaintenanceAssignee")
+  assetMovements            AssetMovement[]           @relation("AssetMovementActor")
+  studentViolations         StudentViolation[]        @relation("ViolationStudent")
+  reportedStudentViolations StudentViolation[]        @relation("ViolationReporter")
+  handledStudentViolations  StudentViolation[]        @relation("ViolationHandler")
+  studentAchievements       StudentAchievement[]      @relation("AchievementStudent")
+  recordedAchievements      StudentAchievement[]      @relation("AchievementRecorder")
+  studentCoachings          StudentCoaching[]         @relation("CoachingStudent")
+  recordedStudentCoachings  StudentCoaching[]         @relation("CoachingRecorder")
+  assignedStudentCoachings  StudentCoaching[]         @relation("CoachingAssignee")
+  studentPermits            StudentPermit[]           @relation("PermitStudent")
+  recordedStudentPermits    StudentPermit[]           @relation("PermitRecorder")
+  approvedStudentPermits    StudentPermit[]           @relation("PermitApprover")
+  studentAffairsEvents      StudentAffairsEvent[]     @relation("AffairsEventStudent")
+  actedStudentAffairsEvents StudentAffairsEvent[]     @relation("AffairsEventActor")
   notificationStates        SchoolNotificationState[]
 
   paymentProcessorUserId        String?   @unique
@@ -297,6 +298,10 @@ model School {
   academicYears        AcademicYear[]
   companies            Company[]
   placements           Placement[]
+  pklPeriods           PklPeriod[]
+  companyDepartments   CompanyDepartment[]
+  pklCompanyCapacities PklCompanyCapacity[]
+  dudiMentorProfiles   DudiMentorProfile[]
   lmsCourses           LmsCourse[]
   dutyReports          DutyTeacherReport[]
   dailyAttendances     SchoolDailyAttendance[]
@@ -329,6 +334,8 @@ model Department {
   name             String
   classes          ClassRoom[]
   staffAssignments SchoolStaffAssignment[]
+  companyLinks     CompanyDepartment[]
+  pklCapacities    PklCompanyCapacity[]
 
   @@unique([schoolId, code])
 }
@@ -344,6 +351,7 @@ model AcademicYear {
   courses          LmsCourse[]
   dailyAttendances SchoolDailyAttendance[]
   staffAssignments SchoolStaffAssignment[]
+  pklPeriods       PklPeriod[]
 
   @@unique([schoolId, yearName, semester])
   @@index([schoolId, isActive])
@@ -397,9 +405,9 @@ model SchoolDailyAttendance {
 }
 
 model TeacherProfile {
-  id     String  @id @default(uuid())
-  userId String  @unique
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Core/legacy fields kept for compatibility with existing teacher workflows.
   nip    String?
@@ -736,15 +744,15 @@ model StudentAffairsEvent {
 }
 
 model SchoolNotificationState {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   schoolId        String
-  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   notificationKey String
   readAt          DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([schoolId, userId, notificationKey])
   @@index([schoolId, userId, readAt])
@@ -896,45 +904,144 @@ model StudentProfile {
 }
 
 model Company {
-  id             String      @id @default(uuid())
-  schoolId       String
-  school         School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  name           String
-  industrySector String?
-  address        String
-  picName        String?
-  picPhone       String?
-  latitude       Float?
-  longitude      Float?
-  radiusMeters   Int         @default(100)
-  maxQuota       Int         @default(5)
-  placements     Placement[]
+  id                   String               @id @default(uuid())
+  schoolId             String
+  school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  code                 String?
+  name                 String
+  legalName            String?
+  industrySector       String?
+  address              String
+  phone                String?
+  email                String?
+  website              String?
+  picName              String?
+  picPhone             String?
+  latitude             Float?
+  longitude            Float?
+  radiusMeters         Int                  @default(100)
+  maxQuota             Int                  @default(5)
+  partnershipStatus    String               @default("ACTIVE")
+  partnershipStartDate DateTime?
+  partnershipEndDate   DateTime?
+  mouNumber            String?
+  notes                String?
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  placements           Placement[]
+  departmentLinks      CompanyDepartment[]
+  pklCapacities        PklCompanyCapacity[]
+  mentors              DudiMentorProfile[]
 
+  @@unique([schoolId, code])
   @@index([schoolId, name])
+  @@index([schoolId, isActive, partnershipStatus])
+}
+
+model PklPeriod {
+  id             String               @id @default(uuid())
+  schoolId       String
+  school         School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYearId String?
+  academicYear   AcademicYear?        @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  name           String
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean              @default(true)
+  notes          String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  placements     Placement[]
+  capacities     PklCompanyCapacity[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId, isActive, startDate])
+  @@index([academicYearId])
+}
+
+model CompanyDepartment {
+  id           String     @id @default(uuid())
+  schoolId     String
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  companyId    String
+  company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  isActive     Boolean    @default(true)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([companyId, departmentId])
+  @@index([schoolId, departmentId, isActive])
+}
+
+model PklCompanyCapacity {
+  id           String     @id @default(uuid())
+  schoolId     String
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  periodId     String
+  period       PklPeriod  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  companyId    String
+  company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  quota        Int
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([periodId, companyId, departmentId])
+  @@index([schoolId, periodId])
+  @@index([schoolId, companyId, departmentId])
+}
+
+model DudiMentorProfile {
+  id        String   @id @default(uuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  position  String?
+  phone     String?
+  email     String?
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId, companyId, isActive])
 }
 
 model Placement {
-  id                  String   @id @default(uuid())
+  id                  String     @id @default(uuid())
   schoolId            String
-  school              School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school              School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   studentId           String
-  student             User     @relation("StudentPlacements", fields: [studentId], references: [id], onDelete: Cascade)
+  student             User       @relation("StudentPlacements", fields: [studentId], references: [id], onDelete: Cascade)
   companyId           String
-  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company             Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  pklPeriodId         String?
+  pklPeriod           PklPeriod? @relation(fields: [pklPeriodId], references: [id], onDelete: SetNull)
   teacherSupervisorId String?
-  teacherSupervisor   User?    @relation("TeacherPlacements", fields: [teacherSupervisorId], references: [id])
+  teacherSupervisor   User?      @relation("TeacherPlacements", fields: [teacherSupervisorId], references: [id])
   dudiMentorId        String?
-  dudiMentor          User?    @relation("MentorPlacements", fields: [dudiMentorId], references: [id])
+  dudiMentor          User?      @relation("MentorPlacements", fields: [dudiMentorId], references: [id])
   startDate           DateTime
   endDate             DateTime
-  status              String   @default("ACTIVE") // "ACTIVE", "COMPLETED", "CANCELED"
+  status              String     @default("ACTIVE") // "ACTIVE", "COMPLETED", "CANCELED"
 
   attendances AttendanceLog[]
   journals    DailyJournal[]
 
   @@index([schoolId, studentId, status])
   @@index([schoolId, companyId, status])
+  @@index([schoolId, pklPeriodId, status])
   @@index([schoolId, teacherSupervisorId])
+  @@index([schoolId, dudiMentorId])
 }
 
 model AttendanceLog {
