@@ -189,12 +189,14 @@ Do not bypass service-control guards with force kills or ad-hoc production proce
 
 For frontend-only changes, prefer the bounded static-only preflight/deploy path.
 
-## 9. Latest PTK rollout verification
+## 9. Latest production rollout verification — PKL Foundation Gen2
 
-Complete PTK editor quality gate:
+PKL Foundation Generasi Kedua quality gate:
 
-- targeted tests: **9/9 PASS**;
-- full Vitest: **136/136 PASS** across 23 files;
+- Foundation policy tests: **5/5 PASS**;
+- full Vitest: **141/141 PASS** across **24 files**;
+- Prisma validation: PASS;
+- migration dry-run on restored production clone: PASS;
 - Wasp production build: PASS;
 - generated server bundle: PASS;
 - Vite SSR/client: PASS;
@@ -202,10 +204,12 @@ Complete PTK editor quality gate:
 - production deploy: PASS;
 - repeat deploy: idempotent PASS;
 - `/school`: HTTP 200;
-- `/school/teachers`: HTTP 200;
-- PTK edit route: HTTP 200;
-- unauthenticated PTK update action: HTTP 401;
-- final baseline after rollout: **1,539 students / 103 PTK / 0 PTK Auth**.
+- `/school/pkl/foundation`: HTTP 200;
+- `/school/pkl/companies`: HTTP 200;
+- unauthenticated foundation query/action: HTTP 401;
+- final baseline: **1,539 students / 103 PTK / zero PKL foundation & placement rows**.
+
+The earlier PTK editor release `03655f4-ptk-editor` remains an important historical/known-stable release, but is no longer the current application release.
 
 ## 10. Backups that matter
 
@@ -215,6 +219,8 @@ Complete PTK editor quality gate:
   `/home/ubuntu/backups/SaaS_Satu/pre-smkn12-profile-ptk-sarpras-20260915.dump`
 - pre Dapodik PTK detail migration/backfill:
   `/home/ubuntu/backups/SaaS_Satu/pre-ptk-detail-dapodik-20260916.dump`
+- pre PKL Foundation Gen2 migration:
+  `/home/ubuntu/backups/SaaS_Satu/pre-pkl-foundation-gen2-20260920.dump`
 
 Do not delete these as routine cleanup.
 
@@ -228,7 +234,8 @@ For a new agent:
 4. [RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md);
 5. [RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md);
 6. [RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md](./RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md);
-7. area-specific docs such as `UI_UX_APPLE_HIG.md`, `ARCHITECTURE.md`, `MODULES_GUIDE.md`, and `DEMO_DATA.md`.
+7. [RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md) for current PKL continuation;
+8. area-specific docs such as `UI_UX_APPLE_HIG.md`, `ARCHITECTURE.md`, `MODULES_GUIDE.md`, and `DEMO_DATA.md`.
 
 ## 12. Durable AI memory
 
@@ -242,9 +249,9 @@ Global manifest:
 
 `/home/ubuntu/.mso/MEMORY_ARCHITECTURE.md`
 
-Initial verified snapshot:
+Latest verified snapshot after PKL Foundation Gen2:
 
-`/home/ubuntu/backups/MSO/global-agent-memory-20260916T1656WIB.tar.gz`
+`/home/ubuntu/backups/MSO/global-agent-memory-20260920T0731WIB.tar.gz`
 
 Repo-local memory under `.agent/memory/` still exists, but it is **operational Project/RASMIC memory**, not the sole permanent store. It is appropriate for tasks, debug/test evidence, failures, and local decisions.
 

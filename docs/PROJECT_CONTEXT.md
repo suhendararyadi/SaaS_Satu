@@ -36,7 +36,7 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - PKL Foundation Generasi Kedua: `45a11a5` — final app commit for Gen2 foundation compatibility
 - Current production application commit: `45a11a5` — PKL Foundation Generasi Kedua
 - Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
-- AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 16 September 2026 at 16:30 WIB.
+- AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 20 September 2026.
 - Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md). Critical confirmed context is now independent of the project worktree.
 - `.agent/` adalah operational Project/RASMIC memory yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status, tetapi jangan mengandalkannya sebagai satu-satunya memory permanen.
 
@@ -56,9 +56,9 @@ Manifest OS-global:
 
 `/home/ubuntu/.mso/MEMORY_ARCHITECTURE.md`
 
-Snapshot awal:
+Latest verified snapshot:
 
-`/home/ubuntu/backups/MSO/global-agent-memory-20260916T1656WIB.tar.gz`
+`/home/ubuntu/backups/MSO/global-agent-memory-20260920T0731WIB.tar.gz`
 
 Source of truth dokumentasi: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md).
 
@@ -328,7 +328,7 @@ Sheet agregat Peserta Didik tidak dipakai untuk overwrite database detail. Sheet
 - detail release foundation: `e212f56-ptk-detail`;
 - edit route lengkap: `/school/teachers/:id/edit`;
 - edit action hanya untuk admin dan tidak mengubah Wakasek/wali kelas/struktur organisasi;
-- current production release: `03655f4-ptk-editor`.
+- historical PTK editor release: `03655f4-ptk-editor`; current application release is PKL Foundation Gen2 `45a11a5-pkl-foundation-gen2`.
 
 Detail lengkap:
 - [`RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md`](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md)
