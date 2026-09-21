@@ -1,5 +1,11 @@
+import { randomBytes } from "node:crypto";
 import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
+import {
+  createProviderId,
+  findAuthIdentity,
+  sanitizeAndSerializeProviderData,
+} from "wasp/auth/utils";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import {
@@ -7,6 +13,7 @@ import {
   requireSchoolDirectoryAccess,
 } from "./authGuards";
 import { resolveStudentAffairsAccess } from "./studentAffairsAccess";
+import { buildStudentTemporaryLoginEmail } from "./studentLoginPolicy";
 
 const optionalText = z.string().trim().optional().nullable();
 const optionalEmail = z
@@ -669,4 +676,122 @@ export const updateStudent = async (
   });
 
   return { id: target.id };
+};
+
+const provisionStudentLoginSchema = z.object({
+  studentId: z.string().uuid("ID siswa tidak valid"),
+  confirm: z.literal("PROVISION_TEMPORARY_LOGIN"),
+});
+
+export const provisionStudentLogin = async (
+  rawArgs: unknown,
+  context: { user?: User },
+) => {
+  const admin = requireSchoolAdmin(context);
+  const args = ensureArgsSchemaOrThrowHttpError(provisionStudentLoginSchema, rawArgs);
+
+  const student = await prisma.user.findFirst({
+    where: {
+      id: args.studentId,
+      schoolId: admin.schoolId,
+      role: "STUDENT",
+    },
+    include: {
+      auth: true,
+      studentProfile: {
+        select: { nis: true, nisn: true },
+      },
+    },
+  });
+
+  if (!student) {
+    throw new HttpError(404, "Siswa tidak ditemukan di unit sekolah ini.");
+  }
+  if (student.auth) {
+    throw new HttpError(409, "Siswa ini sudah memiliki akun login.");
+  }
+
+  let loginEmail = buildStudentTemporaryLoginEmail({
+    id: student.id,
+    username: student.username,
+    nis: student.studentProfile?.nis,
+    nisn: student.studentProfile?.nisn,
+  });
+  let providerId = createProviderId("email", loginEmail);
+
+  if (await findAuthIdentity(providerId)) {
+    loginEmail = buildStudentTemporaryLoginEmail({
+      id: student.id,
+      username: student.username,
+      nis: student.studentProfile?.nis,
+      nisn: student.studentProfile?.nisn,
+      forceIdSuffix: true,
+    });
+    providerId = createProviderId("email", loginEmail);
+    if (await findAuthIdentity(providerId)) {
+      throw new HttpError(409, "Identitas login siswa sudah digunakan. Hubungi administrator.");
+    }
+  }
+
+  const temporaryPassword =
+    "TmpPKL-" + randomBytes(12).toString("base64url") + "!7a";
+
+  const providerData = await sanitizeAndSerializeProviderData<"email">({
+    hashedPassword: temporaryPassword,
+    isEmailVerified: true,
+    emailVerificationSentAt: null,
+    passwordResetSentAt: null,
+  });
+
+  await prisma.auth.create({
+    data: {
+      userId: student.id,
+      identities: {
+        create: {
+          providerName: providerId.providerName,
+          providerUserId: providerId.providerUserId,
+          providerData,
+        },
+      },
+    },
+  });
+
+  return {
+    studentId: student.id,
+    name: student.name,
+    loginEmail,
+    temporaryPassword,
+  };
+};
+
+const revokeStudentLoginSchema = z.object({
+  studentId: z.string().uuid("ID siswa tidak valid"),
+  confirm: z.literal("REVOKE_STUDENT_LOGIN"),
+});
+
+export const revokeStudentLogin = async (
+  rawArgs: unknown,
+  context: { user?: User },
+) => {
+  const admin = requireSchoolAdmin(context);
+  const args = ensureArgsSchemaOrThrowHttpError(revokeStudentLoginSchema, rawArgs);
+
+  const student = await prisma.user.findFirst({
+    where: {
+      id: args.studentId,
+      schoolId: admin.schoolId,
+      role: "STUDENT",
+    },
+    include: { auth: true },
+  });
+
+  if (!student) {
+    throw new HttpError(404, "Siswa tidak ditemukan di unit sekolah ini.");
+  }
+  if (!student.auth) {
+    return { studentId: student.id, revoked: false };
+  }
+
+  await prisma.auth.delete({ where: { id: student.auth.id } });
+  return { studentId: student.id, revoked: true };
 };

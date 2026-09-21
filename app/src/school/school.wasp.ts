@@ -58,6 +58,8 @@ import {
   getSchoolStudentDetail,
   createStudent,
   updateStudent,
+  provisionStudentLogin,
+  revokeStudentLogin,
 } from "./studentOperations" with { type: "ref" };
 import { getSchoolTeacherDetail, updateSchoolTeacherProfile } from "./teacherOperations" with { type: "ref" };
 import {
@@ -344,6 +346,8 @@ export const schoolSpec: Spec = [
   action(deleteTeacher, { entities: ["User", "TeacherProfile", "WakasekAssignment", "ClassRoom", "LmsCourse", "Placement"] }),
   action(createStudent, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
   action(updateStudent, { entities: ["User", "StudentProfile", "ClassRoom"] }),
+  action(provisionStudentLogin, { entities: ["User", "StudentProfile"] }),
+  action(revokeStudentLogin, { entities: ["User"] }),
   action(deleteStudent, { entities: ["User", "StudentProfile", "Placement", "StudentViolation", "StudentAchievement", "StudentCoaching", "StudentPermit"] }),
   action(saveDailySchoolAttendance, { entities: ["SchoolDailyAttendance", "AcademicYear", "ClassRoom", "User", "StudentProfile"] }),
   action(importStudentsFromCsv, { entities: ["School", "User", "StudentProfile", "ClassRoom"] }),
