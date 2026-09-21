@@ -16,7 +16,9 @@ import {
   evaluatePlacementReadiness,
   getScheduleStatus,
   isWorkingDay,
+  minutesOfDay,
   normalizeTime,
+  normalizeWorkingDays,
   normalizedImportValue,
   PKL_ATTENDANCE_STATUSES,
   PKL_IMPORT_KINDS,
@@ -197,6 +199,54 @@ async function getCapacityState(args: {
     used,
     remaining: capacity ? Math.max(0, capacity.quota - used) : null,
   };
+}
+
+async function lockCapacityState(
+  tx: any,
+  args: {
+    schoolId: string;
+    periodId: string;
+    companyId: string;
+    departmentId: string;
+    excludePlacementId?: string;
+  },
+) {
+  const capacity = await tx.pklCompanyCapacity.findFirst({
+    where: {
+      schoolId: args.schoolId,
+      periodId: args.periodId,
+      companyId: args.companyId,
+      departmentId: args.departmentId,
+    },
+  });
+  if (!capacity) return { capacity: null, used: 0, remaining: null };
+
+  // Serialize all writers competing for the same Period × DUDI × Department quota.
+  await tx.$queryRawUnsafe(
+    'SELECT "id" FROM "PklCompanyCapacity" WHERE "id" = $1 FOR UPDATE',
+    capacity.id,
+  );
+  const used = await tx.placement.count({
+    where: {
+      schoolId: args.schoolId,
+      pklPeriodId: args.periodId,
+      companyId: args.companyId,
+      departmentId: args.departmentId,
+      status: openPlacementWhere(),
+      ...(args.excludePlacementId ? { NOT: { id: args.excludePlacementId } } : {}),
+    },
+  });
+  return {
+    capacity,
+    used,
+    remaining: Math.max(0, capacity.quota - used),
+  };
+}
+
+function isDateOnlyWithinPlacement(dateOnly: string, startDate: Date, endDate: Date) {
+  const startOnly = jakartaParts(startDate).dateOnly;
+  const endOnly = jakartaParts(endDate).dateOnly;
+  return dateOnly >= startOnly && dateOnly <= endOnly;
 }
 
 async function computePlacementReadiness(schoolId: string, placementId: string) {
@@ -487,6 +537,45 @@ export const createPlacementsBulk = async (rawArgs: unknown, context: { user?: U
   }
 
   return prisma.$transaction(async (tx) => {
+    // Lock student rows in deterministic order so concurrent plotting cannot
+    // create two open placements for the same student in different DUDI.
+    for (const studentId of [...uniqueStudentIds].sort()) {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "User" WHERE "id" = $1 FOR UPDATE',
+        studentId,
+      );
+    }
+
+    const existingNow = await tx.placement.findMany({
+      where: {
+        schoolId: admin.schoolId,
+        studentId: { in: uniqueStudentIds },
+        status: openPlacementWhere(),
+      },
+      select: { studentId: true },
+    });
+    if (existingNow.length) {
+      throw new HttpError(409, "Penempatan berubah saat proses berlangsung. Muat ulang workspace dan coba lagi.");
+    }
+
+    for (const [departmentId, requested] of [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const state = await lockCapacityState(tx, {
+        schoolId: admin.schoolId,
+        periodId: period.id,
+        companyId: company.id,
+        departmentId,
+      });
+      if (!state.capacity) {
+        throw new HttpError(400, "Kapasitas DUDI untuk periode dan konsentrasi siswa belum dikonfigurasi.");
+      }
+      if ((state.remaining || 0) < requested) {
+        throw new HttpError(
+          409,
+          `Kuota berubah saat proses berlangsung. Dibutuhkan ${requested}, tersisa ${state.remaining || 0}.`,
+        );
+      }
+    }
+
     const created: any[] = [];
     for (const student of students) {
       const placement = await tx.placement.create({
@@ -583,8 +672,21 @@ export const updatePlacementGen2 = async (rawArgs: unknown, context: { user?: Us
   });
   if (!current) throw new HttpError(404, "Penempatan tidak ditemukan.");
 
-  await ensureTeacher(admin.schoolId, args.teacherSupervisorId);
-  await ensureMentor(admin.schoolId, current.companyId, args.dudiMentorId);
+  const nextTeacherId = args.teacherSupervisorId !== undefined
+    ? args.teacherSupervisorId
+    : current.teacherSupervisorId;
+  const nextMentorId = args.dudiMentorId !== undefined
+    ? args.dudiMentorId
+    : current.dudiMentorId;
+  if (current.status === "ACTIVE" && (!nextTeacherId || !nextMentorId)) {
+    throw new HttpError(
+      400,
+      "Penempatan ACTIVE wajib tetap memiliki Guru Pembimbing dan Pembimbing DUDI.",
+    );
+  }
+
+  await ensureTeacher(admin.schoolId, nextTeacherId);
+  await ensureMentor(admin.schoolId, current.companyId, nextMentorId);
 
   const startDate = args.startDate ? parseDate(args.startDate, "Tanggal mulai") : current.startDate;
   const endDate = args.endDate ? parseDate(args.endDate, "Tanggal selesai") : current.endDate;
@@ -636,6 +738,9 @@ export const transferPlacement = async (rawArgs: unknown, context: { user?: User
   });
   if (!current) throw new HttpError(404, "Penempatan terbuka tidak ditemukan.");
   if (!current.pklPeriodId) throw new HttpError(400, "Penempatan belum memiliki Periode PKL.");
+  if (current.status === "ACTIVE" && !args.targetMentorId) {
+    throw new HttpError(400, "Perpindahan DUDI untuk placement ACTIVE wajib menetapkan Pembimbing DUDI tujuan.");
+  }
   const departmentId = current.departmentId || current.student.classRoom?.departmentId;
   if (!departmentId) throw new HttpError(400, "Konsentrasi keahlian siswa belum tersedia.");
 
@@ -657,8 +762,37 @@ export const transferPlacement = async (rawArgs: unknown, context: { user?: User
   await ensureMentor(admin.schoolId, targetCompany.id, args.targetMentorId);
 
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRawUnsafe(
+      'SELECT "id" FROM "Placement" WHERE "id" = $1 FOR UPDATE',
+      current.id,
+    );
+    const freshCurrent = await tx.placement.findFirst({
+      where: {
+        id: current.id,
+        schoolId: admin.schoolId,
+        status: { in: ["PLANNED", "ACTIVE"] },
+      },
+    });
+    if (!freshCurrent || !freshCurrent.pklPeriodId) {
+      throw new HttpError(409, "Status penempatan berubah saat proses transfer. Muat ulang dan coba lagi.");
+    }
+    if (freshCurrent.status === "ACTIVE" && !args.targetMentorId) {
+      throw new HttpError(400, "Perpindahan DUDI untuk placement ACTIVE wajib menetapkan Pembimbing DUDI tujuan.");
+    }
+
+    const lockedCapacity = await lockCapacityState(tx, {
+      schoolId: admin.schoolId,
+      periodId: freshCurrent.pklPeriodId,
+      companyId: targetCompany.id,
+      departmentId,
+      excludePlacementId: freshCurrent.companyId === targetCompany.id ? freshCurrent.id : undefined,
+    });
+    if (!lockedCapacity.capacity || (lockedCapacity.remaining || 0) < 1) {
+      throw new HttpError(409, "Kuota mitra tujuan berubah atau sudah penuh. Muat ulang dan coba lagi.");
+    }
+
     const updated = await tx.placement.update({
-      where: { id: current.id },
+      where: { id: freshCurrent.id },
       data: {
         companyId: targetCompany.id,
         dudiMentorId: args.targetMentorId || null,
@@ -668,11 +802,11 @@ export const transferPlacement = async (rawArgs: unknown, context: { user?: User
     });
     await createPlacementEvent({
       schoolId: admin.schoolId,
-      placementId: current.id,
+      placementId: freshCurrent.id,
       eventType: "TRANSFERRED",
       actorId: admin.id,
       reason: args.reason,
-      before: placementSnapshot(current),
+      before: placementSnapshot(freshCurrent),
       after: placementSnapshot(updated),
     }, tx);
     return updated;
@@ -691,6 +825,12 @@ export const finalizePlacement = async (rawArgs: unknown, context: { user?: User
   const current = await prisma.placement.findFirst({ where: { id: args.id, schoolId: admin.schoolId } });
   if (!current) throw new HttpError(404, "Penempatan tidak ditemukan.");
   if (["COMPLETED", "CANCELED"].includes(current.status)) return current;
+  if (args.status === "COMPLETED" && current.status !== "ACTIVE") {
+    throw new HttpError(400, "Hanya penempatan ACTIVE yang dapat diselesaikan.");
+  }
+  if (args.status === "CANCELED" && !["PLANNED", "ACTIVE"].includes(current.status)) {
+    throw new HttpError(400, "Hanya penempatan terbuka yang dapat dibatalkan.");
+  }
   return prisma.$transaction(async (tx) => {
     const updated = await tx.placement.update({
       where: { id: current.id },
@@ -767,6 +907,11 @@ export const savePklWorkSchedule = async (rawArgs: unknown, context: { user?: Us
     getPeriodOrThrow(admin.schoolId, args.periodId),
     getCompanyForPlacement(admin.schoolId, args.companyId),
   ]);
+  const normalizedDays = normalizeWorkingDays(args.workingDays);
+  if (!normalizedDays.length) {
+    throw new HttpError(400, "Jadwal kerja harus memiliki minimal satu hari valid (0=Minggu sampai 6=Sabtu).");
+  }
+  const normalizedWorkingDays = normalizedDays.join(",");
   const times = {
     checkInStart: args.checkInStart ? normalizeTime(args.checkInStart) : null,
     lateAfter: args.lateAfter ? normalizeTime(args.lateAfter) : null,
@@ -777,19 +922,32 @@ export const savePklWorkSchedule = async (rawArgs: unknown, context: { user?: Us
     const original = (args as any)[key];
     if (original && !value) throw new HttpError(400, `Format waktu ${key} harus HH:mm.`);
   }
+  const checkInMinutes = minutesOfDay(times.checkInStart);
+  const lateMinutes = minutesOfDay(times.lateAfter);
+  const checkOutStartMinutes = minutesOfDay(times.checkOutStart);
+  const checkOutEndMinutes = minutesOfDay(times.checkOutEnd);
+  if (checkInMinutes != null && lateMinutes != null && lateMinutes < checkInMinutes) {
+    throw new HttpError(400, "Batas terlambat tidak boleh lebih awal daripada waktu mulai check-in.");
+  }
+  if (checkInMinutes != null && checkOutStartMinutes != null && checkOutStartMinutes <= checkInMinutes) {
+    throw new HttpError(400, "Waktu mulai check-out harus setelah waktu mulai check-in.");
+  }
+  if (checkOutStartMinutes != null && checkOutEndMinutes != null && checkOutEndMinutes < checkOutStartMinutes) {
+    throw new HttpError(400, "Waktu akhir check-out tidak boleh lebih awal daripada waktu mulai check-out.");
+  }
   return prisma.pklWorkSchedule.upsert({
     where: { periodId_companyId: { periodId: args.periodId, companyId: args.companyId } },
     create: {
       schoolId: admin.schoolId,
       periodId: args.periodId,
       companyId: args.companyId,
-      workingDays: args.workingDays,
+      workingDays: normalizedWorkingDays,
       ...times,
       isActive: args.isActive,
       notes: args.notes?.trim() || null,
     },
     update: {
-      workingDays: args.workingDays,
+      workingDays: normalizedWorkingDays,
       ...times,
       isActive: args.isActive,
       notes: args.notes?.trim() || null,
@@ -811,7 +969,10 @@ export const deletePklWorkSchedule = async (rawArgs: unknown, context: { user?: 
 
 const PKL_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
-export const getPklEvidenceUploadStatus = async () => ({ enabled: isFileUploadConfigured() });
+export const getPklEvidenceUploadStatus = async (_args: unknown, context: { user?: User }) => {
+  requirePklAccess(context);
+  return { enabled: isFileUploadConfigured() };
+};
 
 const evidenceUploadSchema = z.object({
   fileName: z.string().trim().min(1).max(255),
@@ -931,6 +1092,21 @@ export const recordAttendanceGen2 = async (rawArgs: unknown, context: { user?: U
   });
   if (existing) throw new HttpError(409, `Presensi ${args.type} hari ini sudah tercatat.`);
 
+  const dayRecords = await prisma.attendanceLog.findMany({
+    where: { placementId: placement.id, dateOnly: local.dateOnly },
+    select: { type: true, status: true },
+  });
+  const dayException = dayRecords.find((row) => row.type === "EXCEPTION");
+  if (dayException) {
+    throw new HttpError(
+      409,
+      `Presensi tidak dapat dicatat karena hari ini sudah berstatus ${dayException.status}.`,
+    );
+  }
+  if (args.type === "CHECK_OUT" && !dayRecords.some((row) => row.type === "CHECK_IN")) {
+    throw new HttpError(400, "Check-out hanya dapat dilakukan setelah check-in tercatat.");
+  }
+
   let distanceMeters: number | null = null;
   let geofenceStatus: string = "UNVERIFIED";
   if (
@@ -990,6 +1166,20 @@ export const recordAttendanceException = async (rawArgs: unknown, context: { use
     throw new HttpError(400, "Status izin/sakit hanya dapat dikirim selama penempatan aktif.");
   }
   const { dateOnly } = jakartaParts(now);
+  const presence = await prisma.attendanceLog.findFirst({
+    where: {
+      placementId: placement.id,
+      dateOnly,
+      type: { in: ["CHECK_IN", "CHECK_OUT"] },
+    },
+    select: { id: true, type: true, status: true },
+  });
+  if (presence) {
+    throw new HttpError(
+      409,
+      "Izin/Sakit tidak dapat dicatat karena presensi hadir hari ini sudah tersedia. Hubungi admin untuk koreksi jika diperlukan.",
+    );
+  }
   return prisma.attendanceLog.upsert({
     where: { placementId_dateOnly_type: { placementId: placement.id, dateOnly, type: "EXCEPTION" } },
     create: {
@@ -1027,6 +1217,23 @@ export const setAttendanceDayStatus = async (rawArgs: unknown, context: { user?:
     where: { id: args.placementId, schoolId: admin.schoolId },
   });
   if (!placement) throw new HttpError(404, "Penempatan tidak ditemukan.");
+  if (!isDateOnlyWithinPlacement(args.dateOnly, placement.startDate, placement.endDate)) {
+    throw new HttpError(400, "Tanggal status presensi harus berada dalam rentang penempatan PKL.");
+  }
+  const existingPresence = await prisma.attendanceLog.findFirst({
+    where: {
+      placementId: placement.id,
+      dateOnly: args.dateOnly,
+      type: { in: ["CHECK_IN", "CHECK_OUT"] },
+    },
+    select: { id: true },
+  });
+  if (existingPresence) {
+    throw new HttpError(
+      409,
+      "Status harian tidak dapat ditambahkan karena presensi hadir sudah tercatat. Gunakan Koreksi Presensi pada record yang ada.",
+    );
+  }
   const now = new Date();
   return prisma.attendanceLog.upsert({
     where: { placementId_dateOnly_type: { placementId: placement.id, dateOnly: args.dateOnly, type: "EXCEPTION" } },
@@ -1097,9 +1304,9 @@ const saveJournalSchema = z.object({
   submit: z.boolean().default(false),
 });
 
-async function snapshotJournal(journal: any, actorId: string, reason?: string) {
+async function snapshotJournal(journal: any, actorId: string, reason?: string, tx: any = prisma) {
   const revisionNo = (journal.revisionCount || 0) + 1;
-  return prisma.dailyJournalRevision.create({
+  return tx.dailyJournalRevision.create({
     data: {
       journalId: journal.id,
       revisionNo,
@@ -1141,53 +1348,69 @@ export const saveDailyJournalGen2 = async (rawArgs: unknown, context: { user?: U
     throw new HttpError(400, "Tanggal jurnal harus berada dalam rentang penempatan PKL.");
   }
 
-  const existing = await prisma.dailyJournal.findFirst({
-    where: { placementId: placement.id, dateOnly },
-  });
-  if (existing && !["DRAFT", "REVISION"].includes(existing.status)) {
-    throw new HttpError(409, "Jurnal hari tersebut sudah dikirim dan belum dapat diedit.");
-  }
+  return prisma.$transaction(async (tx) => {
+    // One placement row lock serializes same-day journal writes and prevents
+    // concurrent creates from producing duplicate daily journals.
+    await tx.$queryRawUnsafe(
+      'SELECT "id" FROM "Placement" WHERE "id" = $1 FOR UPDATE',
+      placement.id,
+    );
 
-  const submittedAt = args.submit ? new Date() : null;
-  if (!existing) {
-    return prisma.dailyJournal.create({
+    const existing = await tx.dailyJournal.findFirst({
+      where: { placementId: placement.id, dateOnly },
+    });
+    if (existing && !["DRAFT", "REVISION"].includes(existing.status)) {
+      throw new HttpError(409, "Jurnal hari tersebut sudah dikirim dan belum dapat diedit.");
+    }
+
+    const submittedAt = args.submit ? new Date() : null;
+    if (!existing) {
+      return tx.dailyJournal.create({
+        data: {
+          placementId: placement.id,
+          date: journalDate,
+          dateOnly,
+          activityDescription: args.activityDescription,
+          obstacleDescription: args.obstacleDescription?.trim() || null,
+          competencies: args.competencies?.trim() || null,
+          reflection: args.reflection?.trim() || null,
+          evidenceUrl: evidenceKey,
+          status: args.submit ? "SUBMITTED" : "DRAFT",
+          submittedAt,
+          teacherReviewStatus: placement.teacherSupervisorId && args.submit ? "PENDING" : null,
+          mentorReviewStatus: placement.dudiMentorId && args.submit ? "PENDING" : null,
+        },
+      });
+    }
+
+    const wasRevision = existing.status === "REVISION";
+    if (wasRevision) {
+      await snapshotJournal(
+        existing,
+        student.id,
+        "Siswa memperbarui jurnal setelah permintaan revisi.",
+        tx,
+      );
+    }
+    return tx.dailyJournal.update({
+      where: { id: existing.id },
       data: {
-        placementId: placement.id,
-        date: journalDate,
-        dateOnly,
         activityDescription: args.activityDescription,
         obstacleDescription: args.obstacleDescription?.trim() || null,
         competencies: args.competencies?.trim() || null,
         reflection: args.reflection?.trim() || null,
         evidenceUrl: evidenceKey,
         status: args.submit ? "SUBMITTED" : "DRAFT",
-        submittedAt,
-        teacherReviewStatus: placement.teacherSupervisorId && args.submit ? "PENDING" : null,
-        mentorReviewStatus: placement.dudiMentorId && args.submit ? "PENDING" : null,
+        submittedAt: args.submit ? new Date() : existing.submittedAt,
+        revisionCount: wasRevision ? { increment: 1 } : undefined,
+        teacherReviewStatus: placement.teacherSupervisorId && args.submit ? "PENDING" : existing.teacherReviewStatus,
+        mentorReviewStatus: placement.dudiMentorId && args.submit ? "PENDING" : existing.mentorReviewStatus,
+        teacherFeedback: wasRevision && args.submit ? null : undefined,
+        mentorFeedback: wasRevision && args.submit ? null : undefined,
+        teacherScore: wasRevision && args.submit ? null : undefined,
+        mentorScore: wasRevision && args.submit ? null : undefined,
       },
     });
-  }
-
-  const wasRevision = existing.status === "REVISION";
-  if (wasRevision) await snapshotJournal(existing, student.id, "Siswa memperbarui jurnal setelah permintaan revisi.");
-  return prisma.dailyJournal.update({
-    where: { id: existing.id },
-    data: {
-      activityDescription: args.activityDescription,
-      obstacleDescription: args.obstacleDescription?.trim() || null,
-      competencies: args.competencies?.trim() || null,
-      reflection: args.reflection?.trim() || null,
-      evidenceUrl: evidenceKey,
-      status: args.submit ? "SUBMITTED" : "DRAFT",
-      submittedAt: args.submit ? new Date() : existing.submittedAt,
-      revisionCount: wasRevision ? { increment: 1 } : undefined,
-      teacherReviewStatus: placement.teacherSupervisorId && args.submit ? "PENDING" : existing.teacherReviewStatus,
-      mentorReviewStatus: placement.dudiMentorId && args.submit ? "PENDING" : existing.mentorReviewStatus,
-      teacherFeedback: wasRevision && args.submit ? null : undefined,
-      mentorFeedback: wasRevision && args.submit ? null : undefined,
-      teacherScore: wasRevision && args.submit ? null : undefined,
-      mentorScore: wasRevision && args.submit ? null : undefined,
-    },
   });
 };
 
@@ -1451,7 +1674,7 @@ async function buildImportPreview(schoolId: string, kind: (typeof PKL_IMPORT_KIN
   const raw = parseCsv(csvContent);
   const periods = await prisma.pklPeriod.findMany({ where: { schoolId }, select: { id: true, name: true } });
   const departments = await prisma.department.findMany({ where: { schoolId }, select: { id: true, code: true, name: true } });
-  const companies = await prisma.company.findMany({ where: { schoolId }, select: { id: true, code: true, name: true } });
+  const companies = await prisma.company.findMany({ where: { schoolId }, select: { id: true, code: true, name: true, isActive: true, partnershipStatus: true } });
   const teachers = await prisma.user.findMany({
     where: { schoolId, role: { in: ["TEACHER", "SCHOOL_ADMIN"] } },
     select: { id: true, name: true, teacherProfile: { select: { nip: true } } },
@@ -1551,6 +1774,87 @@ async function buildImportPreview(schoolId: string, kind: (typeof PKL_IMPORT_KIN
       mentorName, mentorId: mentor?.userId || null,
     };
   });
+
+  if (kind === "PLACEMENT") {
+    const rows = normalized as any[];
+    const candidateRows = rows.filter((row) => row.studentId && row.periodId && row.companyId);
+    const studentIds = candidateRows.map((row) => row.studentId as string);
+    const [openPlacements, links, capacities, usageRows] = await Promise.all([
+      studentIds.length
+        ? prisma.placement.findMany({
+            where: { schoolId, studentId: { in: studentIds }, status: openPlacementWhere() },
+            select: { studentId: true },
+          })
+        : [],
+      prisma.companyDepartment.findMany({
+        where: { schoolId, isActive: true },
+        select: { companyId: true, departmentId: true },
+      }),
+      prisma.pklCompanyCapacity.findMany({
+        where: { schoolId },
+        select: { periodId: true, companyId: true, departmentId: true, quota: true },
+      }),
+      prisma.placement.groupBy({
+        by: ["pklPeriodId", "companyId", "departmentId"],
+        where: {
+          schoolId,
+          status: openPlacementWhere(),
+          pklPeriodId: { not: null },
+          departmentId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+    const openStudents = new Set(openPlacements.map((row) => row.studentId));
+    const linkKeys = new Set(links.map((row) => `${row.companyId}:${row.departmentId}`));
+    const capacityByKey = new Map(
+      capacities.map((row) => [`${row.periodId}:${row.companyId}:${row.departmentId}`, row]),
+    );
+    const usedByKey = new Map(
+      usageRows.map((row) => [
+        `${row.pklPeriodId}:${row.companyId}:${row.departmentId}`,
+        row._count._all,
+      ]),
+    );
+
+    for (const row of rows) {
+      if (row.errors.length) continue;
+      if (!row.departmentId) row.errors.push("Siswa belum memiliki konsentrasi keahlian.");
+      if (openStudents.has(row.studentId)) row.errors.push("Siswa sudah memiliki penempatan PLANNED/ACTIVE.");
+      const company = companies.find((item) => item.id === row.companyId);
+      if (!company?.isActive || company?.partnershipStatus !== "ACTIVE") {
+        row.errors.push("DUDI tidak aktif untuk penempatan.");
+      }
+      if (row.departmentId && !linkKeys.has(`${row.companyId}:${row.departmentId}`)) {
+        row.errors.push("DUDI tidak menerima konsentrasi siswa.");
+      }
+      const capacityKey = `${row.periodId}:${row.companyId}:${row.departmentId}`;
+      if (row.departmentId && !capacityByKey.has(capacityKey)) {
+        row.errors.push("Kapasitas periode/DUDI/konsentrasi belum dikonfigurasi.");
+      }
+    }
+
+    const requestedByKey = new Map<string, any[]>();
+    for (const row of rows.filter((item) => item.errors.length === 0)) {
+      const key = `${row.periodId}:${row.companyId}:${row.departmentId}`;
+      const group = requestedByKey.get(key) || [];
+      group.push(row);
+      requestedByKey.set(key, group);
+    }
+    for (const [key, group] of requestedByKey) {
+      const capacity = capacityByKey.get(key);
+      if (!capacity) continue;
+      const used = usedByKey.get(key) || 0;
+      const remaining = Math.max(0, capacity.quota - used);
+      if (group.length > remaining) {
+        for (const row of group) {
+          row.errors.push(
+            `Kuota batch tidak cukup: dibutuhkan ${group.length}, tersisa ${remaining}.`,
+          );
+        }
+      }
+    }
+  }
 
   return {
     kind,
@@ -1673,6 +1977,37 @@ export const commitPklImport = async (rawArgs: unknown, context: { user?: User }
   }
 
   return prisma.$transaction(async (tx) => {
+    for (const studentId of [...studentIds].sort()) {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "User" WHERE "id" = $1 FOR UPDATE',
+        studentId,
+      );
+    }
+    const duplicateStudentsNow = await tx.placement.findMany({
+      where: {
+        schoolId: admin.schoolId,
+        studentId: { in: studentIds },
+        status: openPlacementWhere(),
+      },
+      select: { studentId: true },
+    });
+    if (duplicateStudentsNow.length) {
+      throw new HttpError(409, "Penempatan siswa berubah sejak preview. Jalankan preview ulang.");
+    }
+
+    for (const [key, requested] of [...requestedByKey.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const [periodId, companyId, departmentId] = key.split(":");
+      const state = await lockCapacityState(tx, {
+        schoolId: admin.schoolId,
+        periodId,
+        companyId,
+        departmentId,
+      });
+      if (!state.capacity || (state.remaining || 0) < requested) {
+        throw new HttpError(409, "Kuota PKL berubah sejak preview. Jalankan preview ulang.");
+      }
+    }
+
     const created: string[] = [];
     for (const row of placementRows) {
       const period = await tx.pklPeriod.findFirst({ where: { id: row.periodId, schoolId: admin.schoolId } });

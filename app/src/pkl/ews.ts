@@ -238,6 +238,12 @@ export async function getPklEwsAlertsForScope(
       continue;
     }
 
+    // ACTIVE placement may be activated ahead of its start date. Do not raise
+    // attendance/journal operational alarms before the placement actually starts.
+    if (placement.startDate > now) {
+      continue;
+    }
+
     if (placement.attendances.length === 0) {
       alerts.push({
         id: `${placement.id}:NO_ATTENDANCE`,
