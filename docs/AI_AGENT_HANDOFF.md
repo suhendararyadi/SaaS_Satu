@@ -369,7 +369,7 @@ The owner explicitly authorized one minimal reversible PKL demo dataset in SMKN 
 
 Current demo counts: Company 1, PklPeriod 1, DudiMentorProfile 1, PklCompanyCapacity 1, Placement 1 (PLANNED), PklWorkSchedule 1, PklPlacementEvent 1, AttendanceLog 0, DailyJournal 0.
 
-Demo company: DEMO-PKL-01 — PT Demo PKL School OS. One existing grade XII student and one existing teacher supervisor are linked. A synthetic DUDI mentor named Pembimbing DUDI Demo exists without Auth/login. GPS coordinates are intentionally unset.
+Demo company: DEMO-PKL-01 — PT Demo PKL School OS. One existing grade XII student and one existing teacher supervisor are linked. A synthetic DUDI mentor named Pembimbing DUDI Demo exists without Auth/login. GPS coordinates are now configured from the owner's captured location and verified through the deployed updateCompany business operation.
 
 Pre-demo backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dump
 
