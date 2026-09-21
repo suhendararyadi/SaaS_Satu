@@ -4,6 +4,8 @@ import { useNavigate, useParams } from "react-router";
 import {
   getSchoolInfo,
   getSchoolStudentDetail,
+  provisionStudentLogin,
+  revokeStudentLogin,
   useQuery,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
@@ -69,6 +71,12 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
   const capabilities = school ? getSchoolCapabilities(school.level) : null;
   const usesDepartments = capabilities?.usesDepartments ?? false;
   const usesPkl = capabilities?.usesPkl ?? false;
+  const [loginBusy, setLoginBusy] = React.useState(false);
+  const [loginError, setLoginError] = React.useState("");
+  const [temporaryLogin, setTemporaryLogin] = React.useState<{
+    loginEmail: string;
+    temporaryPassword: string;
+  } | null>(null);
 
   if (query.isLoading) {
     return (
@@ -94,7 +102,7 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
     );
   }
 
-  const { student, canManage, studentAffairs } = query.data as any;
+  const { student, canManage, studentAffairs, hasLogin } = query.data as any;
   const profile = student.studentProfile || {};
   const totalFields = studentFormSections.reduce(
     (count, section) => count + section.fields.length,
@@ -120,6 +128,57 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
   const activePlacement = student.studentPlacements?.find(
     (placement: any) => placement.status === "ACTIVE",
   );
+
+  const provisionLogin = async () => {
+    if (
+      !window.confirm(
+        "Buat akun login sementara untuk siswa ini? Password hanya ditampilkan sekali.",
+      )
+    ) {
+      return;
+    }
+    setLoginBusy(true);
+    setLoginError("");
+    try {
+      const result: any = await provisionStudentLogin({
+        studentId: student.id,
+        confirm: "PROVISION_TEMPORARY_LOGIN",
+      });
+      setTemporaryLogin({
+        loginEmail: result.loginEmail,
+        temporaryPassword: result.temporaryPassword,
+      });
+      await query.refetch();
+    } catch (error: any) {
+      setLoginError(error?.message || "Akun login siswa belum dapat dibuat.");
+    } finally {
+      setLoginBusy(false);
+    }
+  };
+
+  const revokeLogin = async () => {
+    if (
+      !window.confirm(
+        "Cabut akun login siswa ini? Data profil, PKL, presensi, dan jurnal tidak akan dihapus.",
+      )
+    ) {
+      return;
+    }
+    setLoginBusy(true);
+    setLoginError("");
+    try {
+      await revokeStudentLogin({
+        studentId: student.id,
+        confirm: "REVOKE_STUDENT_LOGIN",
+      });
+      setTemporaryLogin(null);
+      await query.refetch();
+    } catch (error: any) {
+      setLoginError(error?.message || "Akun login siswa belum dapat dicabut.");
+    } finally {
+      setLoginBusy(false);
+    }
+  };
 
   return (
     <SchoolLayout user={user}>
@@ -163,16 +222,68 @@ export function StudentDetailPage({ user }: { user: AuthUser }) {
           </div>
 
           {canManage && (
-            <M3Button
-              variant="filled"
-              size="md"
-              icon="edit"
-              href={"/school/students/" + student.id + "/edit"}
-            >
-              Edit Data
-            </M3Button>
+            <div className="flex flex-wrap gap-2">
+              {!hasLogin ? (
+                <M3Button
+                  variant="tonal"
+                  size="md"
+                  icon="key"
+                  isLoading={loginBusy}
+                  onClick={provisionLogin}
+                >
+                  Buat Akun Login
+                </M3Button>
+              ) : (
+                <M3Button
+                  variant="outlined"
+                  size="md"
+                  icon="key_off"
+                  disabled={loginBusy}
+                  onClick={revokeLogin}
+                >
+                  Cabut Akun Login
+                </M3Button>
+              )}
+              <M3Button
+                variant="filled"
+                size="md"
+                icon="edit"
+                href={"/school/students/" + student.id + "/edit"}
+              >
+                Edit Data
+              </M3Button>
+            </div>
           )}
         </div>
+
+        {canManage && loginError && (
+          <M3Banner
+            variant="error"
+            headline="Akun login belum dapat diproses"
+            supportingText={loginError}
+          />
+        )}
+
+        {canManage && temporaryLogin && (
+          <M3Banner
+            variant="success"
+            headline="Akun login siswa berhasil dibuat"
+            supportingText={
+              "Salin kredensial ini sekarang. Email: " +
+              temporaryLogin.loginEmail +
+              " · Password sementara: " +
+              temporaryLogin.temporaryPassword
+            }
+          />
+        )}
+
+        {canManage && hasLogin && !temporaryLogin && (
+          <M3Banner
+            variant="standard"
+            headline="Akun login siswa aktif"
+            supportingText="Password tidak dapat ditampilkan kembali. Jika lupa, cabut akun login lalu buat ulang kredensial sementara."
+          />
+        )}
 
         {!canManage && (
           <M3Banner

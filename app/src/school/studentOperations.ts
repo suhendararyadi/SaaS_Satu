@@ -392,6 +392,10 @@ export const getSchoolStudentDetail = async (
     user.role === "SUPERADMIN" ||
     user.role === "SCHOOL_ADMIN";
 
+  const hasLogin = canManage
+    ? (await prisma.auth.count({ where: { userId: student.id } })) > 0
+    : false;
+
   const affairsAccess = await resolveStudentAffairsAccess(user);
   const canViewStudentAffairs =
     affairsAccess.canAccess &&
@@ -558,10 +562,15 @@ export const getSchoolStudentDetail = async (
       kipNumber: null,
       kksNumber: null,
     };
-    return { student: { ...student, studentProfile: hidden }, canManage, studentAffairs };
+    return {
+      student: { ...student, studentProfile: hidden },
+      canManage,
+      studentAffairs,
+      hasLogin: false,
+    };
   }
 
-  return { student, canManage, studentAffairs };
+  return { student, canManage, studentAffairs, hasLogin };
 };
 
 export const createStudent = async (
