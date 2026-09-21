@@ -40,17 +40,32 @@ export function PklEvidenceUploader({ value, onChange, capture = "environment", 
     setError("");
     setProgress(1);
     try {
-      const signed = await createPklEvidenceUploadUrl({
-        fileName: file.name || `pkl-${Date.now()}.jpg`,
-        fileType: file.type as "image/jpeg" | "image/png" | "image/webp",
-      });
-      await uploadFileWithProgress({
-        file: file as any,
-        s3UploadUrl: signed.s3UploadUrl,
-        s3UploadFields: signed.s3UploadFields,
-        setUploadProgressPercent: setProgress,
-      });
-      onChange(signed.s3Key);
+      let uploadedKey = "";
+      if (status.data?.mode === "local") {
+        setProgress(20);
+        const response = await fetch("/operations/pkl-evidence-upload", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": file.type, "X-File-Name": file.name || `pkl-${Date.now()}.jpg` },
+          body: file,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.key) throw new Error(payload?.error || "Upload foto lokal gagal.");
+        uploadedKey = payload.key;
+      } else {
+        const signed = await createPklEvidenceUploadUrl({
+          fileName: file.name || `pkl-${Date.now()}.jpg`,
+          fileType: file.type as "image/jpeg" | "image/png" | "image/webp",
+        });
+        await uploadFileWithProgress({
+          file: file as any,
+          s3UploadUrl: signed.s3UploadUrl,
+          s3UploadFields: signed.s3UploadFields,
+          setUploadProgressPercent: setProgress,
+        });
+        uploadedKey = signed.s3Key;
+      }
+      onChange(uploadedKey);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(file));
       setProgress(100);
@@ -65,7 +80,7 @@ export function PklEvidenceUploader({ value, onChange, capture = "environment", 
       <div>
         <p className="text-xs font-semibold text-md-on-surface">{label}</p>
         <p className="mt-0.5 text-[10.5px] text-md-on-surface-variant">
-          {enabled ? "Foto tersimpan di storage dan hanya dapat dibuka oleh pihak yang berwenang." : "Upload file belum aktif pada deployment ini."}
+          {enabled ? (status.data?.mode === "local" ? "Foto tersimpan aman di storage lokal School OS dan hanya dapat dibuka oleh pihak berwenang." : "Foto tersimpan di storage dan hanya dapat dibuka oleh pihak yang berwenang.") : "Upload file belum aktif pada deployment ini."}
         </p>
       </div>
       {value && <M3Badge variant="success" size="sm">Terunggah</M3Badge>}
@@ -73,8 +88,19 @@ export function PklEvidenceUploader({ value, onChange, capture = "environment", 
     {previewUrl && <img src={previewUrl} alt="Pratinjau bukti PKL" className="mt-3 max-h-48 rounded-[10px] object-cover" />}
     <div className="mt-3 flex flex-wrap items-center gap-2">
       <label className={`inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-[9px] px-3 text-xs font-semibold ${enabled ? "bg-md-primary text-md-on-primary" : "cursor-not-allowed bg-md-surface-container text-md-on-surface-variant"}`}>
+        <M3Icon name="photo_library" size={17} />
+        {progress > 0 && progress < 100 ? `Upload ${progress}%` : "Pilih Foto"}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          disabled={!enabled}
+          className="hidden"
+          onChange={(event) => void upload(event.target.files?.[0])}
+        />
+      </label>
+      <label className={`inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-[9px] border px-3 text-xs font-semibold ${enabled ? "border-md-outline-variant text-md-on-surface" : "cursor-not-allowed border-md-outline-variant bg-md-surface-container text-md-on-surface-variant"}`}>
         <M3Icon name="photo_camera" size={17} />
-        {progress > 0 && progress < 100 ? `Upload ${progress}%` : "Ambil / Pilih Foto"}
+        Ambil Foto
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"

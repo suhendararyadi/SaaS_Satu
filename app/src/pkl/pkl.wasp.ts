@@ -1,4 +1,4 @@
-import { action, page, query, route, type Spec } from "@wasp.sh/spec";
+import { action, api, page, query, route, type Spec } from "@wasp.sh/spec";
 import { CompaniesPage } from "./pages/CompaniesPage" with { type: "ref" };
 import { PklFoundationPage } from "./pages/PklFoundationPage" with { type: "ref" };
 import { PklDashboardPage } from "./pages/PklDashboardPage" with { type: "ref" };
@@ -8,6 +8,8 @@ import { JournalsPage } from "./pages/JournalsPage" with { type: "ref" };
 import { MonitoringEwsPage } from "./pages/MonitoringEwsPage" with { type: "ref" };
 import { PklReportsPage } from "./pages/PklReportsPage" with { type: "ref" };
 import { PklImportPage } from "./pages/PklImportPage" with { type: "ref" };
+
+import { pklEvidenceLocalFileApi, pklEvidenceLocalUploadApi } from "./localEvidenceApi" with { type: "ref" };
 
 import {
   getCompanies,
@@ -110,6 +112,8 @@ export const pklSpec: Spec = [
   }),
   query(getPklEvidenceUploadStatus),
   query(getPklEvidenceSignedUrl, { entities: ["AttendanceLog", "DailyJournal", "Placement"] }),
+  api("POST", "/operations/pkl-evidence-upload", pklEvidenceLocalUploadApi, { auth: true }),
+  api("GET", "/operations/pkl-evidence-file/:kind/:id", pklEvidenceLocalFileApi, { auth: true }),
 
   query(getPlacements, {
     entities: [

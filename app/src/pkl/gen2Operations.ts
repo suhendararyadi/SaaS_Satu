@@ -12,6 +12,7 @@ import {
 import { parseCsv } from "../school/import/csvParser";
 import { ensureFileUploadConfigured, isFileUploadConfigured } from "../file-upload/config";
 import { checkFileExistsInS3, getDownloadFileSignedURLFromS3, getUploadFileSignedURLFromS3 } from "../file-upload/s3Utils";
+import { isLocalEvidenceKey, localEvidenceExists, parseLocalEvidenceKey } from "./localEvidenceStorage";
 import {
   evaluatePlacementReadiness,
   getScheduleStatus,
@@ -971,7 +972,7 @@ const PKL_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const getPklEvidenceUploadStatus = async (_args: unknown, context: { user?: User }) => {
   requirePklAccess(context);
-  return { enabled: isFileUploadConfigured() };
+  return { enabled: true, mode: isFileUploadConfigured() ? "s3" : "local" };
 };
 
 const evidenceUploadSchema = z.object({
@@ -992,6 +993,12 @@ export const createPklEvidenceUploadUrl = async (rawArgs: unknown, context: { us
 
 async function ensureOwnedEvidenceKey(userId: string, key?: string | null) {
   if (!key) return null;
+  if (isLocalEvidenceKey(key)) {
+    const parsed = parseLocalEvidenceKey(key);
+    if (!parsed || parsed.ownerId !== userId) throw new HttpError(403, "Bukti upload tidak sesuai dengan pemilik akun.");
+    if (!(await localEvidenceExists(key))) throw new HttpError(404, "Bukti upload lokal belum ditemukan.");
+    return key;
+  }
   if (!key.startsWith(userId + "/")) throw new HttpError(403, "Bukti upload tidak sesuai dengan pemilik akun.");
   ensureFileUploadConfigured();
   if (!(await checkFileExistsInS3({ s3Key: key }))) throw new HttpError(404, "Bukti upload belum ditemukan di storage.");
@@ -1005,7 +1012,6 @@ const signedEvidenceSchema = z.object({
 
 export const getPklEvidenceSignedUrl = async (rawArgs: unknown, context: { user?: User }) => {
   const user = requirePklAccess(context);
-  ensureFileUploadConfigured();
   const args = ensureArgsSchemaOrThrowHttpError(signedEvidenceSchema, rawArgs);
   const scope =
     user.isAdmin || user.role === "SCHOOL_ADMIN" || user.role === "SUPERADMIN"
@@ -1031,6 +1037,7 @@ export const getPklEvidenceSignedUrl = async (rawArgs: unknown, context: { user?
     key = row.evidenceUrl || row.photoUrl;
   }
   if (!key) throw new HttpError(404, "Bukti belum tersedia.");
+  if (isLocalEvidenceKey(key)) return `/operations/pkl-evidence-file/${args.kind}/${args.id}`;
   return getDownloadFileSignedURLFromS3({ s3Key: key });
 };
 
