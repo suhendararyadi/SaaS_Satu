@@ -296,7 +296,7 @@ Global manifest:
 
 Latest verified snapshot after PKL Foundation Gen2:
 
-`/home/ubuntu/backups/MSO/global-agent-memory-20260920T1758WIB.tar.gz`
+`/home/ubuntu/backups/MSO/global-agent-memory-20260921T1024WIB.tar.gz`
 
 Repo-local memory under `.agent/memory/` still exists, but it is **operational Project/RASMIC memory**, not the sole permanent store. It is appropriate for tasks, debug/test evidence, failures, and local decisions.
 
