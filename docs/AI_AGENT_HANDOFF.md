@@ -315,3 +315,19 @@ Before starting the next feature:
 - preserve the SMKN 12 Garut production baseline;
 - use authoritative data for identity/program mappings;
 - update this handoff again after any verified production change.
+
+---
+
+## Temporary PKL demo — 21 September 2026
+
+The owner explicitly authorized one minimal reversible PKL demo dataset in SMKN 12 Garut production for direct testing. This supersedes earlier statements in this document that PKL production counts are zero while the demo remains.
+
+Current demo counts: Company 1, PklPeriod 1, DudiMentorProfile 1, PklCompanyCapacity 1, Placement 1 (PLANNED), PklWorkSchedule 1, PklPlacementEvent 1, AttendanceLog 0, DailyJournal 0.
+
+Demo company: DEMO-PKL-01 — PT Demo PKL School OS. One existing grade XII student and one existing teacher supervisor are linked. A synthetic DUDI mentor named Pembimbing DUDI Demo exists without Auth/login. GPS coordinates are intentionally unset.
+
+Pre-demo backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dump
+
+Cleanup script: /home/ubuntu/backups/SaaS_Satu/pkl-demo-smkn12-20260921.cleanup.sql
+
+When the owner says testing is complete, remove this demo dataset and restore the zero-PKL baseline.

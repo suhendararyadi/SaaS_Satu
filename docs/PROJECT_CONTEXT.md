@@ -623,3 +623,16 @@ Jangan menambah capability infra tersebut sebagai placeholder visual sebelum per
 - [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md) — historical development chronology
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — architecture/security boundaries
 - [`ANTI_SLOP_GUIDELINES.md`](./ANTI_SLOP_GUIDELINES.md) — UI/copy quality guardrails
+
+---
+
+## Temporary PKL demo — 21 September 2026
+
+A minimal reversible demo dataset was explicitly authorized for direct PKL Gen2 testing in SMKN 12 Garut production. This temporary state supersedes earlier zero-PKL-count statements while the demo remains.
+
+Counts: Company 1, PklPeriod 1, DUDI mentor profile 1, capacity 1, Placement 1 (PLANNED), work schedule 1, placement event 1, attendance 0, journal 0.
+
+Demo company is DEMO-PKL-01 / PT Demo PKL School OS. It links one existing grade XII student and one existing teacher supervisor. The synthetic DUDI mentor has no Auth/login. GPS coordinates are intentionally unset.
+
+Backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dump
+Cleanup: /home/ubuntu/backups/SaaS_Satu/pkl-demo-smkn12-20260921.cleanup.sql

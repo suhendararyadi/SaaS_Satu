@@ -1034,3 +1034,12 @@ Post-deploy SMKN 12 Garut tetap 1.539 siswa / 103 PTK / zero PKL production rows
 Human review yang tersisa: GPS/geofence nyata, kamera/selfie HP, mobile network, dan subjective UX/operator acceptance.
 
 Handoff: `docs/RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`.
+
+---
+
+## 21 September 2026 — Temporary PKL demo for direct testing
+
+Owner authorized a minimal reversible PKL Gen2 demo in SMKN 12 Garut production: one demo period, one demo DUDI, one company-department link, quota 1, one synthetic DUDI mentor without Auth/login, one PLANNED placement linking one existing grade XII student and one existing teacher supervisor, one Mon-Sat work schedule, and one placement event. Attendance and journal remain zero. GPS coordinates are intentionally unset.
+
+Backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dump
+Cleanup: /home/ubuntu/backups/SaaS_Satu/pkl-demo-smkn12-20260921.cleanup.sql
