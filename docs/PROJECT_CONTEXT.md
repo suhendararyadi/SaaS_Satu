@@ -95,9 +95,10 @@ Domain: `https://sekolah.suhendararyadi.com`.
 Production runtime pada snapshot 21 September 2026:
 
 - **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/d0809d4-pkl-uat-hardening`
-- **static current**: `/var/www/saas-satu/releases/d0809d4-pkl-uat-hardening`
-- runtime/source commit: `d0809d4` — PKL Gen2 UAT & operational hardening
-- rollback release: `5aee74e-pkl-gen2-full`
+- **static current**: `/var/www/saas-satu/releases/066254d-pkl-foundation-permission-ui`
+- backend runtime/source commit: `d0809d4` — PKL Gen2 UAT & operational hardening
+- static UI commit: `066254d` — PKL Foundation query-error UX hardening
+- rollback static release: `d0809d4-pkl-uat-hardening`
 - `saas-satu.service`: **active**
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
@@ -431,6 +432,22 @@ SMKN 12 Garut remains **1,539 students / 103 PTK / zero PKL production rows**. T
 Human review remains only for real-device GPS/geofence, camera/selfie, mobile-network behavior and subjective UX.
 
 Detail: [`RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`](./RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md).
+
+## 3.9 PKL Gen2 database ownership fix — LIVE 21 September 2026
+
+The PKL demo existed in production but Foundation queries returned HTTP 500 because seven Gen2 tables were owned by `postgres` instead of the runtime application database role.
+
+Ownership was aligned to the application role for `PklPeriod`, `CompanyDepartment`, `PklCompanyCapacity`, `DudiMentorProfile`, `DailyJournalRevision`, `PklWorkSchedule`, and `PklPlacementEvent`.
+
+Application-role read verification now returns the expected demo Foundation counts: period 1, company 1, DUDI mentor 1, total quota 1.
+
+UI hardening commit `066254d` makes Foundation query failures visible instead of rendering misleading zero values.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-permission-fix-20260921.dump`.
+
+Detail: [`RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`](./RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md).
+
+Operational rule: if a production migration is executed as PostgreSQL superuser, ownership or equivalent CRUD privileges for newly created application tables must be aligned to the runtime application role before rollout is considered complete.
 
 ## 4. Website Sekolah CMS — LIVE
 

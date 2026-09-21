@@ -1043,3 +1043,23 @@ Owner authorized a minimal reversible PKL Gen2 demo in SMKN 12 Garut production:
 
 Backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dump
 Cleanup: /home/ubuntu/backups/SaaS_Satu/pkl-demo-smkn12-20260921.cleanup.sql
+
+---
+
+## 21 September 2026 — PKL Gen2 Foundation permission fix
+
+The temporary demo rows existed, but the Foundation page displayed zero because all Gen2 read operations were failing with PostgreSQL permission errors.
+
+Root cause: seven tables created by the Gen2 migrations were owned by `postgres` instead of the runtime application DB role. Ownership was aligned in one transaction for PklPeriod, CompanyDepartment, PklCompanyCapacity, DudiMentorProfile, DailyJournalRevision, PklWorkSchedule, and PklPlacementEvent.
+
+Application-role verification returned Foundation counts 1 period / 1 company / 1 mentor / quota 1.
+
+PklFoundationPage was hardened so read-query errors are shown explicitly rather than rendered as zero data.
+
+Quality gate: targeted PKL 12/12 PASS, normal regression 148/148 PASS, Wasp build PASS, Vite SSR/client PASS, static preflight/deploy PASS, repeat static deploy idempotent true.
+
+Backend remains `d0809d4-pkl-uat-hardening`; static release is `066254d-pkl-foundation-permission-ui`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-permission-fix-20260921.dump`.
+
+Handoff: `docs/RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`.

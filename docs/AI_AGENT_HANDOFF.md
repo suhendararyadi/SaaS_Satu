@@ -14,11 +14,13 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Repository baseline: `/home/ubuntu/projects/SaaS_Satu`.
 - Active School OS worktree: `/home/ubuntu/projects/SaaS_Satu-hardening`.
 - Active branch: `redesign/apple-hig`.
-- Application release commit: `d0809d4d5492953476eb54894302794dfbbb294b` — PKL Gen2 UAT & operational hardening.
-- Production release: `d0809d4-pkl-uat-hardening`.
+- Backend application commit: `d0809d4d5492953476eb54894302794dfbbb294b` — PKL Gen2 UAT & operational hardening.
+- Backend production release: `d0809d4-pkl-uat-hardening`.
+- Static UI commit: `066254d28762f5f25fe0c5018388045204c5d356` — PKL Foundation query-error UX hardening.
+- Static production release: `066254d-pkl-foundation-permission-ui`.
 - Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/d0809d4-pkl-uat-hardening`.
-- Current static pointer: `/var/www/saas-satu/releases/d0809d4-pkl-uat-hardening`.
-- Rollback release: `5aee74e-pkl-gen2-full`.
+- Current static pointer: `/var/www/saas-satu/releases/066254d-pkl-foundation-permission-ui`.
+- Rollback static release: `d0809d4-pkl-uat-hardening`.
 - Service: `saas-satu.service` **active**.
 
 ## 2. Production baseline — SMKN 12 Garut
@@ -179,6 +181,32 @@ The temporary UAT database was removed after verification.
 Human acceptance still required only for real-device GPS/geofence, camera/selfie, mobile-network behavior, and subjective mobile/operator UX.
 
 Release handoff: [`RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`](./RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md).
+
+## 5.5 PKL Gen2 database ownership fix — LIVE
+
+On 21 September 2026 the PKL Foundation UI showed zero values although the demo rows existed. Production logs revealed PostgreSQL `permission denied` errors on the Gen2 tables.
+
+Root cause: seven tables created by PKL Gen2 migrations were owned by `postgres`, while the runtime application uses database role `saas_satu_staging`.
+
+Ownership was aligned in one transaction for:
+
+- `PklPeriod`
+- `CompanyDepartment`
+- `PklCompanyCapacity`
+- `DudiMentorProfile`
+- `DailyJournalRevision`
+- `PklWorkSchedule`
+- `PklPlacementEvent`
+
+Application-role verification now reads demo Foundation counts **1 period / 1 company / 1 mentor / total quota 1**.
+
+The Foundation page was also hardened so query failures display an error banner instead of silently appearing as zero data.
+
+Backend remains `d0809d4-pkl-uat-hardening`; static UI is `066254d-pkl-foundation-permission-ui`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-permission-fix-20260921.dump`.
+
+Release handoff: [`RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`](./RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md).
 
 ## 6. Active design contract
 
