@@ -978,3 +978,59 @@ Quality:
 - repeated deploy idempotent true.
 
 Handoff: `docs/RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`.
+
+---
+
+## 21 September 2026 — PKL Gen 2 UAT & Operational Hardening
+
+PKL Gen2 menjalani technical UAT menggunakan PostgreSQL database terisolasi dan synthetic multi-tenant fixture, tanpa menyentuh data PKL production SMKN 12 Garut.
+
+Reusable harness:
+
+- `app/uat/pklGen2.integration.ts`;
+- `app/uat/pklGen2Race.integration.ts`;
+- `app/vitest.pkl-uat.config.ts`.
+
+Final UAT: **19/19 PASS**.
+
+Defect/hardening yang ditutup:
+
+- ACTIVE placement tidak dapat kehilangan Guru/Pembimbing DUDI;
+- PLANNED tidak dapat langsung COMPLETED;
+- active transfer wajib target mentor valid;
+- row lock siswa + capacity mencegah double placement/overbook saat concurrent plotting;
+- target capacity lock mencegah concurrent transfer overbook;
+- placement import commit memakai student/capacity locks;
+- batch import preview memvalidasi aggregate quota, DUDI aktif, relation konsentrasi dan open placement;
+- CHECK_OUT wajib setelah CHECK_IN;
+- Izin/Sakit dan admin day-state tidak boleh bentrok dengan presence;
+- manual day-state dibatasi placement date range;
+- work-schedule invalid day/time ditolak;
+- same-day journal write diserialisasi agar tidak membuat duplicate;
+- future-start ACTIVE placement tidak memunculkan EWS no-attendance/no-journal;
+- evidence upload status sekarang authenticated.
+
+Quality gate:
+
+- UAT real DB **19/19 PASS** / 2 files;
+- targeted PKL **12/12 PASS**;
+- normal full regression **148/148 PASS** / 26 files;
+- Prisma validate PASS;
+- Wasp build PASS;
+- server bundle PASS;
+- Vite SSR/client PASS;
+- deploy preflight PASS;
+- production release `d0809d4-pkl-uat-hardening`;
+- all PKL routes 200;
+- sensitive unauth operations 401;
+- repeated deploy idempotent true.
+
+Backup:
+
+`/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-uat-hardening-20260921.dump`
+
+Post-deploy SMKN 12 Garut tetap 1.539 siswa / 103 PTK / zero PKL production rows. Temporary UAT database telah dihapus.
+
+Human review yang tersisa: GPS/geofence nyata, kamera/selfie HP, mobile network, dan subjective UX/operator acceptance.
+
+Handoff: `docs/RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`.

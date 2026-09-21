@@ -14,11 +14,11 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Repository baseline: `/home/ubuntu/projects/SaaS_Satu`.
 - Active School OS worktree: `/home/ubuntu/projects/SaaS_Satu-hardening`.
 - Active branch: `redesign/apple-hig`.
-- Application release commit: `5aee74e9edeecd3c23533ce6b1ccfb28f8dcc8c1` — complete PKL Generasi Kedua workflow suite.
-- Production release: `5aee74e-pkl-gen2-full`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/5aee74e-pkl-gen2-full`.
-- Current static pointer: `/var/www/saas-satu/releases/5aee74e-pkl-gen2-full`.
-- Rollback release: `45a11a5-pkl-foundation-gen2`.
+- Application release commit: `d0809d4d5492953476eb54894302794dfbbb294b` — PKL Gen2 UAT & operational hardening.
+- Production release: `d0809d4-pkl-uat-hardening`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/d0809d4-pkl-uat-hardening`.
+- Current static pointer: `/var/www/saas-satu/releases/d0809d4-pkl-uat-hardening`.
+- Rollback release: `5aee74e-pkl-gen2-full`.
 - Service: `saas-satu.service` **active**.
 
 ## 2. Production baseline — SMKN 12 Garut
@@ -162,6 +162,24 @@ No synthetic PKL data was inserted for SMKN 12 Garut. Current PKL rows for Compa
 
 Release handoff: [`RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md).
 
+## 5.3 PKL Gen2 UAT & Operational Hardening — LIVE
+
+Production release: `d0809d4-pkl-uat-hardening`.
+
+Technical UAT used an isolated PostgreSQL database and permanent reusable harness under `app/uat/`. Final result: **19/19 real-database UAT PASS**, plus **148/148 normal regression tests PASS**.
+
+Hardening added server invariants for active placement assignments, valid completion lifecycle, attendance ordering/day-state conflict, work-schedule validation, future-start EWS suppression, batch import validation, transaction-level student/quota locking, concurrent transfer safety, concurrent journal serialization, and authenticated evidence-status access.
+
+No schema/migration change was required.
+
+SMKN 12 Garut remains **1,539 students / 103 PTK / zero PKL production rows**.
+
+The temporary UAT database was removed after verification.
+
+Human acceptance still required only for real-device GPS/geofence, camera/selfie, mobile-network behavior, and subjective mobile/operator UX.
+
+Release handoff: [`RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`](./RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md).
+
 ## 6. Active design contract
 
 The active UI system is **School OS — Apple HIG-inspired**.
@@ -211,14 +229,14 @@ Do not bypass service-control guards with force kills or ad-hoc production proce
 
 For frontend-only changes, prefer the bounded static-only preflight/deploy path.
 
-## 9. Latest production rollout verification — PKL Gen2 Full
+## 9. Latest production rollout verification — PKL Gen2 UAT Hardening
 
-PKL Generasi Kedua full-suite quality gate:
+PKL Gen2 UAT/hardening quality gate:
 
+- real-database UAT: **19/19 PASS** across **2 UAT files**;
 - targeted PKL tests: **12/12 PASS**;
-- full Vitest: **148/148 PASS** across **26 files**;
+- full normal Vitest regression: **148/148 PASS** across **26 files**;
 - Prisma validation: PASS;
-- migration dry-run on restored production clone: PASS;
 - Wasp build: PASS;
 - generated server bundle: PASS;
 - Vite SSR/client builds: PASS;
@@ -227,10 +245,10 @@ PKL Generasi Kedua full-suite quality gate:
 - repeat deploy: idempotent PASS;
 - all PKL routes including dashboard/placement/attendance/journal/monitoring/reports/import: HTTP 200;
 - unauthenticated sensitive Gen2 operations: HTTP 401;
-- migration checksum verified;
-- final SMKN 12 baseline: **1,539 students / 103 PTK / zero PKL production data**.
+- final SMKN 12 baseline: **1,539 students / 103 PTK / zero PKL production data**;
+- temporary UAT database removed after verification.
 
-Rollback release: `45a11a5-pkl-foundation-gen2`.
+Rollback release: `5aee74e-pkl-gen2-full`.
 
 ## 10. Backups that matter
 
@@ -244,6 +262,8 @@ Rollback release: `45a11a5-pkl-foundation-gen2`.
   `/home/ubuntu/backups/SaaS_Satu/pre-pkl-foundation-gen2-20260920.dump`
 - pre PKL Gen2 workflow migration:
   `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-workflows-20260920.dump`
+- pre PKL Gen2 UAT hardening deploy:
+  `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-uat-hardening-20260921.dump`
 
 Do not delete these as routine cleanup.
 
@@ -258,8 +278,9 @@ For a new agent:
 5. [RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md](./RELEASE_2026-09-16_DAPODIK_PTK_DETAIL.md);
 6. [RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md](./RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md);
 7. [RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md);
-8. [RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md) — current PKL state;
-9. area-specific docs such as `UI_UX_APPLE_HIG.md`, `ARCHITECTURE.md`, `MODULES_GUIDE.md`, and `DEMO_DATA.md`.
+8. [RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md);
+9. [RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md](./RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md) — current PKL state;
+10. area-specific docs such as `UI_UX_APPLE_HIG.md`, `ARCHITECTURE.md`, `MODULES_GUIDE.md`, and `DEMO_DATA.md`.
 
 ## 12. Durable AI memory
 

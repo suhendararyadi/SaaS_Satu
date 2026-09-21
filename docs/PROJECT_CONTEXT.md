@@ -35,7 +35,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Complete Dapodik PTK profile editor: `03655f4` — `feat(school): add complete PTK profile editor`
 - PKL Foundation Generasi Kedua: `45a11a5` — final app commit for Gen2 foundation compatibility
 - PKL Gen2 full workflow suite: `5aee74e` — Placement/Readiness/Attendance/Journal/EWS/Role Panel/Reports/Import
-- Current production application commit: `5aee74e` — complete PKL Generasi Kedua workflow suite
+- PKL Gen2 UAT & hardening: `d0809d4` — concurrency, lifecycle, attendance, import, EWS and evidence hardening
+- Current production application commit: `d0809d4` — PKL Gen2 UAT & operational hardening
 - Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
 - AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 20 September 2026.
 - Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md). Critical confirmed context is now independent of the project worktree.
@@ -91,12 +92,12 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production runtime pada snapshot 20 September 2026:
+Production runtime pada snapshot 21 September 2026:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/5aee74e-pkl-gen2-full`
-- **static current**: `/var/www/saas-satu/releases/5aee74e-pkl-gen2-full`
-- runtime/source commit: `5aee74e` — complete PKL Generasi Kedua workflow suite
-- rollback release: `45a11a5-pkl-foundation-gen2`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/d0809d4-pkl-uat-hardening`
+- **static current**: `/var/www/saas-satu/releases/d0809d4-pkl-uat-hardening`
+- runtime/source commit: `d0809d4` — PKL Gen2 UAT & operational hardening
+- rollback release: `5aee74e-pkl-gen2-full`
 - `saas-satu.service`: **active**
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
@@ -394,6 +395,42 @@ Quality gate: 148/148 tests PASS, Wasp/server/Vite PASS, clone migration verific
 SMKN 12 Garut remains free of synthetic PKL production data: all PKL foundation/workflow row counts remain 0.
 
 Detail: [`RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md).
+
+## 3.7 PKL Gen 2 UAT & Operational Hardening — LIVE 21 September 2026
+
+Production release: `d0809d4-pkl-uat-hardening`.
+
+A real PostgreSQL UAT harness now lives under `app/uat/` and is run only with an explicit `PKL_UAT_DATABASE_URL`.
+
+Final result:
+
+- real-DB UAT: **19/19 PASS**;
+- normal regression: **148/148 PASS**;
+- targeted PKL tests: **12/12 PASS**;
+- Prisma/Wasp/server/Vite: PASS;
+- immutable preflight/deploy: PASS;
+- repeated deploy: idempotent true.
+
+Operational hardening covers:
+
+- ACTIVE placement assignment invariants and valid completion lifecycle;
+- student + quota row locking for concurrent plotting;
+- target quota locking for transfer;
+- import preview aggregate-capacity validation and transactional import locking;
+- CHECK_IN/CHECK_OUT ordering and exception conflict;
+- admin day-state date/presence validation;
+- work-schedule day/time validation;
+- serialized same-day journal writes;
+- no future-start attendance/journal EWS alerts;
+- authenticated PKL evidence-upload status.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-uat-hardening-20260921.dump`.
+
+SMKN 12 Garut remains **1,539 students / 103 PTK / zero PKL production rows**. The temporary UAT database was dropped after verification.
+
+Human review remains only for real-device GPS/geofence, camera/selfie, mobile-network behavior and subjective UX.
+
+Detail: [`RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`](./RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md).
 
 ## 4. Website Sekolah CMS — LIVE
 

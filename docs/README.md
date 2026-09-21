@@ -24,6 +24,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Editor PTK Dapodik lengkap: [`RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md`](./RELEASE_2026-09-16_DAPODIK_PTK_EDITOR.md).
    - PKL Foundation Generasi Kedua: [`RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md`](./RELEASE_2026-09-20_PKL_FOUNDATION_GEN2.md).
    - PKL Generasi Kedua workflow lengkap: [`RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md).
+   - PKL Gen 2 UAT & Operational Hardening: [`RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`](./RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md).
 
 2. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
    - Spesifikasi stack teknologi (Wasp v0.25, React 19, Node.js 24, Prisma, PostgreSQL).
