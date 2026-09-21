@@ -255,6 +255,15 @@ export function PklFoundationPage({ user }: { user: AuthUser }) {
     mentorsQ.isLoading ||
     capacitiesQ.isLoading;
 
+  const readError =
+    periodsQ.error ||
+    companiesQ.error ||
+    mentorsQ.error ||
+    capacitiesQ.error;
+  const readErrorMessage = readError
+    ? ((readError as any)?.message || "Data fondasi PKL belum dapat dimuat dari server.")
+    : "";
+
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
@@ -270,22 +279,29 @@ export function PklFoundationPage({ user }: { user: AuthUser }) {
           </p>
         </div>
 
+        {readError && (
+          <M3Banner
+            variant="error"
+            supportingText={readErrorMessage}
+          />
+        )}
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <M3Card variant="filled" className="p-4">
             <p className="text-[11px] uppercase tracking-[.06em] text-md-on-surface-variant">Periode</p>
-            <p className="mt-1 text-2xl font-semibold">{periods.length}</p>
+            <p className="mt-1 text-2xl font-semibold">{periodsQ.error ? "—" : periods.length}</p>
           </M3Card>
           <M3Card variant="filled" className="p-4">
             <p className="text-[11px] uppercase tracking-[.06em] text-md-on-surface-variant">Mitra DUDI</p>
-            <p className="mt-1 text-2xl font-semibold">{companies.length}</p>
+            <p className="mt-1 text-2xl font-semibold">{companiesQ.error ? "—" : companies.length}</p>
           </M3Card>
           <M3Card variant="filled" className="p-4">
             <p className="text-[11px] uppercase tracking-[.06em] text-md-on-surface-variant">Pembimbing DUDI</p>
-            <p className="mt-1 text-2xl font-semibold">{mentors.length}</p>
+            <p className="mt-1 text-2xl font-semibold">{mentorsQ.error ? "—" : mentors.length}</p>
           </M3Card>
           <M3Card variant="filled" className="p-4">
             <p className="text-[11px] uppercase tracking-[.06em] text-md-on-surface-variant">Total Kuota Gen2</p>
-            <p className="mt-1 text-2xl font-semibold">{totalCapacity}</p>
+            <p className="mt-1 text-2xl font-semibold">{capacitiesQ.error ? "—" : totalCapacity}</p>
           </M3Card>
         </div>
 
