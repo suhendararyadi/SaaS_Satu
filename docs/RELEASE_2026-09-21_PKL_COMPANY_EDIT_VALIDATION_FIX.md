@@ -62,8 +62,7 @@ Rollback backend was `d0809d4-pkl-uat-hardening`; rollback static was `066254d-p
 The deployed `updateCompany` business operation was invoked against the authorized demo DUDI with the same shape as the UI form:
 
 - empty PIC name/phone = `null`
-- latitude = `-7.004497520015701`
-- longitude = `107.26621246005183`
+- captured geofence coordinates from the owner's test device
 - radius = `100`
 
 Result: PASS.
