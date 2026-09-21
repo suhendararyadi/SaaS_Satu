@@ -94,11 +94,11 @@ Domain: `https://sekolah.suhendararyadi.com`.
 
 Production runtime pada snapshot 21 September 2026:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/d0809d4-pkl-uat-hardening`
-- **static current**: `/var/www/saas-satu/releases/066254d-pkl-foundation-permission-ui`
-- backend runtime/source commit: `d0809d4` — PKL Gen2 UAT & operational hardening
-- static UI commit: `066254d` — PKL Foundation query-error UX hardening
-- rollback static release: `d0809d4-pkl-uat-hardening`
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/197c969-pkl-company-edit-fix`
+- **static current**: `/var/www/saas-satu/releases/197c969-pkl-company-edit-fix`
+- runtime/source commit: `197c969` — PKL Mitra DUDI nullable optional-field validation fix
+- rollback backend release: `d0809d4-pkl-uat-hardening`
+- rollback static release: `066254d-pkl-foundation-permission-ui`
 - `saas-satu.service`: **active**
 - branch pengembangan aktif: `redesign/apple-hig`
 - tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
@@ -448,6 +448,22 @@ Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-permission-fix-20260921.dum
 Detail: [`RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`](./RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md).
 
 Operational rule: if a production migration is executed as PostgreSQL superuser, ownership or equivalent CRUD privileges for newly created application tables must be aligned to the runtime application role before rollout is considered complete.
+
+## 3.10 PKL Mitra DUDI edit validation fix — LIVE 21 September 2026
+
+Saving DUDI geofence coordinates failed because empty optional PIC values were serialized as `null` but rejected by the backend schema.
+
+The company schema now accepts nullable `industrySector`, `picName`, and `picPhone`. The schema lives in `app/src/pkl/companyPolicy.ts` with regression coverage.
+
+Final gate: **150/150 full regression PASS**, Wasp/server/Vite PASS, immutable deploy PASS, repeat deploy idempotent true.
+
+Production business-operation verification saved the demo coordinates successfully and placement readiness is **ready with zero blockers/warnings**.
+
+Current release: `197c969-pkl-company-edit-fix`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-geo-update-20260921.dump`.
+
+Detail: [`RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md`](./RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md).
 
 ## 4. Website Sekolah CMS — LIVE
 

@@ -1063,3 +1063,23 @@ Backend remains `d0809d4-pkl-uat-hardening`; static release is `066254d-pkl-foun
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-permission-fix-20260921.dump`.
 
 Handoff: `docs/RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`.
+
+---
+
+## 21 September 2026 — PKL Mitra DUDI edit validation fix
+
+Editing DEMO-PKL-01 and saving geofence coordinates returned `Operation arguments validation failed`.
+
+Production logs identified the exact Zod mismatch: empty `picName` and `picPhone` were sent as `null` but the backend schema did not allow null. `industrySector` had the same latent issue.
+
+The company schema was moved into `app/src/pkl/companyPolicy.ts` and now accepts null for those optional fields. Regression tests were added in `app/src/pkl/companyValidation.test.ts`.
+
+Quality gate: company validation 2/2 PASS, targeted PKL 13/13 PASS, full regression 150/150 PASS across 27 files, Wasp build PASS, server bundle PASS, Vite SSR/client PASS, immutable deploy PASS, repeat deploy idempotent true.
+
+Production release: `197c969-pkl-company-edit-fix`.
+
+End-to-end verification called deployed `updateCompany` with empty PIC fields and the geofence coordinates captured by the user. The coordinates persisted successfully and demo placement readiness became ready=true with 0 blockers and 0 warnings.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-geo-update-20260921.dump`.
+
+Handoff: `docs/RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md`.

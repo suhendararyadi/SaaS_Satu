@@ -14,13 +14,12 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Repository baseline: `/home/ubuntu/projects/SaaS_Satu`.
 - Active School OS worktree: `/home/ubuntu/projects/SaaS_Satu-hardening`.
 - Active branch: `redesign/apple-hig`.
-- Backend application commit: `d0809d4d5492953476eb54894302794dfbbb294b` — PKL Gen2 UAT & operational hardening.
-- Backend production release: `d0809d4-pkl-uat-hardening`.
-- Static UI commit: `066254d28762f5f25fe0c5018388045204c5d356` — PKL Foundation query-error UX hardening.
-- Static production release: `066254d-pkl-foundation-permission-ui`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/d0809d4-pkl-uat-hardening`.
-- Current static pointer: `/var/www/saas-satu/releases/066254d-pkl-foundation-permission-ui`.
-- Rollback static release: `d0809d4-pkl-uat-hardening`.
+- Current application commit: `197c969ccaa2287ea9c80b55e5a18eaa89139f8f` — PKL Mitra DUDI nullable optional-field validation fix.
+- Production release: `197c969-pkl-company-edit-fix`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/197c969-pkl-company-edit-fix`.
+- Current static pointer: `/var/www/saas-satu/releases/197c969-pkl-company-edit-fix`.
+- Rollback backend release: `d0809d4-pkl-uat-hardening`.
+- Rollback static release: `066254d-pkl-foundation-permission-ui`.
 - Service: `saas-satu.service` **active**.
 
 ## 2. Production baseline — SMKN 12 Garut
@@ -207,6 +206,24 @@ Backend remains `d0809d4-pkl-uat-hardening`; static UI is `066254d-pkl-foundatio
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-permission-fix-20260921.dump`.
 
 Release handoff: [`RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`](./RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md).
+
+## 5.6 PKL Mitra DUDI edit validation fix — LIVE
+
+On 21 September 2026, editing the demo DUDI and saving geofence coordinates failed with `Operation arguments validation failed`.
+
+Production Zod logs showed `picName` and `picPhone` were sent as `null` by the UI while the backend schema accepted only string/undefined. `industrySector` had the same latent contract mismatch.
+
+The backend input contract now accepts nullable optional values for these fields. The company schema moved to `app/src/pkl/companyPolicy.ts` with regression coverage in `app/src/pkl/companyValidation.test.ts`.
+
+Quality gate: targeted validation/policy **13/13 PASS**, full regression **150/150 PASS** across 27 files, Wasp build PASS, server bundle PASS, Vite SSR/client PASS, immutable preflight/deploy PASS, repeated deploy idempotent true.
+
+Production end-to-end verification invoked the deployed `updateCompany` business operation with empty PIC fields and the captured geofence coordinates. Coordinates persisted successfully. The demo placement readiness is now **ready=true, blockers=0, warnings=0**.
+
+Release: `197c969-pkl-company-edit-fix`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-geo-update-20260921.dump`.
+
+Release handoff: [`RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md`](./RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md).
 
 ## 6. Active design contract
 
