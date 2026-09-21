@@ -229,7 +229,7 @@ Release handoff: [`RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md`](./REL
 
 The active UI system is **School OS — Apple HIG-inspired**.
 
-Source of truth: [UI_UX_APPLE_HIG.md](./UI_UX_APPLE_HIG.md).
+Primary cross-agent source of truth: [../DESIGN.md](../DESIGN.md). Detailed implementation/history reference: [UI_UX_APPLE_HIG.md](./UI_UX_APPLE_HIG.md).
 
 Important:
 

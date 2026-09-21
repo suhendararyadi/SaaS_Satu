@@ -49,7 +49,8 @@ Dokumentasi terperinci tersedia di folder [`docs/`](./docs):
 
 - 🧭 [**Konteks Proyek Aktif (`docs/PROJECT_CONTEXT.md`)**](./docs/PROJECT_CONTEXT.md)
 - 🏛️ [**Arsitektur & Desain Sistem (`docs/ARCHITECTURE.md`)**](./docs/ARCHITECTURE.md)
-- 🍎 [**School OS — Apple HIG-inspired UI (`docs/UI_UX_APPLE_HIG.md`)**](./docs/UI_UX_APPLE_HIG.md)
+- 🧭 [**School OS DESIGN.md — cross-agent visual source of truth**](./DESIGN.md)
+- 🍎 [**School OS — Apple HIG-inspired implementation reference (`docs/UI_UX_APPLE_HIG.md`)**](./docs/UI_UX_APPLE_HIG.md)
 - 🧪 [**School OS Demo Data (`docs/DEMO_DATA.md`)**](./docs/DEMO_DATA.md)
 - 🎨 [**Legacy Material 3/API compatibility reference (`docs/DESIGN_SYSTEM_M3.md`)**](./docs/DESIGN_SYSTEM_M3.md)
 - ✨ [**Rencana Redesign UI/UX v2 — Playful Academic (`docs/UI_UX_REDESIGN_PLAN_V2.md`)**](./docs/UI_UX_REDESIGN_PLAN_V2.md)

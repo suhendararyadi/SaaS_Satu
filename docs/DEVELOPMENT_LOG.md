@@ -1083,3 +1083,22 @@ End-to-end verification called deployed `updateCompany` with empty PIC fields an
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-geo-update-20260921.dump`.
 
 Handoff: `docs/RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md`.
+
+---
+
+## 21 September 2026 — School OS DESIGN.md adoption
+
+The active School OS Apple HIG-inspired interface was audited directly from the latest live frontend lineage (`c64509e`) and formalized into root [`DESIGN.md`](../DESIGN.md) using Google's open DESIGN.md format.
+
+The file now combines machine-readable YAML design tokens with human-readable guidance for colors, typography, layout, elevation, shapes, shared components, Spotlight, dialogs/evidence previews, tables, dashboards, accessibility, data honesty, and do/don't guardrails. The values were derived from `app/src/client/Main.css`, shared `components/m3/` compatibility components, `SchoolLayout`, `SchoolSpotlight`, and the existing `UI_UX_APPLE_HIG.md` implementation record.
+
+Agent guidance, project context, architecture, root README, and documentation index now point to `DESIGN.md` as the primary cross-agent visual authority. `docs/UI_UX_APPLE_HIG.md` remains the detailed implementation/history reference; legacy Material 3 documentation is historical only.
+
+Validation:
+
+- `git diff --check`: PASS;
+- official `@google/design.md` v0.4.0 structural lint: **0 errors**;
+- lint warnings: orphaned-token advisories only, intentionally retained because the machine-readable palette includes production semantic/dark/icon tokens beyond the compact component map;
+- official DESIGN.md Tailwind v4 CSS export: PASS.
+
+No runtime UI, database, backend, or production pointer was changed by this documentation-only adoption.

@@ -34,32 +34,36 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Sistem otentikasi, perizinan (*Auth Guards*), dan hierarki peran pengguna (*User Roles*).
    - Konfigurasi router, queries, dan actions terdistribusi (`*.wasp.ts`).
 
-3. [**School OS — Apple HIG-inspired UI (`UI_UX_APPLE_HIG.md`)**](./UI_UX_APPLE_HIG.md)
-   - Source of truth visual aktif untuk desktop dan mobile.
+3. [**School OS DESIGN.md — cross-agent visual source of truth**](../DESIGN.md)
+   - Machine-readable tokens + human-readable design rules for coding/design agents.
+   - Derived from the current production implementation.
+
+4. [**School OS — Apple HIG-inspired implementation reference (`UI_UX_APPLE_HIG.md`)**](./UI_UX_APPLE_HIG.md)
+   - Detail implementasi dan riwayat refinement HIG untuk desktop dan mobile.
    - System typography, semantic colors, translucent sidebar/toolbar, grouped surfaces, tables, sheets, and touch targets.
    - Adaptasi dari Apple HIG dan prototipe `School OS.zip` tanpa menyalin data contoh ke production.
    - Nama komponen `M3*` dipertahankan sementara sebagai API compatibility layer.
 
-4. [**School OS Demo Data (`DEMO_DATA.md`)**](./DEMO_DATA.md)
+5. [**School OS Demo Data (`DEMO_DATA.md`)**](./DEMO_DATA.md)
    - Runner synthetic seed/status/cleanup yang eksplisit, idempotent, dan reversible.
    - Marker data DEMO, safety contract, coverage dataset, serta catatan rollout production 10 September 2026.
 
-5. [**Legacy Material 3 Reference (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
+6. [**Legacy Material 3 Reference (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
    - Referensi historis implementasi UI awal; bukan source of truth visual aktif.
 
-6. [**Rencana Redesign UI/UX v2: Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
+7. [**Rencana Redesign UI/UX v2: Playful Academic (`UI_UX_REDESIGN_PLAN_V2.md`)**](./UI_UX_REDESIGN_PLAN_V2.md)
    - Referensi historis fase redesign sebelum School OS menjadi arah visual aktif.
    - Design tokens v2, role-based UX, app shell, dashboard, responsive/mobile, accessibility, dan roadmap sprint.
    - Phase 0: [`UX_AUDIT_PHASE0_V2.md`](./UX_AUDIT_PHASE0_V2.md) dan [`WIREFRAMES_DASHBOARDS_V2.md`](./WIREFRAMES_DASHBOARDS_V2.md).
    - Implementasi aktual fase tersebut: [`UI_UX_REDESIGN_IMPLEMENTATION_V2.md`](./UI_UX_REDESIGN_IMPLEMENTATION_V2.md).
 
-7. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
+8. [**Pedoman Anti-Slop (`ANTI_SLOP_GUIDELINES.md`)**](./ANTI_SLOP_GUIDELINES.md)
    - Penerapan aturan Anti-Slop (R-01 s/d R-38).
    - Standar salinan bahasa Indonesia baku edukasi (Kemdikbudristek).
    - Standar aksesibilitas (kontras warna WCAG AA >= 4.5:1, target sentuh 44px).
    - Rekap temuan audit pasca pengerjaan dan solusinya.
 
-8. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
+9. [**Panduan Modul Aplikasi (`MODULES_GUIDE.md`)**](./MODULES_GUIDE.md)
    - **Modul 1: Dasbor & Master Data** (Tahun Ajaran, Rombel Kelas, Jurusan, Pengaturan Sekolah, Super Admin).
    - **Modul 2: Kepegawaian & Kesiswaan (CRUD Manual & CSV)** (Manajemen Guru & Tendik, Data Siswa, Proteksi Kuota).
    - **Modul 3: Pembelajaran LMS & Kurikulum Merdeka** (Silabus otomatis Fase A-F, Materi, Tugas, Agenda KBM, Presensi, CBT).
@@ -67,7 +71,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - **Modul 5: Tata Kelola & Supervisi** (Guru Piket, Wali Kelas, Waka Kurikulum).
    - **Modul 6: Laporan & Cetak Dokumen Kedinasan** (KOP surat resmi berjenjang, Print stylesheet).
 
-9. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
+10. [**Catatan Progres & Riwayat Pekerjaan (`DEVELOPMENT_LOG.md`)**](./DEVELOPMENT_LOG.md)
    - Kronologi lengkap setiap tahapan pengembangan dari awal hingga saat ini.
    - Detail keputusan teknis dan penyelesaian kendala implementasi.
    - Hasil pengujian otomatis per tahap, termasuk TypeScript, Wasp Unit Tests, dan riwayat E2E terdahulu bila tersedia.

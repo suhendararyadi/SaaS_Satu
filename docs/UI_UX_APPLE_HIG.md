@@ -2,6 +2,7 @@
 
 Status: active / implemented
 Design direction: Apple HIG-inspired web interface
+Cross-agent design authority: [`../DESIGN.md`](../DESIGN.md)
 Official design reference: https://developer.apple.com/design/human-interface-guidelines
 Golden prototypes: user-provided `School OS.zip` plus subsequent production visual reviews
 

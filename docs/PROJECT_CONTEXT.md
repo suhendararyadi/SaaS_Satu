@@ -68,7 +68,7 @@ Raw student/PTK PII dan secrets tidak boleh dimasukkan ke global memory.
 
 ## 2. Design contract aktif
 
-Design system aktif adalah **School OS — Apple HIG-inspired**, bukan Material 3. Source of truth visual: [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md).
+Design system aktif adalah **School OS — Apple HIG-inspired**, bukan Material 3. Primary cross-agent visual source of truth: [`../DESIGN.md`](../DESIGN.md). Detail implementasi/historis: [`UI_UX_APPLE_HIG.md`](./UI_UX_APPLE_HIG.md).
 
 Nama folder/komponen `components/m3/` dan API `M3*` tetap dipakai sebagai compatibility layer; nama tersebut bukan authority desain Material 3.
 
