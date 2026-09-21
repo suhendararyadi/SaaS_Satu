@@ -5,6 +5,7 @@ import {
   useQuery,
 } from "wasp/client/operations";
 import { uploadFileWithProgress } from "../../file-upload/fileUploading";
+import { api } from "wasp/client/api";
 import { M3Badge, M3Button, M3Icon } from "../../client/components/m3";
 
 type Props = {
@@ -43,14 +44,11 @@ export function PklEvidenceUploader({ value, onChange, capture = "environment", 
       let uploadedKey = "";
       if (status.data?.mode === "local") {
         setProgress(20);
-        const response = await fetch("/operations/pkl-evidence-upload", {
-          method: "POST",
-          credentials: "same-origin",
+        const payload = await api.post("/operations/pkl-evidence-upload", {
           headers: { "Content-Type": file.type, "X-File-Name": file.name || `pkl-${Date.now()}.jpg` },
           body: file,
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload?.key) throw new Error(payload?.error || "Upload foto lokal gagal.");
+        }).json<{ key: string }>();
+        if (!payload?.key) throw new Error("Upload foto lokal gagal.");
         uploadedKey = payload.key;
       } else {
         const signed = await createPklEvidenceUploadUrl({
