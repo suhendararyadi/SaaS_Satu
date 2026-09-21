@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { type AuthUser } from "wasp/auth";
+import { api } from "wasp/client/api";
 import {
   getDailyJournals,
   getPklEvidenceSignedUrl,
@@ -42,6 +43,10 @@ export function JournalsPage({ user }: { user: AuthUser }) {
   const [evidence,setEvidence]=useState("");
   const [busy,setBusy]=useState(false);
   const [editingId,setEditingId]=useState<string|null>(null);
+  const [evidencePreviewOpen,setEvidencePreviewOpen]=useState(false);
+  const [evidencePreviewUrl,setEvidencePreviewUrl]=useState<string|null>(null);
+  const [evidencePreviewLoading,setEvidencePreviewLoading]=useState(false);
+  const [evidencePreviewRow,setEvidencePreviewRow]=useState<any>(null);
 
   const existingForDate=useMemo(()=>journals.find((j:any)=>j.placementId===activePlacement?.id&&(j.dateOnly||String(j.date).slice(0,10))===dateOnly),[journals,activePlacement,dateOnly]);
 
@@ -82,8 +87,33 @@ export function JournalsPage({ user }: { user: AuthUser }) {
     }catch(e:any){alert(e?.message||"Review belum tersimpan.");}
     finally{setBusy(false);}
   };
+  const closeEvidence=()=>{
+    if(evidencePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(evidencePreviewUrl);
+    setEvidencePreviewUrl(null);
+    setEvidencePreviewOpen(false);
+    setEvidencePreviewLoading(false);
+    setEvidencePreviewRow(null);
+  };
   const openEvidence=async(row:any)=>{
-    try{const url=await getPklEvidenceSignedUrl({kind:"JOURNAL",id:row.id});window.open(url,"_blank","noopener,noreferrer");}catch(e:any){alert(e?.message||"Bukti tidak tersedia.");}
+    if(evidencePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(evidencePreviewUrl);
+    setEvidencePreviewRow(row);
+    setEvidencePreviewUrl(null);
+    setEvidencePreviewLoading(true);
+    setEvidencePreviewOpen(true);
+    try{
+      const url=await getPklEvidenceSignedUrl({kind:"JOURNAL",id:row.id});
+      if(url.startsWith("/operations/pkl-evidence-file/")){
+        const blob=await api.get(url).blob();
+        setEvidencePreviewUrl(URL.createObjectURL(blob));
+      }else{
+        setEvidencePreviewUrl(url);
+      }
+    }catch(e:any){
+      setEvidencePreviewOpen(false);
+      alert(e?.message||"Bukti tidak tersedia.");
+    }finally{
+      setEvidencePreviewLoading(false);
+    }
   };
 
   const [filter,setFilter]=useState("ALL");
@@ -111,6 +141,12 @@ export function JournalsPage({ user }: { user: AuthUser }) {
         <div className="flex flex-wrap gap-1.5">{(row.evidenceUrl||row.photoUrl)&&<M3Button variant="text" size="sm" onClick={()=>openEvidence(row)}>Bukti</M3Button>}{isStudent&&["DRAFT","REVISION"].includes(row.status)&&<M3Button variant="tonal" size="sm" onClick={()=>loadJournal(row)}>Edit</M3Button>}{canReview&&row.status!=="DRAFT"&&<M3Button variant="tonal" size="sm" onClick={()=>{setReviewRow(row);setDecision("APPROVED");setFeedback("");setScore(String(row.score??90));}}>Review</M3Button>}</div></div>
       </div>)}</div>}
     </M3Card>
+
+    <M3Dialog isOpen={evidencePreviewOpen} onClose={closeEvidence} title="Bukti Jurnal PKL" subtitle={evidencePreviewRow?`${evidencePreviewRow.placement?.student?.name||"Siswa"} · ${evidencePreviewRow.dateOnly||String(evidencePreviewRow.date||"").slice(0,10)}`:""} actions={<M3Button variant="text" onClick={closeEvidence}>Tutup</M3Button>}>
+      <div className="flex min-h-[220px] items-center justify-center overflow-hidden rounded-[12px] bg-md-surface-container">
+        {evidencePreviewLoading?<M3CircularProgress size={36}/>:evidencePreviewUrl?<img src={evidencePreviewUrl} alt="Bukti jurnal PKL" className="max-h-[70vh] w-full object-contain"/>:<p className="p-6 text-sm text-md-on-surface-variant">Bukti tidak tersedia.</p>}
+      </div>
+    </M3Dialog>
 
     <M3Dialog isOpen={!!reviewRow} onClose={()=>setReviewRow(null)} title="Review Jurnal PKL" subtitle={reviewRow?.placement?.student?.name||""} actions={<><M3Button variant="text" onClick={()=>setReviewRow(null)}>Batal</M3Button><M3Button onClick={saveReview} isLoading={busy}>Simpan Review</M3Button></>}><div className="space-y-3"><M3Select label="Keputusan" value={decision} onChange={(e)=>setDecision(e.target.value as any)} options={[{value:"APPROVED",label:"Setujui"},{value:"REVISION",label:"Minta Revisi"}]}/><M3TextField label="Nilai 0–100" type="number" value={score} onChange={(e)=>setScore(e.target.value)}/><div><label className="mb-1 block text-xs font-semibold">Feedback</label><textarea rows={4} value={feedback} onChange={(e)=>setFeedback(e.target.value)} className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm"/></div></div></M3Dialog>
   </div></SchoolLayout>;
