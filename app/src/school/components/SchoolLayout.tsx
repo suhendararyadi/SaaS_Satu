@@ -380,11 +380,6 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
 
   const isStudentAttendancePage = isStudent && location.pathname.startsWith("/school/my-attendance");
   const bottomItems: M3BottomNavigationItem[] = (() => {
-    if (isStudentAttendancePage) return [
-      { label: "Riwayat", href: "/school/my-attendance#history", icon: "history" },
-      { label: "Presensi", href: "/school/my-attendance", icon: "photo_camera" },
-      { label: "Akun", href: "/account", icon: "person" },
-    ];
     if (isStudent) return [
       { label: "Beranda", href: "/school", icon: "home" },
       { label: "Presensi", href: "/school/my-attendance", icon: "fact_check" },
@@ -447,11 +442,11 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
   return (
     <div className="min-h-screen bg-md-background text-md-on-background">
       <div className="flex min-h-screen">
-        <M3NavigationDrawer sections={drawerSections} header={drawerHeader} isOpen={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} isCollapsed={isSidebarCollapsed} />
+        <M3NavigationDrawer sections={drawerSections} header={drawerHeader} isOpen={!isStudent && mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} isCollapsed={isSidebarCollapsed} />
         <div className="flex min-w-0 flex-1 flex-col">
           <M3TopAppBar
             className={isStudentAttendancePage ? "hidden lg:flex" : ""}
-            leading={<M3Button variant="icon" size="icon-md" onClick={() => setMobileDrawerOpen(true)} aria-label="Buka navigasi" title="Buka navigasi" icon={<Menu size={18} strokeWidth={1.8} aria-hidden="true" />} className="text-md-on-surface-variant hover:text-md-on-surface lg:hidden" />}
+            leading={!isStudent ? <M3Button variant="icon" size="icon-md" onClick={() => setMobileDrawerOpen(true)} aria-label="Buka navigasi" title="Buka navigasi" icon={<Menu size={18} strokeWidth={1.8} aria-hidden="true" />} className="text-md-on-surface-variant hover:text-md-on-surface lg:hidden" /> : undefined}
             title={getPageTitle(location.pathname)}
             subtitle={topBarContext}
             actions={<>{isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}<button type="button" onClick={() => setSpotlightOpen(true)} aria-label="Buka Spotlight Search" title="Cari di School OS (⌘K)" className="inline-flex h-9 items-center gap-2 rounded-[10px] px-2.5 text-md-on-surface-variant transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/35 dark:hover:bg-white/[.075]"><Search size={17} strokeWidth={1.8} aria-hidden="true"/><span className="hidden text-[12.5px] font-medium md:inline">Cari</span><kbd className="hidden rounded-[6px] border border-black/[.08] bg-black/[.035] px-1.5 py-0.5 text-[10px] font-semibold text-md-on-surface-variant lg:inline dark:border-white/[.09] dark:bg-white/[.06]">⌘K</kbd></button><NotificationBell /><M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} /><M3AccountMenu user={user} /></>}

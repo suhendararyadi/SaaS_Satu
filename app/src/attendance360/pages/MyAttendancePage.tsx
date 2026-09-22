@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { type AuthUser } from "wasp/auth";
 import { getMyAttendance, recordSelfAttendance, submitAttendancePermitRequest, useQuery } from "wasp/client/operations";
 import { Bell, Camera, CheckCircle2, ChevronRight, Clock3, History, LogIn, LogOut, MapPin, Navigation, RefreshCw, School, ShieldCheck } from "lucide-react";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import { M3Badge, M3Banner, M3Button, M3Card, M3CircularProgress, M3Dialog, M3Icon, M3Select, M3TextField } from "../../client/components/m3";
 import { calculateDistanceMeters } from "../../shared/geofence";
-import { AttendanceEvidenceUploader } from "../components/AttendanceEvidenceUploader";
+import { AttendanceEvidenceUploader, type AttendanceEvidenceUploaderHandle } from "../components/AttendanceEvidenceUploader";
 
 const badge: Record<string, any> = { HADIR:"success", TERLAMBAT:"warning", SAKIT:"secondary", IZIN:"primary", ALPA:"error" };
 
@@ -50,6 +50,8 @@ export function MyAttendancePage({ user }: { user: AuthUser }) {
   const [permitReason,setPermitReason]=useState("");
   const [permitDestination,setPermitDestination]=useState("");
   const [clientNow,setClientNow]=useState(()=>Date.now());
+  const [selfieUploading,setSelfieUploading]=useState(false);
+  const selfieCaptureRef=useRef<AttendanceEvidenceUploaderHandle>(null);
 
   const locate=()=>{
     if(!navigator.geolocation){setGeoError("Perangkat/browser tidak mendukung GPS.");return;}
@@ -99,7 +101,7 @@ export function MyAttendancePage({ user }: { user: AuthUser }) {
   const withinActionWindow=actionWindow?nowMinutes>=clockMinutes(actionWindow.open)&&nowMinutes<=clockMinutes(actionWindow.close):true;
   const selfieRequired=nextAction==="CHECK_IN"?!!data?.policy?.requireCheckInSelfie:nextAction==="CHECK_OUT"?!!data?.policy?.requireCheckOutSelfie:false;
   const locationReady=!!coords&&!!geoPreview?.inside&&!!geoPreview?.accurate;
-  const actionAvailable=!!nextAction&&!!data?.policy?.isActive&&!!data?.day?.isSchoolDay&&locationReady&&withinActionWindow;
+  const actionAvailable=!!nextAction&&!!data?.policy?.isActive&&!!data?.day?.isSchoolDay&&locationReady&&withinActionWindow&&!selfieUploading;
 
   const actionSupportingText=(()=>{
     if(!data?.policy?.isActive)return "Presensi mandiri belum aktif";
@@ -109,15 +111,16 @@ export function MyAttendancePage({ user }: { user: AuthUser }) {
     if(geoPreview&&!geoPreview.inside)return "Di luar radius presensi";
     if(!nextAction)return "Presensi hari ini sudah lengkap";
     if(!withinActionWindow&&actionWindow)return `Tersedia ${actionWindow.open}–${actionWindow.close}`;
-    if(selfieRequired&&!selfie)return "Selfie diperlukan sebelum presensi";
+    if(selfieUploading)return "Mengunggah selfie…";
+    if(selfieRequired)return "Ketuk untuk selfie & presensi";
     return nextAction==="CHECK_IN"?"Siap mencatat waktu masuk":"Siap mencatat waktu pulang";
   })();
 
-  const record=async(type:"CHECK_IN"|"CHECK_OUT")=>{
+  const record=async(type:"CHECK_IN"|"CHECK_OUT",evidenceOverride?:string)=>{
     if(!coords){setGeoError("Perbarui GPS terlebih dahulu.");return;}
     setBusy(true);setMessage("");
     try{
-      const result:any=await recordSelfAttendance({type,latitude:coords.latitude,longitude:coords.longitude,accuracy:coords.accuracy,evidenceKey:selfie||null,notes:notes||null});
+      const result:any=await recordSelfAttendance({type,latitude:coords.latitude,longitude:coords.longitude,accuracy:coords.accuracy,evidenceKey:evidenceOverride||selfie||null,notes:notes||null});
       setMessage(result.alreadyRecorded?"Presensi sebelumnya sudah tercatat; tidak dibuat duplikat.":type==="CHECK_IN"?"Check-in berhasil dicatat.":"Check-out berhasil dicatat.");
       setSelfie("");setNotes("");await query.refetch();
     }catch(e:any){setGeoError(e?.message||"Presensi belum berhasil.");}finally{setBusy(false);}
@@ -125,9 +128,9 @@ export function MyAttendancePage({ user }: { user: AuthUser }) {
 
   const handlePrimaryAction=()=>{
     if(!nextAction)return;
-    if(selfieRequired&&!selfie){
-      setGeoError("Ambil selfie langsung terlebih dahulu sebelum mencatat presensi.");
-      document.getElementById("attendance-selfie")?.scrollIntoView({behavior:"smooth",block:"center"});
+    setGeoError("");
+    if(selfieRequired){
+      selfieCaptureRef.current?.openCamera();
       return;
     }
     void record(nextAction);
@@ -183,11 +186,12 @@ export function MyAttendancePage({ user }: { user: AuthUser }) {
 
             <div className="mt-5 flex justify-center">
               <button type="button" onClick={handlePrimaryAction} disabled={!actionAvailable||busy||!nextAction} aria-label={`${actionLabel}. ${actionSupportingText}`} className="group flex size-[168px] touch-manipulation flex-col items-center justify-center rounded-full bg-md-primary px-5 text-center text-md-on-primary shadow-[0_2px_10px_rgba(0,113,227,.22)] ring-[10px] ring-md-primary-container transition-[transform,background-color,box-shadow] active:scale-[.985] disabled:cursor-not-allowed disabled:bg-md-surface-highest disabled:text-md-on-surface-variant disabled:shadow-none disabled:ring-md-surface-container">
-                {busy?<span className="mb-2 size-5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"/>:<Camera size={25} strokeWidth={1.7} className="mb-2 opacity-90"/>}
+                {(busy||selfieUploading)?<span className="mb-2 size-5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"/>:<Camera size={25} strokeWidth={1.7} className="mb-2 opacity-90"/>}
                 <span className="text-[21px] font-semibold tracking-[.05em]">{actionLabel}</span>
                 <span className="mt-1 max-w-[125px] text-[11px] font-medium leading-4 opacity-85">{actionSupportingText}</span>
               </button>
             </div>
+            {nextAction&&<AttendanceEvidenceUploader ref={selfieCaptureRef} value={selfie} onChange={setSelfie} required={selfieRequired} triggerOnly onBusyChange={setSelfieUploading} onError={setGeoError} onUploaded={async(key)=>{ if(nextAction) await record(nextAction,key); }}/>}
           </div>
 
           <div className={`mx-3 mb-3 flex items-start gap-2.5 rounded-[12px] px-3.5 py-3 ${mobileStatusClass}`} role={mobileStatus.tone==="error"?"alert":undefined}>
@@ -199,14 +203,10 @@ export function MyAttendancePage({ user }: { user: AuthUser }) {
             <div className="border-r border-md-outline-variant px-3 py-3.5 text-center"><Clock3 size={16} className="mx-auto text-md-primary"/><p className="mt-1.5 text-[17px] font-semibold tabular-nums text-md-on-surface">{schedule?.checkInOpen||"--:--"}</p><p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-[.055em] text-md-on-surface-variant">Masuk sekolah</p><p className="mt-1 text-[11px] text-md-on-surface-variant">Tercatat {eventTime(checkInEvent)}</p></div>
             <div className="px-3 py-3.5 text-center"><Clock3 size={16} className="mx-auto text-md-primary"/><p className="mt-1.5 text-[17px] font-semibold tabular-nums text-md-on-surface">{schedule?.checkOutOpen||"--:--"}</p><p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-[.055em] text-md-on-surface-variant">Pulang sekolah</p><p className="mt-1 text-[11px] text-md-on-surface-variant">Tercatat {eventTime(checkOutEvent)}</p></div>
           </div>
-          <a href="#history" className="flex min-h-12 items-center justify-center gap-1.5 border-t border-md-outline-variant px-4 text-[13px] font-semibold text-md-primary">Lihat riwayat presensi <ChevronRight size={16}/></a>
-        </section>
-
-        <section id="attendance-selfie" className="rounded-[16px] border border-md-outline-variant bg-md-surface p-4 shadow-[0_1px_2px_rgba(0,0,0,.05)]">
-          <div className="mb-3 flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-md-primary-container text-md-primary"><Camera size={18}/></span><div><h3 className="text-[14px] font-semibold text-md-on-surface">Verifikasi presensi</h3><p className="mt-0.5 text-[11.5px] leading-4 text-md-on-surface-variant">Selfie dan catatan hanya digunakan sebagai evidence presensi yang terautentikasi.</p></div></div>
-          {nextAction&&<AttendanceEvidenceUploader value={selfie} onChange={setSelfie} required={selfieRequired} label={nextAction==="CHECK_IN"?"Selfie saat masuk":"Selfie saat pulang"}/>}
-          <div className="mt-3"><M3TextField label="Catatan (opsional)" value={notes} onChange={e=>setNotes(e.target.value)}/></div>
-          <div className="mt-3 flex gap-2"><M3Button fullWidth variant="outlined" icon="event_busy" onClick={()=>setPermitOpen(true)}>Ajukan izin / sakit</M3Button></div>
+          <div className="grid grid-cols-2 border-t border-md-outline-variant">
+            <a href="#history" className="flex min-h-12 items-center justify-center gap-1.5 border-r border-md-outline-variant px-3 text-[12.5px] font-semibold text-md-primary">Riwayat <ChevronRight size={15}/></a>
+            <button type="button" onClick={()=>setPermitOpen(true)} className="flex min-h-12 items-center justify-center px-3 text-[12.5px] font-semibold text-md-primary">Izin / sakit</button>
+          </div>
         </section>
 
         <section className="overflow-hidden rounded-[16px] border border-md-outline-variant bg-md-surface shadow-[0_1px_2px_rgba(0,0,0,.05)]">
