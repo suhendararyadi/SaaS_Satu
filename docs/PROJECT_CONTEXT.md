@@ -36,7 +36,7 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - PKL Foundation Generasi Kedua: `45a11a5` — final app commit for Gen2 foundation compatibility
 - PKL Gen2 full workflow suite: `5aee74e` — Placement/Readiness/Attendance/Journal/EWS/Role Panel/Reports/Import
 - PKL Gen2 UAT & hardening: `d0809d4` — concurrency, lifecycle, attendance, import, EWS and evidence hardening
-- Current production application commit: `0d52d90` — Kesiswaan Terpadu + Tindak Lanjut production-grade hardening
+- Current production application commit: `d77dd38` — Attendance 360 evidence-based attendance platform
 - Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
 - Current attendance hardening branch/worktree: `hardening/daily-attendance-wali` at `/home/ubuntu/.cache/mso-worktrees/saas-satu-attendance-wali-hardening`; production app release: `16bad88-attendance-wali-hardening`.
 - Current Kesiswaan/Follow-Up hardening branch/worktree: `hardening/student-affairs-followup` at `/home/ubuntu/.cache/mso-worktrees/saas-satu-student-affairs-followup-hardening`; production app release: `0d52d90-student-affairs-followup`.
@@ -681,3 +681,16 @@ Release `16bad88-attendance-wali-hardening` is live for backend and static. SMKN
 ## 3.5 Kesiswaan Terpadu + Tindak Lanjut production-grade — 22 September 2026
 
 Release `0d52d90-student-affairs-followup` is live for backend and static. Production read-only checks verified both Kesiswaan and the Follow-Up manual student selector now cover all **1,539 / 1,539** SMKN 12 Garut students instead of the former 1,500 and 500 caps. Isolated multi-tenant real-DB UAT passed **55/55**, full regression passed **157/157 across 29 files**, and temporary UAT data was fully removed. Genuine SMKN 12 Kesiswaan and Follow-Up production tables remain at zero rows. Hardened contracts include active-year homeroom scope, explicit class/student selectors, no future violation/achievement dates, valid same-school teacher/admin Follow-Up assignees, optimistic concurrency, clean reopen metadata, auto-follow-up synchronization, and Student Affairs signals into EWS Gen 2. See [`RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`](./RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md).
+
+
+## 3.6 Attendance 360 production release — 22 September 2026
+
+Release `d77dd38-attendance360` is live for backend and static. The implementation preserves `SchoolDailyAttendance` as canonical daily truth while adding `StudentAttendanceEvent`, attendance policy/calendar, student GPS+selfie check-in/out, Duty Teacher Gen 2 per-student events, Wali Kelas evidence reconciliation, LMS subject-attendance integration, monthly matrix/reporting, habituation attendance, audit trail, Command Center, and Attendance EWS Gen 3.
+
+Verification: isolated production-clone real-DB UAT **62/62 PASS**; full regression **163/163 across 30 files**; Wasp build, server bundle, Vite SSR/client, immutable preflight/deploy, repeat idempotent deploy, protected-operation security checks, DB integrity, log scan, and VPS health all PASS.
+
+SMKN 12 Garut remains **1,539 students / 50 active rombels / 0 genuine daily attendance / 0 Attendance 360 events** immediately after release. No attendance policy was auto-created for SMKN 12 Garut; exact coordinates/times/calendar must be configured before self-attendance activation.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-attendance360-20260922.dump`.
+
+Release record: [`RELEASE_2026-09-22_ATTENDANCE_360.md`](./RELEASE_2026-09-22_ATTENDANCE_360.md).

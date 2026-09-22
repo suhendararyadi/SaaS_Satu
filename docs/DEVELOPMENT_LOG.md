@@ -1138,3 +1138,24 @@ Production release: `0d52d90-student-affairs-followup`.
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-student-affairs-followup-uat-20260922.dump`.
 
 Handoff: `docs/RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`.
+
+
+---
+
+## 22 September 2026 — Attendance 360 production release
+
+The complete Attendance 360 roadmap was implemented from the hardened Daily Attendance baseline without replacing `SchoolDailyAttendance`. The new evidence layer combines student self check-in/out, Duty Teacher events, LMS subject attendance, approved permit/sick records, habituation, and homeroom verification.
+
+New production surfaces: Command Center, Kehadiran Saya, attendance settings/calendar, habituation, audit trail, Duty Teacher Gen 2, Wali reconciliation/monthly matrix, and Attendance EWS Gen 3. The reconciliation contract protects `MANUAL`/`VERIFIED` human decisions and surfaces conflicting evidence for review.
+
+An interrupted implementation had left the additive Attendance 360 schema physically complete in production without Prisma migration bookkeeping. The schema was audited (all expected columns/indexes/FKs/enums present, zero production events), the migration was made idempotent, validated on a production clone through `prisma migrate deploy`, then recorded successfully in production before runtime cutover.
+
+Quality gate: targeted tests **15/15 PASS**, full regression **163/163 PASS across 30 files**, production-clone real-DB UAT **62/62 PASS**, Prisma validation PASS, Wasp build PASS, server bundle PASS, SSR/client builds PASS, immutable preflight/deploy PASS, repeat deploy idempotent true, protected endpoint security smoke PASS, DB integrity PASS, post-restart logs clean.
+
+Production release: `d77dd38-attendance360`. Rollback: `0d52d90-student-affairs-followup`.
+
+SMKN 12 Garut remained at 1,539 students, 50 active rombels, 0 genuine daily attendance, 0 Attendance 360 events, and no active Attendance 360 policy immediately after deployment.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-attendance360-20260922.dump`.
+
+Handoff: `docs/RELEASE_2026-09-22_ATTENDANCE_360.md`.

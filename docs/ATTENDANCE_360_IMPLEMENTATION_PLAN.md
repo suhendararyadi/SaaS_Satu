@@ -1,9 +1,10 @@
 # School OS — Attendance 360 Implementation Plan
 
-Status: **Approved / source of truth for implementation**  
-Date: **22 September 2026**  
-Baseline production at approval: `0d52d90-student-affairs-followup`  
-Primary operational reference: Jingga Asik attendance specification from SMKN 1 Rongga.  
+Status: **Implemented / production-live**
+Date: **22 September 2026**
+Baseline production at approval: `0d52d90-student-affairs-followup`
+Production implementation: `d77dd38-attendance360`
+Primary operational reference: Jingga Asik attendance specification from SMKN 1 Rongga.
 Design authority: root `DESIGN.md`.
 
 ## 1. Goal
@@ -318,3 +319,12 @@ Attendance 360 is complete when:
 - habituation is independently recordable;
 - EWS consumes richer attendance evidence;
 - all role/tenant boundaries and audit trails pass production-grade UAT.
+
+
+## 12. Production completion record
+
+The approved roadmap was implemented and promoted on 22 September 2026 as release `d77dd38-attendance360`. Real-DB UAT passed **62/62**, full regression passed **163/163 across 30 files**, Wasp/server/SSR/client build gates passed, production migration/deploy passed, repeat deploy was idempotent, and post-deploy security/DB/service checks passed.
+
+SMKN 12 Garut remained at **1,539 students / 50 active rombels / 0 genuine daily-attendance rows / 0 Attendance 360 events** immediately after deployment. Self-attendance policy was intentionally left unconfigured/inactive for the real school until authoritative coordinates, schedules, and calendar settings are entered by an authorized admin.
+
+Detailed evidence: [`RELEASE_2026-09-22_ATTENDANCE_360.md`](./RELEASE_2026-09-22_ATTENDANCE_360.md).

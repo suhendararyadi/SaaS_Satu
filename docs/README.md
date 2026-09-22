@@ -120,3 +120,6 @@ node scratch/test_crud_manual.mjs
 Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DEMO_DATA.md) dan jangan menjalankan cleanup ad-hoc di database production.
 
    - Kesiswaan Terpadu + Tindak Lanjut production-grade hardening: [`RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`](./RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md).
+
+   - Attendance 360 production release: [`RELEASE_2026-09-22_ATTENDANCE_360.md`](./RELEASE_2026-09-22_ATTENDANCE_360.md).
+   - Attendance 360 implementation/source-of-truth plan: [`ATTENDANCE_360_IMPLEMENTATION_PLAN.md`](./ATTENDANCE_360_IMPLEMENTATION_PLAN.md).

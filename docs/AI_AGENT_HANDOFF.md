@@ -310,6 +310,9 @@ Rollback release: `5aee74e-pkl-gen2-full`.
 - pre PKL Gen2 UAT hardening deploy:
   `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-uat-hardening-20260921.dump`
 
+- pre Attendance 360 production migration/deploy:
+  `/home/ubuntu/backups/SaaS_Satu/pre-attendance360-20260922.dump`
+
 Do not delete these as routine cleanup.
 
 ## 11. Documentation reading order
@@ -351,7 +354,7 @@ Do not store raw student/PTK PII, credentials, tokens, or private keys in either
 
 ## 13. Current continuation point
 
-PKL Foundation + the complete PKL Generasi Kedua workflow suite are finished and live. Presensi Harian + Wali Kelas and Kesiswaan Terpadu + Tindak Lanjut have also completed production-grade hardening. The current application release is `0d52d90-student-affairs-followup`. The strongest next verification step is cross-module EWS Gen 2 UAT across Presensi Harian, Kesiswaan, Tindak Lanjut, and PKL rather than reopening completed modules without a concrete regression. Until authoritative PKL data is supplied, do not seed additional synthetic PKL production records beyond explicitly authorized reversible demo data.
+PKL Foundation + the complete PKL Generasi Kedua workflow suite are finished and live. Presensi Harian + Wali Kelas and Kesiswaan Terpadu + Tindak Lanjut have also completed production-grade hardening. The current application release is `d77dd38-attendance360`. Attendance 360 is now production-live and includes richer cross-module attendance evidence plus EWS Gen 3. The next module should be selected from remaining production-grade queue rather than reopening Attendance 360 without a concrete regression. Until authoritative PKL data is supplied, do not seed additional synthetic PKL production records beyond explicitly authorized reversible demo data.
 
 Before starting the next feature:
 
@@ -404,3 +407,18 @@ Important contracts: active-year homeroom scope only; explicit class/student sel
 Release handoff: [`RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`](./RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md).
 
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-student-affairs-followup-uat-20260922.dump`.
+
+
+## Attendance 360 production-live — 22 September 2026
+
+Production release: `d77dd38-attendance360`; runtime commit: `d77dd38`.
+
+Attendance 360 is fully implemented: policy/calendar, student GPS+selfie check-in/out, append-oriented evidence events, Duty Teacher Gen 2, Wali Kelas reconciliation, LMS subject attendance integration, sick/permit reconciliation, monthly matrix, habituation, Command Center, audit trail, and EWS Gen 3. `SchoolDailyAttendance` remains canonical and `MANUAL`/`VERIFIED` human decisions are protected from silent automatic overwrite.
+
+Quality gate: production-clone UAT **62/62 PASS**, full regression **163/163 across 30 files**, Wasp build/server bundle/SSR/client PASS, migration PASS, immutable deploy PASS, repeat deploy idempotent PASS. All new pages return 200, protected operations/evidence APIs return 401 unauthenticated, and service logs are clean.
+
+Production baseline after deploy: SMKN 12 Garut **1,539 students, 50 active rombels, 0 daily-attendance rows, 0 Attendance 360 events, 0 Attendance 360 policies**. Policy is deliberately not auto-created; configure authoritative school coordinates/times/calendar before enabling student self-attendance.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-attendance360-20260922.dump`.
+
+Release record: [`RELEASE_2026-09-22_ATTENDANCE_360.md`](./RELEASE_2026-09-22_ATTENDANCE_360.md).
