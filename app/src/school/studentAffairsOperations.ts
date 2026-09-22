@@ -25,6 +25,8 @@ import {
   requireStudentAffairsAccess,
   studentAffairsStudentWhere,
 } from "./studentAffairsAccess";
+import { createAttendanceEventIdempotent, reconcileStudentDay } from "../attendance360/service";
+import { attendanceLocalParts } from "../attendance360/time";
 
 const personSelect = { id: true, name: true } as const;
 
@@ -1195,6 +1197,14 @@ export const createStudentPermit = async (
           : "Pengajuan izin/dispensasi dicatat.",
       metadata: { type: args.type, status },
     });
+    const dateOnly = attendanceLocalParts(args.startAt).dateOnly;
+    const attendanceStatus = status === "APPROVED" ? (args.type === "SICK" ? "SAKIT" : "IZIN") : status;
+    await createAttendanceEventIdempotent({
+      schoolId: user.schoolId, studentId: student.id, dateOnly, type: "PERMIT_STATUS", status: attendanceStatus,
+      source: "STUDENT_AFFAIRS_PERMIT", sourceKey: `permit:${created.id}:${status}`, actorId: user.id,
+      occurredAt: new Date(), notes: args.reason, metadata: { permitId: created.id, permitType: args.type, permitStatus: status },
+    }, tx);
+    if (status === "APPROVED") await reconcileStudentDay(user.schoolId, student.id, dateOnly, user.id, tx);
     return created;
   });
 };
@@ -1222,6 +1232,9 @@ export const updateStudentPermit = async (
       id: true,
       studentId: true,
       status: true,
+      type: true,
+      reason: true,
+      startAt: true,
       updatedAt: true,
     },
   });
@@ -1280,6 +1293,15 @@ export const updateStudentPermit = async (
         toStatus: args.status,
       },
     });
+    const dateOnly = attendanceLocalParts(current.startAt).dateOnly;
+    const attendanceStatus = args.status === "APPROVED" ? (current.type === "SICK" ? "SAKIT" : "IZIN") : args.status;
+    await createAttendanceEventIdempotent({
+      schoolId: user.schoolId, studentId: current.studentId, dateOnly, type: "PERMIT_STATUS", status: attendanceStatus,
+      source: "STUDENT_AFFAIRS_PERMIT", sourceKey: `permit:${current.id}:${args.status}`, actorId: user.id,
+      occurredAt: new Date(), notes: args.approvalNote || current.reason,
+      metadata: { permitId: current.id, permitType: current.type, fromStatus: current.status, permitStatus: args.status },
+    }, tx);
+    if (args.status === "APPROVED") await reconcileStudentDay(user.schoolId, current.studentId, dateOnly, user.id, tx);
     return updated;
   });
 };

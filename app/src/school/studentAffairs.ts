@@ -10,7 +10,7 @@ export type CoachingTypeCode = (typeof COACHING_TYPES)[number];
 export const COACHING_STATUSES = ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELED"] as const;
 export type CoachingStatusCode = (typeof COACHING_STATUSES)[number];
 
-export const PERMIT_TYPES = ["EXIT", "DISPENSATION", "ACTIVITY", "OTHER"] as const;
+export const PERMIT_TYPES = ["SICK", "EXIT", "DISPENSATION", "ACTIVITY", "OTHER"] as const;
 export type PermitTypeCode = (typeof PERMIT_TYPES)[number];
 
 export const PERMIT_STATUSES = ["REQUESTED", "APPROVED", "REJECTED", "RETURNED", "CANCELED"] as const;
@@ -46,6 +46,7 @@ export const COACHING_STATUS_META: Record<CoachingStatusCode, { label: string }>
 };
 
 export const PERMIT_TYPE_META: Record<PermitTypeCode, { label: string }> = {
+  SICK: { label: "Sakit" },
   EXIT: { label: "Izin Keluar" },
   DISPENSATION: { label: "Dispensasi" },
   ACTIVITY: { label: "Kegiatan" },

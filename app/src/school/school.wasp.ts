@@ -150,6 +150,7 @@ const studentRiskEntities = [
   "SchoolStaffAssignment",
   "WakasekAssignment",
   "SchoolDailyAttendance",
+  "StudentAttendanceEvent",
   "StudentViolation",
   "StudentCoaching",
   "StudentPermit",

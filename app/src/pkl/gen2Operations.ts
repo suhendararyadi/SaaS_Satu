@@ -13,6 +13,7 @@ import { parseCsv } from "../school/import/csvParser";
 import { ensureFileUploadConfigured, isFileUploadConfigured } from "../file-upload/config";
 import { checkFileExistsInS3, getDownloadFileSignedURLFromS3, getUploadFileSignedURLFromS3 } from "../file-upload/s3Utils";
 import { isLocalEvidenceKey, localEvidenceExists, parseLocalEvidenceKey } from "./localEvidenceStorage";
+import { calculateDistanceMeters } from "../shared/geofence";
 import {
   evaluatePlacementReadiness,
   getScheduleStatus,
@@ -1120,7 +1121,6 @@ export const recordAttendanceGen2 = async (rawArgs: unknown, context: { user?: U
     args.latitude != null && args.longitude != null
     && placement.company.latitude != null && placement.company.longitude != null
   ) {
-    const { calculateDistanceMeters } = await import("./geofence");
     distanceMeters = calculateDistanceMeters(
       args.latitude,
       args.longitude,

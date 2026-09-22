@@ -4,6 +4,8 @@ import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser, requireSchoolAdmin, requireTeacher } from "../school/authGuards";
 import { canAccessCourse, canManageCourse } from "./accessPolicy";
+import { createAttendanceEventIdempotent, reconcileStudentDay } from "../attendance360/service";
+import { attendanceLocalParts } from "../attendance360/time";
 
 function requireActiveSchoolId(user: { schoolId?: string | null }) {
   if (!user.schoolId) {
@@ -348,7 +350,7 @@ const recordCourseAttendanceSchema = z.object({
   records: z.array(
     z.object({
       studentId: z.string().uuid(),
-      status: z.enum(["HADIR", "SAKIT", "IZIN", "ALPA"]),
+      status: z.enum(["HADIR", "SAKIT", "IZIN", "ALPA", "TERLAMBAT", "DISPENSASI"]),
       notes: z.string().optional().nullable(),
     })
   ).min(1, "Minimal satu peserta didik harus dicatat."),
@@ -382,6 +384,23 @@ export const recordCourseAttendance = async (rawArgs: unknown, context: { user?:
         notes: record.notes || null,
       })),
     });
+    const dateOnly = attendanceLocalParts(session.date).dateOnly;
+    for (const record of args.records) {
+      await createAttendanceEventIdempotent({
+        schoolId: course.schoolId,
+        studentId: record.studentId,
+        dateOnly,
+        type: "SUBJECT_ATTENDANCE",
+        status: record.status,
+        source: "LMS_SUBJECT",
+        sourceKey: `lms:${session.id}:${record.studentId}`,
+        actorId: teacher.id,
+        occurredAt: session.date,
+        notes: record.notes || null,
+        metadata: { courseId: course.id, sessionId: session.id, sessionNumber: session.sessionNumber },
+      }, tx);
+      await reconcileStudentDay(course.schoolId, record.studentId, dateOnly, teacher.id, tx);
+    }
     return session;
   });
 };

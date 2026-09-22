@@ -46,6 +46,11 @@ const pageTitles: Array<[string, string]> = [
   ["/school/notifications", "Notifikasi"],
   ["/school/student-affairs", "Kesiswaan Terpadu"],
   ["/school/students", "Data Siswa"],
+  ["/school/attendance/command", "Command Center Kehadiran"],
+  ["/school/attendance/settings", "Pengaturan Kehadiran"],
+  ["/school/attendance/habituation", "Pembiasaan"],
+  ["/school/attendance/audit", "Audit Kehadiran"],
+  ["/school/my-attendance", "Kehadiran Saya"],
   ["/school/attendance", "Presensi Harian"],
   ["/school/import", "Import Data"],
   ["/school/lms/courses", "Pembelajaran"],
@@ -240,6 +245,11 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       assignment.role === "PRINCIPAL" || assignment.role === "DEPARTMENT_HEAD"
     )
   );
+  const teacherHasAttendance = isTeacher && !!teacherDashboard && (
+    !!teacherDashboard.assignments?.homeroomClass ||
+    ((teacherDashboard.assignments?.wakasekRoles || []) as WakasekRoleCode[]).some((role) => role === "KESISWAAN" || role === "KURIKULUM") ||
+    (teacherDashboard.assignments?.staffAssignments || []).some((assignment: any) => assignment.role === "PRINCIPAL" || assignment.role === "DUTY_TEACHER")
+  );
 
   const drawerSections: M3DrawerSection[] = (() => {
     const sections: M3DrawerSection[] = [{ title: "UTAMA", items: [
@@ -256,6 +266,14 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Import Data", href: "/school/import", icon: "upload_file" },
       ] });
       sections.push({ title: "PEMBELAJARAN", items: [{ label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" }] });
+      sections.push({ title: "KEHADIRAN", items: [
+        { label: "Command Center", href: "/school/attendance/command", icon: "monitoring" },
+        { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
+        { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
+        { label: "Pembiasaan", href: "/school/attendance/habituation", icon: "self_improvement" },
+        { label: "Audit Kehadiran", href: "/school/attendance/audit", icon: "history" },
+        { label: "Pengaturan Kehadiran", href: "/school/attendance/settings", icon: "tune" },
+      ] });
       if (usesPkl) sections.push({ title: "PKL", items: [
         { label: "Ringkasan PKL", href: "/school/pkl", icon: "dashboard" },
         { label: "Fondasi PKL", href: "/school/pkl/foundation", icon: "hub" },
@@ -276,8 +294,6 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" },
         { label: "Kesiswaan Terpadu", href: "/school/student-affairs", icon: "school" },
         { label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" },
-        { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
-        { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
         { label: "Panel Wakasek", href: "/school/governance/wakasek", icon: "verified_user" },
         { label: "Laporan", href: "/school/reports", icon: "description" },
       ] });
@@ -313,12 +329,20 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         }))),
       ];
       if (responsibilities.length) sections.push({ title: "TANGGUNG JAWAB", items: responsibilities });
+      if (teacherHasAttendance) sections.push({ title: "KEHADIRAN", items: [
+        { label: "Command Center", href: "/school/attendance/command", icon: "monitoring" },
+        ...(teacherDashboard?.assignments?.homeroomClass ? [{ label: "Rekonsiliasi Wali Kelas", href: "/school/attendance", icon: "fact_check" }] : []),
+        ...((teacherDashboard?.assignments?.staffAssignments || []).some((assignment: any) => assignment.role === "DUTY_TEACHER") ? [{ label: "Gate Console Piket", href: "/school/governance/piket", icon: "schedule" }] : []),
+        { label: "Pembiasaan", href: "/school/attendance/habituation", icon: "self_improvement" },
+        { label: "Audit Kehadiran", href: "/school/attendance/audit", icon: "history" },
+      ] });
       sections.push({ title: "LAYANAN", items: [{ label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" }] });
       sections.push({ title: "LAPORAN", items: [
         ...(teacherHasEws ? [{ label: "EWS Terpadu", href: "/school/ews", icon: "health_and_safety" }] : []),
         { label: "Laporan Saya", href: "/school/reports", icon: "description" },
       ] });
     } else if (isStudent) {
+      sections.push({ title: "KEHADIRAN", items: [{ label: "Kehadiran Saya", href: "/school/my-attendance", icon: "fact_check" }] });
       sections.push({ title: "BELAJAR", items: [{ label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" }] });
       if (studentHasPkl) sections.push({ title: "PKL SAYA", items: [
         { label: "Ringkasan PKL", href: "/school/pkl", icon: "dashboard" },

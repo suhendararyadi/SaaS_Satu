@@ -3,6 +3,9 @@ import { type AuthUser } from "wasp/auth";
 import {
   getDailyAttendanceReportData,
   getDailySchoolAttendance,
+  getAttendanceReconciliationWorkspace,
+  reconcileAttendanceClass,
+  verifyAttendanceRecord,
   saveDailySchoolAttendance,
   useQuery,
 } from "wasp/client/operations";
@@ -158,7 +161,7 @@ function StatCard({
 
 export function DailyAttendancePage({ user }: { user: AuthUser }) {
   const today = jakartaDateOnly();
-  const [view, setView] = useState<"INPUT" | "REPORT">("INPUT");
+  const [view, setView] = useState<"INPUT" | "RECONCILE" | "MATRIX" | "REPORT">("INPUT");
   const [dateOnly, setDateOnly] = useState(today);
   const [classRoomId, setClassRoomId] = useState("");
   const [draft, setDraft] = useState<Record<string, DraftRecord>>({});
@@ -174,6 +177,11 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
   const [reportMonth, setReportMonth] = useState(now.getMonth() + 1);
   const [reportYear, setReportYear] = useState(now.getFullYear());
   const [reportStudentId, setReportStudentId] = useState("");
+  const [reconcileClassId, setReconcileClassId] = useState("");
+  const [reconcileDate, setReconcileDate] = useState(today);
+  const [reconcileMonth, setReconcileMonth] = useState(now.getMonth() + 1);
+  const [reconcileYear, setReconcileYear] = useState(now.getFullYear());
+  const [reconcileBusy, setReconcileBusy] = useState(false);
 
   const {
     data,
@@ -206,6 +214,22 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
     { enabled: view === "REPORT" },
   );
 
+  const {
+    data: reconciliationData,
+    isLoading: reconciliationLoading,
+    error: reconciliationError,
+    refetch: refetchReconciliation,
+  } = useQuery(
+    getAttendanceReconciliationWorkspace,
+    {
+      ...(reconcileClassId ? { classRoomId: reconcileClassId } : {}),
+      dateOnly: reconcileDate,
+      month: reconcileMonth,
+      year: reconcileYear,
+    },
+    { enabled: view === "RECONCILE" || view === "MATRIX" },
+  );
+
   useEffect(() => {
     if (!classRoomId && data?.classes?.[0]?.id) {
       setClassRoomId(data.classes[0].id);
@@ -229,6 +253,12 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
       setReportClassId(reportData.classes[0].id);
     }
   }, [reportClassId, reportData?.classes]);
+
+  useEffect(() => {
+    if (!reconcileClassId && reconciliationData?.classes?.[0]?.id) {
+      setReconcileClassId(reconciliationData.classes[0].id);
+    }
+  }, [reconcileClassId, reconciliationData?.classes]);
 
   useEffect(() => {
     const students = reportData?.period?.students || [];
@@ -316,8 +346,45 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
     }
   };
 
+  const exportMonthlyCsv = () => {
+    if (!reconciliationData?.monthly?.students?.length) return;
+    const days: number[] = reconciliationData.monthly.days;
+    const header = ["NIS","NISN","Nama","L/P",...days.map((day)=>String(day)),"H","S","I","A","T","Persentase"];
+    const rows = reconciliationData.monthly.students.map((student:any) => [
+      student.studentProfile?.nis || "", student.studentProfile?.nisn || "", student.name || "", student.studentProfile?.gender || "",
+      ...days.map((day)=>({HADIR:"H",SAKIT:"S",IZIN:"I",ALPA:"A",TERLAMBAT:"T"} as any)[student.statuses[day]] || ""),
+      student.counts.HADIR, student.counts.SAKIT, student.counts.IZIN, student.counts.ALPA, student.counts.TERLAMBAT, student.rate == null ? "" : `${student.rate}%`,
+    ]);
+    const quote=(value:any)=>`"${String(value??"").replaceAll('"','""')}"`;
+    const csv=[header,...rows].map((row)=>row.map(quote).join(",")).join("\r\n");
+    const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}); const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download=`rekap-kehadiran-${reconciliationData.selectedClass?.name || "kelas"}-${reconcileYear}-${String(reconcileMonth).padStart(2,"0")}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const runReconciliation = async () => {
+    if (!reconcileClassId) return;
+    setReconcileBusy(true); setErrorMsg(""); setMessage("");
+    try {
+      const result = await reconcileAttendanceClass({ classRoomId: reconcileClassId, dateOnly: reconcileDate });
+      setMessage(`Rekonsiliasi selesai: ${result.updated} record diperbarui, ${result.humanProtected} keputusan manusia dipertahankan.`);
+      await refetchReconciliation();
+    } catch (err: any) { setErrorMsg(err?.message || "Rekonsiliasi belum berhasil."); }
+    finally { setReconcileBusy(false); }
+  };
+
+  const verifyRow = async (row: any, status?: DailyAttendanceStatus) => {
+    const nextStatus = (status || row.record?.status || row.suggestion?.status || "HADIR") as DailyAttendanceStatus;
+    setReconcileBusy(true); setErrorMsg("");
+    try {
+      await verifyAttendanceRecord({ studentId: row.id, dateOnly: reconcileDate, status: nextStatus, notes: row.record?.notes || null, expectedUpdatedAt: row.record?.updatedAt || null });
+      await refetchReconciliation();
+      setMessage(`${row.name} diverifikasi sebagai ${statusLabels[nextStatus]}.`);
+    } catch (err: any) { setErrorMsg(err?.message || "Verifikasi belum berhasil."); }
+    finally { setReconcileBusy(false); }
+  };
+
   const canSave = !!data?.students?.length && dateOnly <= today && !submitting;
-  const commonError = errorMsg || (error as any)?.message || (reportError as any)?.message;
+  const commonError = errorMsg || (error as any)?.message || (reportError as any)?.message || (reconciliationError as any)?.message;
 
   return (
     <SchoolLayout user={user}>
@@ -334,11 +401,13 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
           </div>
           <M3Tabs
             tabs={[
-              { id: "INPUT", label: "Input Presensi", icon: "fact_check" },
+              { id: "INPUT", label: "Input Manual", icon: "fact_check" },
+              { id: "RECONCILE", label: "Perlu Verifikasi", icon: "sync_alt" },
+              { id: "MATRIX", label: "Matriks Bulanan", icon: "calendar_view_month" },
               { id: "REPORT", label: "Rekap & Laporan", icon: "analytics" },
             ]}
             activeTab={view}
-            onChange={(tab) => setView(tab as "INPUT" | "REPORT")}
+            onChange={(tab) => setView(tab as "INPUT" | "RECONCILE" | "MATRIX" | "REPORT")}
           />
         </header>
 
@@ -564,6 +633,33 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                 </div>
               </M3Card>
             )}
+          </>
+        )}
+
+        {view === "RECONCILE" && (
+          <>
+            {message && <M3Banner variant="success" supportingText={message} dismissible onDismiss={() => setMessage("")} />}
+            <M3Card variant="elevated" className="p-4 sm:p-5">
+              <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                <M3TextField label="Tanggal" type="date" value={reconcileDate} max={today} onChange={(event) => setReconcileDate(event.target.value)} />
+                <M3Select label="Rombel" value={reconcileClassId} options={(reconciliationData?.classes || []).map((c:any)=>({value:c.id,label:c.name}))} onChange={(event)=>setReconcileClassId(event.target.value)} />
+                <M3Button icon="sync" onClick={runReconciliation} isLoading={reconcileBusy} disabled={!reconcileClassId}>Rekonsiliasi Sumber</M3Button>
+              </div>
+              <p className="mt-3 text-xs text-md-on-surface-variant">Mesin menyatukan check-in/out, piket, presensi mapel, izin/sakit, dan evidence lain. Record MANUAL/VERIFIED tidak ditimpa otomatis.</p>
+            </M3Card>
+            {reconciliationLoading ? <div className="flex min-h-[260px] items-center justify-center"><M3CircularProgress size={38}/></div> :
+              <div className="space-y-3">{(reconciliationData?.rows || []).filter((row:any)=>row.needsReview).map((row:any)=><M3Card key={row.id} variant="outlined" className="p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{row.name}</p><M3Badge variant="warning">Perlu Verifikasi</M3Badge>{row.record?.status&&<M3Badge variant="outline">Saat ini: {row.record.status}</M3Badge>}{row.suggestion?.status&&<M3Badge variant="primary">Saran: {row.suggestion.status}</M3Badge>}</div><p className="mt-1 text-[11px] text-md-on-surface-variant">NIS {row.studentProfile?.nis||"-"} · {row.eventCount} evidence</p>{row.suggestion?.reasons?.length>0&&<div className="mt-2 space-y-1">{row.suggestion.reasons.map((reason:string)=><p key={reason} className="text-xs text-md-error">• {reason}</p>)}</div>}</div><div className="flex flex-wrap gap-1.5">{DAILY_ATTENDANCE_STATUSES.map((status)=><M3Button key={status} variant={status===(row.record?.status||row.suggestion?.status)?"filled":"outlined"} size="sm" disabled={reconcileBusy} onClick={()=>verifyRow(row,status)}>{statusLabels[status]}</M3Button>)}</div></div>
+                <div className="mt-3 flex flex-wrap gap-1.5">{row.evidence.map((e:any)=><span key={e.id} className="rounded-full bg-md-surface-container px-2 py-1 text-[10.5px] text-md-on-surface-variant">{e.type.replaceAll("_"," ")} · {e.status} · {new Date(e.occurredAt).toLocaleTimeString("id-ID",{timeZone:"Asia/Jakarta",hour:"2-digit",minute:"2-digit"})}</span>)}</div>
+              </M3Card>)}{reconciliationData?.rows && !reconciliationData.rows.some((row:any)=>row.needsReview)&&<M3EmptyState icon="verified" title="Tidak ada konflik kehadiran" description="Semua evidence yang tersedia dapat direkonsiliasi atau sudah diverifikasi."/>}</div>}
+          </>
+        )}
+
+        {view === "MATRIX" && (
+          <>
+            <M3Card variant="elevated" className="p-4 sm:p-5"><div className="grid gap-3 md:grid-cols-3"><M3Select label="Rombel" value={reconcileClassId} options={(reconciliationData?.classes || []).map((c:any)=>({value:c.id,label:c.name}))} onChange={(event)=>setReconcileClassId(event.target.value)}/><M3Select label="Bulan" value={String(reconcileMonth)} options={monthOptions} onChange={(event)=>setReconcileMonth(Number(event.target.value))}/><M3TextField label="Tahun" type="number" min="2000" max="2100" value={String(reconcileYear)} onChange={(event)=>setReconcileYear(Number(event.target.value))}/></div></M3Card>
+            {reconciliationLoading?<div className="flex min-h-[260px] items-center justify-center"><M3CircularProgress size={38}/></div>:reconciliationData?.selectedClass?<M3Card variant="elevated" className="overflow-x-auto"><table className="min-w-[1600px] w-full text-[11px]"><thead className="bg-md-surface-container-low"><tr><th className="sticky left-0 z-10 bg-md-surface-container-low px-3 py-3 text-left">Nama Siswa</th>{reconciliationData.monthly.days.map((day:number)=><th key={day} className="px-1.5 py-3 text-center">{day}</th>)}<th>H</th><th>S</th><th>I</th><th>A</th><th>T</th><th>%</th></tr></thead><tbody className="divide-y divide-md-outline-variant/25">{reconciliationData.monthly.students.map((student:any)=><tr key={student.id}><td className="sticky left-0 bg-md-surface px-3 py-2 font-semibold">{student.name}</td>{reconciliationData.monthly.days.map((day:number)=><td key={day} className="px-1.5 py-2 text-center">{({HADIR:"H",SAKIT:"S",IZIN:"I",ALPA:"A",TERLAMBAT:"T"} as any)[student.statuses[day]]||"·"}</td>)}<td className="text-center">{student.counts.HADIR}</td><td className="text-center">{student.counts.SAKIT}</td><td className="text-center">{student.counts.IZIN}</td><td className="text-center">{student.counts.ALPA}</td><td className="text-center">{student.counts.TERLAMBAT}</td><td className="px-2 text-center font-semibold">{student.rate==null?"—":`${student.rate}%`}</td></tr>)}</tbody></table></M3Card>:<M3EmptyState icon="calendar_view_month" title="Belum ada rombel" description="Pilih rombel aktif untuk melihat matriks bulanan."/>}
+            <div className="flex justify-end gap-2 print:hidden"><M3Button variant="outlined" icon="download" onClick={exportMonthlyCsv}>Ekspor CSV / Excel</M3Button><M3Button variant="outlined" icon="print" onClick={()=>window.print()}>Cetak / Simpan PDF</M3Button></div>
           </>
         )}
 

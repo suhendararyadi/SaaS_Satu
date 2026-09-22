@@ -236,9 +236,14 @@ export const saveDailySchoolAttendance = async (
     );
   }
 
-  await prisma.$transaction(
-    args.records.map((record) =>
-      prisma.schoolDailyAttendance.upsert({
+  const savedAt = new Date();
+  await prisma.$transaction(async (tx) => {
+    for (const record of args.records) {
+      const previous = await tx.schoolDailyAttendance.findUnique({
+        where: { schoolId_studentId_dateOnly: { schoolId: user.schoolId, studentId: record.studentId, dateOnly: args.dateOnly } },
+        select: { status: true },
+      });
+      const saved = await tx.schoolDailyAttendance.upsert({
         where: {
           schoolId_studentId_dateOnly: {
             schoolId: user.schoolId,
@@ -254,6 +259,9 @@ export const saveDailySchoolAttendance = async (
           dateOnly: args.dateOnly,
           status: record.status,
           notes: record.notes || null,
+          reconciliationStatus: "MANUAL",
+          verifiedById: user.id,
+          verifiedAt: savedAt,
           recordedById: user.id,
         },
         update: {
@@ -261,12 +269,23 @@ export const saveDailySchoolAttendance = async (
           classRoomId: classRoom.id,
           status: record.status,
           notes: record.notes || null,
+          reconciliationStatus: "MANUAL",
+          verifiedById: user.id,
+          verifiedAt: savedAt,
           recordedById: user.id,
-          recordedAt: new Date(),
+          recordedAt: savedAt,
         },
-      }),
-    ),
-  );
+      });
+      await tx.studentAttendanceEvent.create({
+        data: {
+          schoolId: user.schoolId, studentId: record.studentId, dateOnly: args.dateOnly,
+          type: "HOMEROOM_OVERRIDE", status: record.status, source: "DAILY_MANUAL",
+          sourceKey: `manual:${saved.id}:${savedAt.toISOString()}`, actorId: user.id, occurredAt: savedAt,
+          notes: record.notes || null, metadata: { previousStatus: previous?.status || null, dailyAttendanceId: saved.id },
+        },
+      });
+    }
+  });
 
   return {
     ok: true,

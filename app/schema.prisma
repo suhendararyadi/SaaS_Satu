@@ -170,6 +170,7 @@ enum StudentCoachingStatus {
 }
 
 enum StudentPermitType {
+  SICK
   EXIT
   DISPENSATION
   ACTIVITY
@@ -196,6 +197,49 @@ enum StudentAffairsEventType {
   UPDATED
   STATUS_CHANGED
   COMMENT
+}
+
+enum AttendanceCalendarDayType {
+  SCHOOL_DAY
+  HOLIDAY
+  NATIONAL_HOLIDAY
+  SEMESTER_BREAK
+  SCHOOL_EVENT
+  EXAM_DAY
+  SPECIAL_SCHEDULE
+}
+
+enum AttendanceEventType {
+  SELF_CHECK_IN
+  SELF_CHECK_OUT
+  DUTY_LATE
+  DUTY_EARLY_LEAVE
+  DUTY_DISPENSATION
+  SUBJECT_ATTENDANCE
+  HABIT_ATTENDANCE
+  PERMIT_STATUS
+  HOMEROOM_OVERRIDE
+  SYSTEM_RECONCILIATION
+}
+
+enum AttendanceGeofenceStatus {
+  INSIDE
+  OUTSIDE
+  UNVERIFIED
+}
+
+enum AttendanceReconciliationStatus {
+  AUTO
+  NEEDS_REVIEW
+  VERIFIED
+  MANUAL
+}
+
+enum AttendanceActivityStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  CANCELED
 }
 
 model User {
@@ -255,6 +299,12 @@ model User {
   studentAffairsEvents      StudentAffairsEvent[]     @relation("AffairsEventStudent")
   actedStudentAffairsEvents StudentAffairsEvent[]     @relation("AffairsEventActor")
   notificationStates        SchoolNotificationState[]
+  attendanceEvents          StudentAttendanceEvent[]    @relation("AttendanceEventStudent")
+  actedAttendanceEvents     StudentAttendanceEvent[]    @relation("AttendanceEventActor")
+  verifiedDailyAttendances  SchoolDailyAttendance[]     @relation("DailyAttendanceVerifier")
+  createdAttendanceActivities AttendanceActivity[]      @relation("AttendanceActivityCreator")
+  activityAttendanceRecords AttendanceActivityRecord[]  @relation("ActivityAttendanceStudent")
+  recordedActivityAttendanceRecords AttendanceActivityRecord[] @relation("ActivityAttendanceRecorder")
 
   paymentProcessorUserId        String?   @unique
   lemonSqueezyCustomerPortalUrl String? // Lemon Squeezy portal
@@ -321,6 +371,10 @@ model School {
   studentPermits       StudentPermit[]
   studentAffairsEvents StudentAffairsEvent[]
   notificationStates   SchoolNotificationState[]
+  attendancePolicy     SchoolAttendancePolicy?
+  attendanceCalendarDays SchoolCalendarDay[]
+  attendanceEvents     StudentAttendanceEvent[]
+  attendanceActivities AttendanceActivity[]
   site                 SchoolSite?
   siteContents         SchoolSiteContent[]
   siteNavItems         SchoolSiteNavItem[]
@@ -353,6 +407,7 @@ model AcademicYear {
   classes          ClassRoom[]
   courses          LmsCourse[]
   dailyAttendances SchoolDailyAttendance[]
+  attendanceActivities AttendanceActivity[]
   staffAssignments SchoolStaffAssignment[]
   pklPeriods       PklPeriod[]
 
@@ -383,28 +438,156 @@ model ClassRoom {
 }
 
 model SchoolDailyAttendance {
-  id             String       @id @default(uuid())
-  schoolId       String
-  school         School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  academicYearId String
-  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  classRoomId    String
-  classRoom      ClassRoom    @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
-  studentId      String
-  student        User         @relation("DailyAttendanceStudent", fields: [studentId], references: [id], onDelete: Cascade)
-  dateOnly       String
-  status         String
-  notes          String?
-  recordedById   String
-  recordedBy     User         @relation("DailyAttendanceRecorder", fields: [recordedById], references: [id])
-  recordedAt     DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                   String                         @id @default(uuid())
+  schoolId             String
+  school               School                         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYearId       String
+  academicYear         AcademicYear                   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  classRoomId          String
+  classRoom            ClassRoom                      @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
+  studentId            String
+  student              User                           @relation("DailyAttendanceStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  dateOnly             String
+  status               String
+  notes                String?
+  arrivalAt            DateTime?
+  checkOutAt           DateTime?
+  lateMinutes          Int?
+  earlyLeave           Boolean                        @default(false)
+  reconciliationStatus AttendanceReconciliationStatus @default(MANUAL)
+  evidenceSummary      Json?
+  verifiedById         String?
+  verifiedBy           User?                          @relation("DailyAttendanceVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt           DateTime?
+  recordedById         String
+  recordedBy           User                           @relation("DailyAttendanceRecorder", fields: [recordedById], references: [id])
+  recordedAt           DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
 
   @@unique([schoolId, studentId, dateOnly])
   @@index([schoolId, dateOnly])
   @@index([schoolId, classRoomId, dateOnly])
   @@index([studentId, dateOnly])
   @@index([recordedById])
+  @@index([schoolId, reconciliationStatus, dateOnly])
+  @@index([verifiedById])
+}
+
+model SchoolAttendancePolicy {
+  id                       String   @id @default(uuid())
+  schoolId                 String   @unique
+  school                   School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  timezone                 String   @default("Asia/Jakarta")
+  latitude                 Float?
+  longitude                Float?
+  radiusMeters             Int      @default(100)
+  maxGpsAccuracyMeters     Int      @default(50)
+  checkInOpen              String   @default("05:30")
+  lateAfter                String   @default("07:00")
+  checkInClose             String   @default("09:00")
+  checkOutOpen             String   @default("14:00")
+  checkOutClose            String   @default("18:00")
+  allowStudentCheckIn      Boolean  @default(true)
+  allowStudentCheckOut     Boolean  @default(true)
+  requireCheckInSelfie     Boolean  @default(true)
+  requireCheckOutSelfie    Boolean  @default(false)
+  workingDays              String   @default("1,2,3,4,5")
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model SchoolCalendarDay {
+  id                    String                    @id @default(uuid())
+  schoolId              String
+  school                School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  dateOnly              String
+  type                  AttendanceCalendarDayType
+  label                 String
+  notes                 String?
+  checkInOpenOverride   String?
+  lateAfterOverride     String?
+  checkInCloseOverride  String?
+  checkOutOpenOverride  String?
+  checkOutCloseOverride String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  @@unique([schoolId, dateOnly])
+  @@index([schoolId, type, dateOnly])
+}
+
+model StudentAttendanceEvent {
+  id              String                    @id @default(uuid())
+  schoolId        String
+  school          School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         User                      @relation("AttendanceEventStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  dateOnly        String
+  type            AttendanceEventType
+  status          String
+  source          String
+  sourceKey       String?
+  occurredAt      DateTime                  @default(now())
+  actorId         String?
+  actor           User?                     @relation("AttendanceEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  latitude        Float?
+  longitude       Float?
+  gpsAccuracy     Float?
+  distanceMeters  Float?
+  geofenceStatus  AttendanceGeofenceStatus?
+  evidenceKey     String?
+  notes           String?
+  metadata        Json?
+  createdAt       DateTime                  @default(now())
+
+  @@unique([schoolId, sourceKey])
+  @@index([schoolId, studentId, dateOnly])
+  @@index([schoolId, type, dateOnly])
+  @@index([actorId, occurredAt])
+}
+
+model AttendanceActivity {
+  id             String                   @id @default(uuid())
+  schoolId       String
+  school         School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYearId String?
+  academicYear   AcademicYear?            @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  dateOnly       String
+  code           String
+  name           String
+  category       String
+  startTime      String?
+  endTime        String?
+  status         AttendanceActivityStatus @default(OPEN)
+  createdById    String
+  createdBy      User                     @relation("AttendanceActivityCreator", fields: [createdById], references: [id])
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  records        AttendanceActivityRecord[]
+
+  @@unique([schoolId, dateOnly, code])
+  @@index([schoolId, dateOnly, status])
+  @@index([academicYearId])
+}
+
+model AttendanceActivityRecord {
+  id           String             @id @default(uuid())
+  activityId   String
+  activity     AttendanceActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User               @relation("ActivityAttendanceStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  status       String
+  recordedById String
+  recordedBy   User               @relation("ActivityAttendanceRecorder", fields: [recordedById], references: [id])
+  notes        String?
+  recordedAt   DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([activityId, studentId])
+  @@index([studentId, recordedAt])
+  @@index([recordedById, recordedAt])
 }
 
 model TeacherProfile {

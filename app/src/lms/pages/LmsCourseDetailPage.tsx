@@ -65,7 +65,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [sessionNum, setSessionNum] = useState(1);
   const [studentStatusMap, setStudentStatusMap] = useState<
-    Record<string, "HADIR" | "SAKIT" | "IZIN" | "ALPA">
+    Record<string, "HADIR" | "SAKIT" | "IZIN" | "ALPA" | "TERLAMBAT" | "DISPENSASI">
   >({});
 
   // CBT Exam Modal
@@ -831,7 +831,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
                     {s.name}
                   </span>
                   <div className="flex gap-1">
-                    {(["HADIR", "SAKIT", "IZIN", "ALPA"] as const).map((st) => (
+                    {(["HADIR", "TERLAMBAT", "SAKIT", "IZIN", "DISPENSASI", "ALPA"] as const).map((st) => (
                       <button
                         key={st}
                         type="button"

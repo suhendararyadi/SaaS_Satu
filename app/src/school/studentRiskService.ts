@@ -352,6 +352,8 @@ export async function buildStudentRiskOverview(
 
   const [
     attendanceRows,
+    attendanceCurrentRows,
+    habituationEvents,
     violations,
     coachings,
     overduePermits,
@@ -365,9 +367,36 @@ export async function buildStudentRiskOverview(
             schoolId: user.schoolId,
             studentId: { in: fullStudentIds },
             dateOnly: { gte: previousWindow.key },
-            status: { in: ["ALPA", "TERLAMBAT"] },
+            OR: [
+              { status: { in: ["ALPA", "TERLAMBAT"] } },
+              { earlyLeave: true },
+              { reconciliationStatus: "NEEDS_REVIEW" },
+            ],
           },
-          select: { id: true, studentId: true, status: true, dateOnly: true, updatedAt: true },
+          select: { id: true, studentId: true, status: true, dateOnly: true, earlyLeave: true, reconciliationStatus: true, updatedAt: true },
+        })
+      : Promise.resolve([]),
+    fullStudentIds.length
+      ? prisma.schoolDailyAttendance.findMany({
+          where: {
+            schoolId: user.schoolId,
+            studentId: { in: fullStudentIds },
+            dateOnly: { gte: currentWindow.key },
+            status: { in: ["HADIR", "SAKIT", "IZIN", "ALPA", "TERLAMBAT"] },
+          },
+          select: { id: true, studentId: true, status: true, dateOnly: true, earlyLeave: true, reconciliationStatus: true, updatedAt: true },
+        })
+      : Promise.resolve([]),
+    fullStudentIds.length
+      ? prisma.studentAttendanceEvent.findMany({
+          where: {
+            schoolId: user.schoolId,
+            studentId: { in: fullStudentIds },
+            dateOnly: { gte: currentWindow.key },
+            type: "HABIT_ATTENDANCE",
+            status: { in: ["TIDAK_HADIR", "TERLAMBAT"] },
+          },
+          select: { id: true, studentId: true, status: true, dateOnly: true, occurredAt: true, metadata: true },
         })
       : Promise.resolve([]),
     fullStudentIds.length
@@ -477,23 +506,72 @@ export async function buildStudentRiskOverview(
       : Promise.resolve([]),
   ]);
 
-  // Presensi: hanya ALPA dan TERLAMBAT dianggap sinyal risiko.
+  // Attendance 360: status harian tetap baseline; early-leave dan konflik evidence menjadi signal tambahan.
   for (const row of attendanceRows) {
     const isCurrent = row.dateOnly >= currentWindow.key;
-    const points = row.status === "ALPA" ? 6 : 2;
-    const item = signal({
-      id: `attendance:${row.id}`,
-      source: "ATTENDANCE",
-      code: row.status,
-      title: row.status === "ALPA" ? "Alpa tercatat" : "Keterlambatan tercatat",
-      detail: `${row.status === "ALPA" ? "Alpa" : "Terlambat"} pada ${row.dateOnly}.`,
-      points,
-      href: "/school/attendance",
-      occurredAt: row.updatedAt,
-      comparableWindow: isCurrent ? "CURRENT" : "PREVIOUS",
-    });
-    addTrend(row.studentId, item);
-    if (isCurrent) addLive(row.studentId, item);
+    const window = isCurrent ? "CURRENT" as const : "PREVIOUS" as const;
+    if (row.status === "ALPA" || row.status === "TERLAMBAT") {
+      const points = row.status === "ALPA" ? 6 : 2;
+      const item = signal({
+        id: `attendance:${row.id}`, source: "ATTENDANCE", code: row.status,
+        title: row.status === "ALPA" ? "Alpa tercatat" : "Keterlambatan tercatat",
+        detail: `${row.status === "ALPA" ? "Alpa" : "Terlambat"} pada ${row.dateOnly}.`,
+        points, href: "/school/attendance", occurredAt: row.updatedAt, comparableWindow: window,
+      });
+      addTrend(row.studentId, item); if (isCurrent) addLive(row.studentId, item);
+    }
+    if (row.earlyLeave) {
+      const item = signal({ id: `attendance-early-leave:${row.id}`, source: "ATTENDANCE", code: "EARLY_LEAVE", title: "Pulang lebih awal", detail: `Pulang lebih awal tercatat pada ${row.dateOnly}.`, points: 2, href: "/school/attendance", occurredAt: row.updatedAt, comparableWindow: window });
+      addTrend(row.studentId, item); if (isCurrent) addLive(row.studentId, item);
+    }
+    if (row.reconciliationStatus === "NEEDS_REVIEW") {
+      const item = signal({ id: `attendance-conflict:${row.id}`, source: "ATTENDANCE", code: "ATTENDANCE_CONFLICT", title: "Evidence kehadiran perlu diverifikasi", detail: `Ada evidence kehadiran yang belum konsisten pada ${row.dateOnly}.`, points: 2, href: "/school/attendance", occurredAt: row.updatedAt, comparableWindow: window });
+      addTrend(row.studentId, item); if (isCurrent) addLive(row.studentId, item);
+    }
+  }
+
+  // Pola 30 hari: agregasi kehadiran, keterlambatan, pulang awal, konflik, dan alpa beruntun.
+  for (const studentId of fullStudentIds) {
+    const currentRows = attendanceCurrentRows
+      .filter((row) => row.studentId === studentId)
+      .sort((a, b) => a.dateOnly.localeCompare(b.dateOnly));
+    const lateCount = currentRows.filter((row) => row.status === "TERLAMBAT").length;
+    if (lateCount >= 5) {
+      const item = signal({ id: `attendance-pattern:late:${studentId}:${currentWindow.key}`, source: "ATTENDANCE", code: "REPEATED_LATENESS", title: "Keterlambatan berulang", detail: `${lateCount} kali terlambat dalam 30 hari terakhir.`, points: 4, href: "/school/attendance", occurredAt: now, comparableWindow: "CURRENT" });
+      addLive(studentId, item); addTrend(studentId, item);
+    }
+    let maxConsecutiveAlpa = 0; let streak = 0;
+    for (const row of currentRows) {
+      if (row.status === "ALPA") { streak += 1; maxConsecutiveAlpa = Math.max(maxConsecutiveAlpa, streak); }
+      else if (row.status === "HADIR" || row.status === "TERLAMBAT" || row.status === "SAKIT" || row.status === "IZIN") streak = 0;
+    }
+    if (maxConsecutiveAlpa >= 3) {
+      const item = signal({ id: `attendance-pattern:alpa:${studentId}:${currentWindow.key}`, source: "ATTENDANCE", code: "CONSECUTIVE_ALPA", title: "Alpa berturut-turut", detail: `Terdeteksi sedikitnya ${maxConsecutiveAlpa} catatan alpa berurutan dalam 30 hari terakhir.`, points: 8, href: "/school/attendance", occurredAt: now, comparableWindow: "CURRENT" });
+      addLive(studentId, item); addTrend(studentId, item);
+    }
+    if (currentRows.length >= 5) {
+      const present = currentRows.filter((row) => row.status === "HADIR" || row.status === "TERLAMBAT").length;
+      const rate = Math.round((present / currentRows.length) * 100);
+      if (rate < 85) {
+        const item = signal({ id: `attendance-pattern:rate:${studentId}:${currentWindow.key}`, source: "ATTENDANCE", code: "LOW_ATTENDANCE_RATE", title: "Persentase kehadiran rendah", detail: `Kehadiran ${rate}% dari ${currentRows.length} hari yang telah tercatat dalam 30 hari terakhir.`, points: rate < 70 ? 8 : 5, href: "/school/attendance", occurredAt: now, comparableWindow: "CURRENT" });
+        addLive(studentId, item); addTrend(studentId, item);
+      }
+    }
+    const earlyLeaveCount = currentRows.filter((row) => row.earlyLeave).length;
+    if (earlyLeaveCount >= 3) {
+      const item = signal({ id: `attendance-pattern:early-leave:${studentId}:${currentWindow.key}`, source: "ATTENDANCE", code: "REPEATED_EARLY_LEAVE", title: "Pulang lebih awal berulang", detail: `${earlyLeaveCount} kali pulang lebih awal dalam 30 hari terakhir.`, points: 4, href: "/school/attendance", occurredAt: now, comparableWindow: "CURRENT" });
+      addLive(studentId, item); addTrend(studentId, item);
+    }
+    const conflictCount = currentRows.filter((row) => row.reconciliationStatus === "NEEDS_REVIEW").length;
+    if (conflictCount >= 3) {
+      const item = signal({ id: `attendance-pattern:conflict:${studentId}:${currentWindow.key}`, source: "ATTENDANCE", code: "REPEATED_ATTENDANCE_CONFLICT", title: "Konflik evidence kehadiran berulang", detail: `${conflictCount} hari masih memerlukan verifikasi kehadiran dalam 30 hari terakhir.`, points: 4, href: "/school/attendance", occurredAt: now, comparableWindow: "CURRENT" });
+      addLive(studentId, item); addTrend(studentId, item);
+    }
+    const habitMisses = habituationEvents.filter((event) => event.studentId === studentId);
+    if (habitMisses.length >= 4) {
+      const item = signal({ id: `attendance-pattern:habituation:${studentId}:${currentWindow.key}`, source: "ATTENDANCE", code: "HABITUATION_PARTICIPATION_TREND", title: "Partisipasi pembiasaan perlu perhatian", detail: `${habitMisses.length} catatan tidak hadir/terlambat pada kegiatan pembiasaan dalam 30 hari terakhir. Signal ini terpisah dari status hadir sekolah.`, points: 2, href: "/school/attendance/habituation", occurredAt: habitMisses[0]?.occurredAt || now, comparableWindow: "CURRENT" });
+      addLive(studentId, item); addTrend(studentId, item);
+    }
   }
 
   // Kesiswaan: kasus terbuka memengaruhi risiko live; seluruh insiden 60 hari menjadi bukti tren.

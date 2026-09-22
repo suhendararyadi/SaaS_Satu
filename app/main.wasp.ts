@@ -20,6 +20,7 @@ import { pklSpec } from "./src/pkl/pkl.wasp";
 import { lmsSpec } from "./src/lms/lms.wasp";
 import { governanceSpec } from "./src/governance/governance.wasp";
 import { reportsSpec } from "./src/reports/reports.wasp";
+import { attendance360Spec } from "./src/attendance360/attendance360.wasp";
 
 
 export default app({
@@ -55,6 +56,7 @@ export default app({
     analyticsSpec,
     adminSpec,
     schoolSpec,
+    attendance360Spec,
     pklSpec,
     lmsSpec,
     governanceSpec,
