@@ -133,7 +133,15 @@ export const getMyAttendance = async (_args: unknown, context: { user?: User }) 
   const start = new Date();
   start.setUTCDate(start.getUTCDate() - 62);
   const startKey = attendanceLocalParts(start, policy.timezone).dateOnly;
-  const [events, today, history, pendingPermits] = await Promise.all([
+  const [studentSummary, events, today, history, pendingPermits] = await Promise.all([
+    prisma.user.findFirst({
+      where: { id: student.id, schoolId, role: "STUDENT" },
+      select: {
+        name: true, email: true, username: true,
+        classRoom: { select: { name: true } },
+        school: { select: { name: true } },
+      },
+    }),
     prisma.studentAttendanceEvent.findMany({ where: { schoolId, studentId: student.id, dateOnly: day.dateOnly }, orderBy: { occurredAt: "asc" } }),
     prisma.schoolDailyAttendance.findUnique({ where: { schoolId_studentId_dateOnly: { schoolId, studentId: student.id, dateOnly: day.dateOnly } } }),
     prisma.schoolDailyAttendance.findMany({ where: { schoolId, studentId: student.id, dateOnly: { gte: startKey } }, orderBy: { dateOnly: "desc" }, take: 90 }),
@@ -141,6 +149,11 @@ export const getMyAttendance = async (_args: unknown, context: { user?: User }) 
   ]);
   return {
     serverNow: new Date(),
+    student: {
+      displayName: studentSummary?.name || studentSummary?.username || studentSummary?.email || "Peserta didik",
+      className: studentSummary?.classRoom?.name || null,
+    },
+    school: { name: studentSummary?.school?.name || "Sekolah" },
     policy: { ...policy, latitude: policy.latitude, longitude: policy.longitude },
     calendarDay,
     day,
