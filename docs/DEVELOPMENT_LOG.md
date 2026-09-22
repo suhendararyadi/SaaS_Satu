@@ -1159,3 +1159,11 @@ SMKN 12 Garut remained at 1,539 students, 50 active rombels, 0 genuine daily att
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-attendance360-20260922.dump`.
 
 Handoff: `docs/RELEASE_2026-09-22_ATTENDANCE_360.md`.
+
+---
+
+## 23 September 2026 — Student mobile Attendance UI refinement
+
+Production student attendance mobile UX was redesigned using the user's external attendance-app screenshots as a composition reference while preserving the School OS `DESIGN.md` Apple-HIG visual authority. Mobile `/school/my-attendance` now has a personal student header, server-relative live clock, location/distance preview, one dominant attendance CTA, explicit radius/GPS/schedule state, attendance schedule/recorded times, evidence/selfie section, history, and floating `Riwayat · Presensi · Akun` navigation. Desktop remains unchanged.
+
+Attendance behavior/security was not weakened: server geofence, schedule/calendar, selfie, idempotency, tenant isolation, and canonical daily attendance remain authoritative. Full regression **163/163 across 30 files**, Wasp build/server bundle/SSR/client PASS, immutable deploy PASS, repeat deploy idempotent. Production release: `c083fdf-student-mobile-attendance`; rollback: `d77dd38-attendance360`.

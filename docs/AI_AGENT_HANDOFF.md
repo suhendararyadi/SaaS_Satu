@@ -422,3 +422,11 @@ Production baseline after deploy: SMKN 12 Garut **1,539 students, 50 active romb
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-attendance360-20260922.dump`.
 
 Release record: [`RELEASE_2026-09-22_ATTENDANCE_360.md`](./RELEASE_2026-09-22_ATTENDANCE_360.md).
+
+## Student mobile Attendance UI live — 23 September 2026
+
+Runtime release: `c083fdf-student-mobile-attendance`; runtime commit: `c083fdf`. The student mobile attendance view is now reference-inspired in composition but still strictly governed by root `DESIGN.md`: 16px grouped surfaces, system typography, system blue, subtle borders/shadows, Lucide icons, no decorative gradients, and semantic states with text/icon reinforcement.
+
+Do not regress the new mobile hierarchy back to a generic desktop card stack. Also do not copy the external reference's branding/visual styling. Preserve the existing Attendance 360 server authority for geofence, GPS accuracy, selfie, schedule/calendar, idempotency and tenant isolation. Desktop behavior remains unchanged.
+
+Release record: `docs/RELEASE_2026-09-23_STUDENT_MOBILE_ATTENDANCE_UI.md`.
