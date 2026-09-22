@@ -47,6 +47,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
 
 5. [**School OS Demo Data (`DEMO_DATA.md`)**](./DEMO_DATA.md)
    - Runner synthetic seed/status/cleanup yang eksplisit, idempotent, dan reversible.
+   - Daftar akun demo SMKN 1 Rongga: [`DEMO_ACCOUNTS_SMKN1_RONGGA.md`](./DEMO_ACCOUNTS_SMKN1_RONGGA.md).
    - Marker data DEMO, safety contract, coverage dataset, serta catatan rollout production 10 September 2026.
 
 6. [**Legacy Material 3 Reference (`DESIGN_SYSTEM_M3.md`)**](./DESIGN_SYSTEM_M3.md)
