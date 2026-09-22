@@ -33,3 +33,10 @@ export function needsAttendanceAttention(summary: {
 }): boolean {
   return summary.alpa >= 3 || summary.terlambat >= 5 || (summary.rate !== null && summary.rate < 90);
 }
+
+export function isRequestedIdWithinScope(
+  scopedItems: ReadonlyArray<{ id: string }>,
+  requestedId?: string,
+): boolean {
+  return !requestedId || scopedItems.some((item) => item.id === requestedId);
+}

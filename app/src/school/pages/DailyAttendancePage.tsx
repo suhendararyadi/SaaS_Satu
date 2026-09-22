@@ -21,6 +21,7 @@ import {
 } from "../../client/components/m3";
 import {
   DAILY_ATTENDANCE_STATUSES,
+  getAcademicSemesterDateRange,
   jakartaDateOnly,
   type DailyAttendanceStatus,
 } from "../dailyAttendance";
@@ -259,6 +260,10 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
     };
   }, [draft]);
 
+  const activeSemesterRange = data?.activeAcademicYear
+    ? getAcademicSemesterDateRange(data.activeAcademicYear.yearName, data.activeAcademicYear.semester)
+    : null;
+
   const classOptions = ((data?.classes || []) as any[]).map((classRoom) => ({
     value: classRoom.id,
     label: `${classRoom.name} · ${classRoom._count?.students || 0} siswa`,
@@ -377,7 +382,8 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                   label="Tanggal"
                   type="date"
                   value={dateOnly}
-                  max={today}
+                  min={activeSemesterRange?.startDateOnly}
+                  max={activeSemesterRange && activeSemesterRange.endDateOnly < today ? activeSemesterRange.endDateOnly : today}
                   onChange={(event) => {
                     setDateOnly(event.target.value);
                     setMessage("");

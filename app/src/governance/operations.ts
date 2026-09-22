@@ -2,9 +2,10 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { requireTeacher } from "../school/authGuards";
+import { ensureSchoolUser, requireTeacher } from "../school/authGuards";
 import { isDutyAssignmentForDay, jakartaDutyDayCode } from "../school/staffAssignments";
 import { canReadDutyTeacherReports } from "./dutyTeacherAccess";
+import { canUseHomeroomWorkspace } from "./homeroomAccess";
 
 // ==========================================
 // 1. Waka Kurikulum Supervision Operations
@@ -214,19 +215,23 @@ export const createDutyTeacherReport = async (rawArgs: unknown, context: { user?
 // ==========================================
 
 export const getHomeroomDashboardData = async (_args: unknown, context: { user?: User }) => {
-  const user = requireTeacher(context);
+  const user = ensureSchoolUser(context);
 
-  // Find class where user is homeroom teacher
+  // This is a personal workspace for the teacher assigned as homeroom teacher.
+  // School admins manage assignments and inspect attendance through their dedicated views.
+  if (!canUseHomeroomWorkspace(user)) return null;
+
   const homeroomClass = await prisma.classRoom.findFirst({
     where: {
       schoolId: user.schoolId,
       academicYear: { isActive: true },
-      ...(user.isAdmin ? {} : { homeroomTeacherId: user.id }),
+      homeroomTeacherId: user.id,
     },
     include: {
       department: true,
       academicYear: true,
       students: {
+        where: { schoolId: user.schoolId, role: "STUDENT" },
         select: {
           id: true,
           name: true,

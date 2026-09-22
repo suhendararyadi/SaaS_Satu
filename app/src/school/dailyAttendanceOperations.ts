@@ -8,6 +8,7 @@ import {
   DAILY_ATTENDANCE_STATUSES,
   isValidDateOnly,
   jakartaDateOnly,
+  isDateWithinAcademicSemester,
   summarizeDailyAttendance,
 } from "./dailyAttendance";
 import {
@@ -200,10 +201,11 @@ export const saveDailySchoolAttendance = async (
     select: {
       id: true,
       academicYearId: true,
-      academicYear: { select: { isActive: true } },
+      academicYear: { select: { isActive: true, yearName: true, semester: true } },
       homeroomTeacherId: true,
       students: {
         where: {
+          schoolId: user.schoolId,
           role: "STUDENT",
         },
         select: { id: true },
@@ -214,6 +216,13 @@ export const saveDailySchoolAttendance = async (
   assertDailyAttendanceClassAccess(user, classRoom);
   if (!classRoom.academicYear.isActive) {
     throw new HttpError(400, "Presensi harian hanya dapat dicatat pada tahun ajaran aktif.");
+  }
+  if (!isDateWithinAcademicSemester(
+    args.dateOnly,
+    classRoom.academicYear.yearName,
+    classRoom.academicYear.semester,
+  )) {
+    throw new HttpError(400, "Tanggal presensi berada di luar semester aktif.");
   }
 
   const classStudentIds = new Set(classRoom.students.map((student) => student.id));

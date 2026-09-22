@@ -22,6 +22,43 @@ export function jakartaDateOnly(date = new Date()): string {
   }).format(date);
 }
 
+
+export function getAcademicSemesterDateRange(
+  yearName: string,
+  semester: string,
+): { startDateOnly: string; endDateOnly: string; endDateOnlyExclusive: string } | null {
+  const match = /^(\d{4})\/(\d{4})$/.exec(yearName.trim());
+  if (!match) return null;
+  const startYear = Number(match[1]);
+  const endYear = Number(match[2]);
+  if (endYear !== startYear + 1) return null;
+
+  if (semester === "GANJIL") {
+    return {
+      startDateOnly: `${startYear}-07-01`,
+      endDateOnly: `${startYear}-12-31`,
+      endDateOnlyExclusive: `${endYear}-01-01`,
+    };
+  }
+  if (semester === "GENAP") {
+    return {
+      startDateOnly: `${endYear}-01-01`,
+      endDateOnly: `${endYear}-06-30`,
+      endDateOnlyExclusive: `${endYear}-07-01`,
+    };
+  }
+  return null;
+}
+
+export function isDateWithinAcademicSemester(
+  dateOnly: string,
+  yearName: string,
+  semester: string,
+): boolean {
+  const range = getAcademicSemesterDateRange(yearName, semester);
+  return !!range && dateOnly >= range.startDateOnly && dateOnly < range.endDateOnlyExclusive;
+}
+
 export function summarizeDailyAttendance(
   records: ReadonlyArray<{ status: string }>,
 ) {

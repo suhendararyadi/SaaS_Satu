@@ -278,7 +278,6 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Sarpras & Inventaris", href: "/school/sarpras", icon: "inventory_2" },
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
         { label: "Guru Piket", href: "/school/governance/piket", icon: "schedule" },
-        { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
         { label: "Panel Wakasek", href: "/school/governance/wakasek", icon: "verified_user" },
         { label: "Laporan", href: "/school/reports", icon: "description" },
       ] });

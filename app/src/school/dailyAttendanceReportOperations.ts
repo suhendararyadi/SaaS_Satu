@@ -4,13 +4,14 @@ import { z } from "zod";
 import { prisma } from "wasp/server";
 import { ensureSchoolUser } from "./authGuards";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { isValidDateOnly, jakartaDateOnly } from "./dailyAttendance";
+import { getAcademicSemesterDateRange, isValidDateOnly, jakartaDateOnly } from "./dailyAttendance";
 import {
   attendanceRate,
   canUseDailyAttendance,
   isDailyAttendanceAdmin,
   needsAttendanceAttention,
   summarizeAttendanceStatuses,
+  isRequestedIdWithinScope,
 } from "./dailyAttendanceAccess";
 
 const dateOnlySchema = z.string().refine(isValidDateOnly, "Tanggal tidak valid.");
@@ -66,7 +67,7 @@ export const getDailyAttendanceReportData = async (
       homeroomTeacher: { select: { id: true, name: true } },
       department: { select: { code: true, name: true } },
       students: {
-        where: { role: "STUDENT" },
+        where: { schoolId: user.schoolId, role: "STUDENT" },
         select: {
           id: true,
           name: true,
@@ -80,6 +81,10 @@ export const getDailyAttendanceReportData = async (
 
   if (!canUseDailyAttendance(user, classes.map((classRoom) => classRoom.id))) {
     throw new HttpError(403, "Laporan presensi harian hanya tersedia untuk admin sekolah dan wali kelas.");
+  }
+
+  if (!isRequestedIdWithinScope(classes, args?.classRoomId)) {
+    throw new HttpError(403, "Rombel yang dipilih berada di luar cakupan akses Anda.");
   }
 
   const selectedClass =
@@ -139,18 +144,16 @@ export const getDailyAttendanceReportData = async (
   let periodLabel: string;
 
   if (period === "SEMESTER" && activeAcademicYear) {
-    const [startYearText, endYearText] = activeAcademicYear.yearName.split("/");
-    const startYear = Number(startYearText);
-    const endYear = Number(endYearText);
-    if (activeAcademicYear.semester === "GANJIL") {
-      periodStart = `${startYear}-07-01`;
-      periodEndExclusive = `${endYear}-01-01`;
-      periodLabel = `Semester Ganjil ${activeAcademicYear.yearName}`;
-    } else {
-      periodStart = `${endYear}-01-01`;
-      periodEndExclusive = `${endYear}-07-01`;
-      periodLabel = `Semester Genap ${activeAcademicYear.yearName}`;
+    const semesterRange = getAcademicSemesterDateRange(
+      activeAcademicYear.yearName,
+      activeAcademicYear.semester,
+    );
+    if (!semesterRange) {
+      throw new HttpError(500, "Rentang tahun ajaran aktif tidak valid.");
     }
+    periodStart = semesterRange.startDateOnly;
+    periodEndExclusive = semesterRange.endDateOnlyExclusive;
+    periodLabel = `Semester ${activeAcademicYear.semester === "GANJIL" ? "Ganjil" : "Genap"} ${activeAcademicYear.yearName}`;
   } else {
     periodStart = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
     const next = new Date(Date.UTC(selectedYear, selectedMonth, 1));
@@ -205,6 +208,10 @@ export const getDailyAttendanceReportData = async (
       ],
     }))
     .sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101) || b.alpa - a.alpa || b.terlambat - a.terlambat);
+
+  if (!isRequestedIdWithinScope(selectedClass.students, args?.studentId)) {
+    throw new HttpError(403, "Siswa yang dipilih berada di luar rombel yang dapat Anda akses.");
+  }
 
   const selectedStudent =
     selectedClass.students.find((student) => student.id === args?.studentId) ||

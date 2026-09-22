@@ -86,10 +86,12 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
         <div className="space-y-6">
           <M3Banner
             variant="warning"
-            headline="Data Wali Kelas Belum Tersedia"
-            supportingText="Akun Anda belum ditugaskan sebagai wali kelas pada rombel aktif."
-            actionLabel="Kembali ke Dashboard"
-            actionHref="/school"
+            headline={user.role === "TEACHER" ? "Data Wali Kelas Belum Tersedia" : "Ruang Kerja Wali Kelas"}
+            supportingText={user.role === "TEACHER"
+              ? "Akun Anda belum ditugaskan sebagai wali kelas pada rombel aktif."
+              : "Halaman ini merupakan ruang kerja guru yang ditugaskan sebagai wali kelas. Admin sekolah dapat mengelola penugasan wali kelas melalui Struktur & Penugasan dan memantau kehadiran melalui Presensi Harian."}
+            actionLabel={user.role === "TEACHER" ? "Kembali ke Dashboard" : "Buka Struktur & Penugasan"}
+            actionHref={user.role === "TEACHER" ? "/school" : "/school/governance/organization"}
             className="p-6"
           />
         </div>
