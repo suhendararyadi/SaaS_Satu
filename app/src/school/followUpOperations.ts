@@ -5,6 +5,7 @@ import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser, requirePklMonitoring } from "./authGuards";
 import { getPklEwsAlertsForScope } from "../pkl/ews";
+import { STUDENT_AFFAIRS_STUDENT_LIMIT } from "./studentAffairs";
 import {
   FOLLOW_UP_SEVERITIES,
   FOLLOW_UP_STATUSES,
@@ -16,6 +17,25 @@ import {
 
 function isAdmin(user: User) {
   return !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
+}
+
+async function validateFollowUpAssignee(
+  schoolId: string,
+  id: string | null | undefined,
+) {
+  if (!id) return null;
+  const assignee = await prisma.user.findFirst({
+    where: {
+      id,
+      schoolId,
+      role: { in: ["TEACHER", "SCHOOL_ADMIN"] },
+    },
+    select: { id: true },
+  });
+  if (!assignee) {
+    throw new HttpError(400, "Penanggung jawab harus guru atau admin sekolah yang valid.");
+  }
+  return assignee.id;
 }
 
 function jakartaDateOnly(date = new Date()) {
@@ -587,7 +607,7 @@ export const getFollowUpWorkflowData = async (
         classRoom: { select: { id: true, name: true } },
       },
       orderBy: [{ name: "asc" }, { email: "asc" }],
-      take: 500,
+      take: STUDENT_AFFAIRS_STUDENT_LIMIT,
     }),
   ]);
 
@@ -681,15 +701,11 @@ export const createManualFollowUpCase = async (
     if (!student) throw new HttpError(400, "Siswa terkait tidak valid atau berada di luar lingkup akses Anda.");
   }
 
-  if (args.assignedToId) {
-    const assignee = await prisma.user.findFirst({
-      where: { id: args.assignedToId, schoolId: user.schoolId },
-      select: { id: true },
-    });
-    if (!assignee) throw new HttpError(400, "Penanggung jawab tidak valid.");
-  }
+  const validatedAssigneeId = leadership.canAssign
+    ? await validateFollowUpAssignee(user.schoolId, args.assignedToId)
+    : null;
 
-  const assignedToId = leadership.canAssign ? args.assignedToId || null : user.id;
+  const assignedToId = leadership.canAssign ? validatedAssigneeId : user.id;
   const sourceType = leadership.canAssign
     ? args.sourceType
     : user.role === "TEACHER" && args.sourceType === "HOMEROOM"
@@ -750,6 +766,7 @@ export const updateFollowUpCase = async (
       resolutionNote: true,
       assignedToId: true,
       createdById: true,
+      updatedAt: true,
       subjectStudent: { select: { classRoom: { select: { homeroomTeacherId: true } } } },
     },
   });
@@ -766,13 +783,10 @@ export const updateFollowUpCase = async (
     throw new HttpError(403, "Hanya Admin, Kepala Sekolah, atau Wakasek yang dapat mengubah penanggung jawab.");
   }
 
-  if (args.assignedToId) {
-    const assignee = await prisma.user.findFirst({
-      where: { id: args.assignedToId, schoolId: user.schoolId },
-      select: { id: true },
-    });
-    if (!assignee) throw new HttpError(400, "Penanggung jawab tidak valid.");
-  }
+  const validatedAssigneeId =
+    args.assignedToId !== undefined && leadership.canAssign
+      ? await validateFollowUpAssignee(user.schoolId, args.assignedToId)
+      : args.assignedToId;
 
   if (args.status && args.status !== current.status) {
     const allowed = nextFollowUpStatuses(current.status as FollowUpStatusCode);
@@ -782,7 +796,7 @@ export const updateFollowUpCase = async (
   }
 
   const nextAssignedTo =
-    args.assignedToId !== undefined ? args.assignedToId : current.assignedToId;
+    args.assignedToId !== undefined ? validatedAssigneeId : current.assignedToId;
   let nextStatus = args.status || current.status;
   if (args.assignedToId !== undefined && !args.status) {
     if (nextAssignedTo && current.status === "FINDING") nextStatus = "ASSIGNED";
@@ -795,22 +809,32 @@ export const updateFollowUpCase = async (
   }
 
   return prisma.$transaction(async (tx) => {
-    const updated = await tx.schoolFollowUpCase.update({
-      where: { id: current.id },
+    const write = await tx.schoolFollowUpCase.updateMany({
+      where: { id: current.id, updatedAt: current.updatedAt },
       data: {
         status: nextStatus,
         severity: args.severity || undefined,
-        assignedToId: args.assignedToId !== undefined ? args.assignedToId : undefined,
+        assignedToId: args.assignedToId !== undefined ? validatedAssigneeId : undefined,
         dueAt: args.dueAt !== undefined ? args.dueAt : undefined,
         resolutionNote:
-          args.resolutionNote !== undefined ? args.resolutionNote?.trim() || null : undefined,
+          args.resolutionNote !== undefined
+            ? args.resolutionNote?.trim() || null
+            : current.status === "RESOLVED" && nextStatus === "IN_PROGRESS"
+              ? null
+              : undefined,
         resolvedAt: isResolved ? new Date() : nextStatus === "IN_PROGRESS" ? null : undefined,
         resolvedById: isResolved ? user.id : nextStatus === "IN_PROGRESS" ? null : undefined,
       },
+    });
+    if (write.count !== 1) {
+      throw new HttpError(409, "Tindak lanjut telah diperbarui pengguna lain. Muat ulang sebelum menyimpan lagi.");
+    }
+    const updated = await tx.schoolFollowUpCase.findUniqueOrThrow({
+      where: { id: current.id },
       select: { id: true, status: true, updatedAt: true },
     });
 
-    if (args.assignedToId !== undefined && args.assignedToId !== current.assignedToId) {
+    if (args.assignedToId !== undefined && validatedAssigneeId !== current.assignedToId) {
       await tx.schoolFollowUpEvent.create({
         data: {
           caseId: current.id,
@@ -818,8 +842,8 @@ export const updateFollowUpCase = async (
           type: "ASSIGNED",
           fromStatus: current.status,
           toStatus: nextStatus,
-          note: args.assignedToId ? "Penanggung jawab diperbarui." : "Penanggung jawab dilepas.",
-          metadata: { assignedToId: args.assignedToId },
+          note: validatedAssigneeId ? "Penanggung jawab diperbarui." : "Penanggung jawab dilepas.",
+          metadata: { assignedToId: validatedAssigneeId },
         },
       });
     }

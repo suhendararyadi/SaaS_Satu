@@ -10,6 +10,8 @@ import {
   PERMIT_STATUSES,
   PERMIT_TYPES,
   VIOLATION_STATUSES,
+  STUDENT_AFFAIRS_STUDENT_LIMIT,
+  isFutureHistoricalStudentAffairsDate,
   nextCoachingStatuses,
   nextPermitStatuses,
   nextViolationStatuses,
@@ -252,12 +254,27 @@ export const getStudentAffairsData = async (
   const baseStudentWhere: any = studentAffairsStudentWhere(user, access);
 
   if (args.classRoomId) {
-    if (!access.canManageAll && !access.homeroomClassIds.includes(args.classRoomId)) {
+    const classRoom = await prisma.classRoom.findFirst({
+      where: {
+        id: args.classRoomId,
+        schoolId: user.schoolId,
+        academicYear: { isActive: true },
+        ...(!access.canManageAll ? { homeroomTeacherId: user.id } : {}),
+      },
+      select: { id: true },
+    });
+    if (!classRoom) {
       throw new HttpError(403, "Rombel berada di luar lingkup Kesiswaan Anda.");
     }
-    baseStudentWhere.classRoomId = args.classRoomId;
+    baseStudentWhere.classRoomId = classRoom.id;
   }
-  if (args.studentId) baseStudentWhere.id = args.studentId;
+  if (args.studentId) {
+    const selectedStudent = await assertStudentAffairsStudent(user, access, args.studentId);
+    if (args.classRoomId && selectedStudent.classRoomId !== args.classRoomId) {
+      throw new HttpError(403, "Siswa berada di luar rombel yang dipilih.");
+    }
+    baseStudentWhere.id = selectedStudent.id;
+  }
 
   const students = await prisma.user.findMany({
     where: baseStudentWhere,
@@ -269,7 +286,7 @@ export const getStudentAffairsData = async (
       classRoom: { select: { id: true, name: true } },
     },
     orderBy: [{ classRoom: { name: "asc" } }, { name: "asc" }],
-    take: 1500,
+    take: STUDENT_AFFAIRS_STUDENT_LIMIT,
   });
 
   const studentIds = students.map((student) => student.id);
@@ -537,6 +554,9 @@ export const createStudentViolation = async (
   const { user, access } = await requireStudentAffairsAccess(context);
   const args = ensureArgsSchemaOrThrowHttpError(violationCreateSchema, rawArgs);
   const student = await assertStudentAffairsStudent(user, access, args.studentId);
+  if (isFutureHistoricalStudentAffairsDate(args.incidentAt)) {
+    throw new HttpError(400, "Waktu kejadian pelanggaran tidak boleh berada di masa depan.");
+  }
 
   const requestedHandler = access.canManageAll
     ? await validateStaffAssignee(user.schoolId, args.handledById)
@@ -637,6 +657,7 @@ export const updateStudentViolation = async (
       severity: true,
       status: true,
       handledById: true,
+      updatedAt: true,
       student: {
         select: {
           name: true,
@@ -670,8 +691,8 @@ export const updateStudentViolation = async (
     shouldAutoCreateViolationFollowUp(nextSeverity);
 
   return prisma.$transaction(async (tx) => {
-    const updated = await tx.studentViolation.update({
-      where: { id: current.id },
+    const write = await tx.studentViolation.updateMany({
+      where: { id: current.id, updatedAt: current.updatedAt },
       data: {
         status: nextStatus,
         severity: args.severity || undefined,
@@ -681,9 +702,11 @@ export const updateStudentViolation = async (
         actionTaken:
           args.actionTaken === undefined ? undefined : args.actionTaken || null,
         resolutionNote:
-          args.resolutionNote === undefined
-            ? undefined
-            : args.resolutionNote || null,
+          args.resolutionNote !== undefined
+            ? args.resolutionNote || null
+            : current.status === "RESOLVED" && nextStatus === "IN_REVIEW"
+              ? null
+              : undefined,
         resolvedAt:
           nextStatus === "RESOLVED"
             ? new Date()
@@ -691,6 +714,12 @@ export const updateStudentViolation = async (
               ? null
               : undefined,
       },
+    });
+    if (write.count !== 1) {
+      throw new HttpError(409, "Catatan pelanggaran telah diperbarui pengguna lain. Muat ulang sebelum menyimpan lagi.");
+    }
+    const updated = await tx.studentViolation.findUniqueOrThrow({
+      where: { id: current.id },
       select: { id: true, status: true },
     });
 
@@ -785,6 +814,9 @@ export const saveStudentAchievement = async (
   const { user, access } = await requireStudentAffairsAccess(context);
   const args = ensureArgsSchemaOrThrowHttpError(achievementSchema, rawArgs);
   const student = await assertStudentAffairsStudent(user, access, args.studentId);
+  if (isFutureHistoricalStudentAffairsDate(args.achievementDate)) {
+    throw new HttpError(400, "Tanggal prestasi tidak boleh berada di masa depan.");
+  }
 
   if (args.id) {
     const existing = await prisma.studentAchievement.findFirst({
@@ -793,13 +825,13 @@ export const saveStudentAchievement = async (
         schoolId: user.schoolId,
         studentId: student.id,
       },
-      select: { id: true },
+      select: { id: true, updatedAt: true },
     });
     if (!existing) throw new HttpError(404, "Catatan prestasi tidak ditemukan.");
 
     return prisma.$transaction(async (tx) => {
-      const updated = await tx.studentAchievement.update({
-        where: { id: existing.id },
+      const write = await tx.studentAchievement.updateMany({
+        where: { id: existing.id, updatedAt: existing.updatedAt },
         data: {
           category: args.category,
           title: args.title,
@@ -810,6 +842,12 @@ export const saveStudentAchievement = async (
           notes: args.notes || null,
           evidenceUrl: args.evidenceUrl || null,
         },
+      });
+      if (write.count !== 1) {
+        throw new HttpError(409, "Catatan prestasi telah diperbarui pengguna lain. Muat ulang sebelum menyimpan lagi.");
+      }
+      const updated = await tx.studentAchievement.findUniqueOrThrow({
+        where: { id: existing.id },
         select: { id: true },
       });
       await createStudentAffairsEvent(tx, {
@@ -969,6 +1007,7 @@ export const updateStudentCoaching = async (
       summary: true,
       status: true,
       assignedToId: true,
+      updatedAt: true,
       student: {
         select: {
           name: true,
@@ -998,8 +1037,8 @@ export const updateStudentCoaching = async (
         : user.id;
 
   return prisma.$transaction(async (tx) => {
-    const updated = await tx.studentCoaching.update({
-      where: { id: current.id },
+    const write = await tx.studentCoaching.updateMany({
+      where: { id: current.id, updatedAt: current.updatedAt },
       data: {
         status: nextStatus,
         assignedToId:
@@ -1011,9 +1050,11 @@ export const updateStudentCoaching = async (
         nextReviewAt:
           args.nextReviewAt === undefined ? undefined : args.nextReviewAt,
         resolutionNote:
-          args.resolutionNote === undefined
-            ? undefined
-            : args.resolutionNote || null,
+          args.resolutionNote !== undefined
+            ? args.resolutionNote || null
+            : current.status === "COMPLETED" && nextStatus === "IN_PROGRESS"
+              ? null
+              : undefined,
         completedAt:
           nextStatus === "COMPLETED"
             ? new Date()
@@ -1021,6 +1062,12 @@ export const updateStudentCoaching = async (
               ? null
               : undefined,
       },
+    });
+    if (write.count !== 1) {
+      throw new HttpError(409, "Catatan pembinaan telah diperbarui pengguna lain. Muat ulang sebelum menyimpan lagi.");
+    }
+    const updated = await tx.studentCoaching.findUniqueOrThrow({
+      where: { id: current.id },
       select: { id: true, status: true },
     });
 
@@ -1175,6 +1222,7 @@ export const updateStudentPermit = async (
       id: true,
       studentId: true,
       status: true,
+      updatedAt: true,
     },
   });
   if (!current) throw new HttpError(404, "Izin/dispensasi tidak ditemukan.");
@@ -1187,23 +1235,35 @@ export const updateStudentPermit = async (
   }
 
   return prisma.$transaction(async (tx) => {
-    const updated = await tx.studentPermit.update({
-      where: { id: current.id },
+    const write = await tx.studentPermit.updateMany({
+      where: { id: current.id, updatedAt: current.updatedAt },
       data: {
         status: args.status,
         approvalNote:
-          args.approvalNote === undefined ? undefined : args.approvalNote || null,
+          args.status === "REQUESTED"
+            ? null
+            : args.approvalNote === undefined
+              ? undefined
+              : args.approvalNote || null,
         approvedById:
           args.status === "APPROVED" || args.status === "REJECTED"
             ? user.id
-            : undefined,
+            : args.status === "REQUESTED"
+              ? null
+              : undefined,
         returnedAt:
           args.status === "RETURNED"
             ? new Date()
-            : args.status === "APPROVED"
+            : args.status === "APPROVED" || args.status === "REQUESTED"
               ? null
               : undefined,
       },
+    });
+    if (write.count !== 1) {
+      throw new HttpError(409, "Izin/dispensasi telah diperbarui pengguna lain. Muat ulang sebelum menyimpan lagi.");
+    }
+    const updated = await tx.studentPermit.findUniqueOrThrow({
+      where: { id: current.id },
       select: { id: true, status: true },
     });
 

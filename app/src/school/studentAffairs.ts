@@ -91,3 +91,13 @@ export function nextPermitStatuses(status: PermitStatusCode): PermitStatusCode[]
 export function shouldAutoCreateViolationFollowUp(severity: string): boolean {
   return severity === "HIGH" || severity === "CRITICAL";
 }
+
+
+export const STUDENT_AFFAIRS_STUDENT_LIMIT = 5000;
+
+export function isFutureHistoricalStudentAffairsDate(
+  value: Date,
+  now = new Date(),
+): boolean {
+  return value.getTime() > now.getTime();
+}

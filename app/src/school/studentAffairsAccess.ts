@@ -60,11 +60,20 @@ export async function resolveStudentAffairsAccess(
     };
   }
 
+  if (!activeYear) {
+    return {
+      canAccess: false,
+      canManageAll: false,
+      homeroomClassIds: [] as string[],
+      scope: "NONE" as const,
+    };
+  }
+
   const classes = await prisma.classRoom.findMany({
     where: {
       schoolId: user.schoolId,
       homeroomTeacherId: user.id,
-      ...(activeYear ? { academicYearId: activeYear.id } : {}),
+      academicYearId: activeYear.id,
     },
     select: { id: true },
   });
