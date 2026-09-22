@@ -1102,3 +1102,39 @@ Validation:
 - official DESIGN.md Tailwind v4 CSS export: PASS.
 
 No runtime UI, database, backend, or production pointer was changed by this documentation-only adoption.
+
+---
+
+## 22 September 2026 — Presensi Harian + Wali Kelas production-grade hardening
+
+Daily Attendance and the Homeroom Teacher workspace were audited and hardened as the next production-grade module after PKL Gen 2.
+
+Key fixes: strict active-semester date bounds, same-tenant STUDENT-only roster/report relations, explicit report selector authorization instead of silent fallback, Wali Kelas as a TEACHER-only assigned workspace, removal of the misleading School Admin Wali Kelas sidebar entry, and regression coverage for the new scope policies.
+
+A reversible two-tenant real-database UAT completed **33/33 PASS**, including concurrent full-roster writes and `ALPA` propagation into EWS Gen 2. UAT data was fully cleaned and SMKN 12 Garut remained at **0 daily-attendance rows**.
+
+Quality gate: **156/156 tests across 29 files**, Wasp build PASS, server bundle PASS, Vite SSR/client PASS, no schema migration, full deploy preflight PASS, immutable deployment PASS, repeat deployment idempotent true, protected operations return 401 unauthenticated.
+
+Production release: `16bad88-attendance-wali-hardening`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-attendance-wali-uat-20260922.dump`.
+
+Handoff: `docs/RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md`.
+
+---
+
+## 22 September 2026 — Kesiswaan Terpadu + Tindak Lanjut production-grade hardening
+
+Kesiswaan Terpadu and Follow-Up were audited and hardened after the Presensi Harian + Wali Kelas production release.
+
+Critical production findings included Kesiswaan truncation at 1,500 students despite SMKN 12 Garut having 1,539 students, and a manual Follow-Up selector limited to 500 students. Both now use a bounded 5,000-student operational cap, verified read-only against production at 1,539/1,539.
+
+Additional hardening covers explicit class/student scope, active-academic-year homeroom access, future violation/achievement dates, valid Follow-Up assignees, optimistic concurrent-write protection, and clean reopen metadata for violations/coaching/permits/Follow-Up.
+
+Isolated real-DB UAT: **55/55 PASS**. Full regression: **157/157 PASS across 29 files**. Wasp build, server bundle, Vite SSR/client, immutable preflight/deploy, idempotent redeploy, auth security smoke, cleanup, and post-deploy log/health checks all PASS. No schema migration was needed.
+
+Production release: `0d52d90-student-affairs-followup`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-student-affairs-followup-uat-20260922.dump`.
+
+Handoff: `docs/RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`.

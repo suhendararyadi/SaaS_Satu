@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last verified: **20 September 2026 (Asia/Jakarta)**.
+Last verified: **22 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Agen baru harus membaca [`AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md) terlebih dahulu sebagai ringkasan cepat, lalu dokumen ini untuk konteks lengkap. Jika dokumentasi bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot.
 
@@ -36,8 +36,10 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - PKL Foundation Generasi Kedua: `45a11a5` — final app commit for Gen2 foundation compatibility
 - PKL Gen2 full workflow suite: `5aee74e` — Placement/Readiness/Attendance/Journal/EWS/Role Panel/Reports/Import
 - PKL Gen2 UAT & hardening: `d0809d4` — concurrency, lifecycle, attendance, import, EWS and evidence hardening
-- Current production application commit: `d0809d4` — PKL Gen2 UAT & operational hardening
+- Current production application commit: `0d52d90` — Kesiswaan Terpadu + Tindak Lanjut production-grade hardening
 - Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
+- Current attendance hardening branch/worktree: `hardening/daily-attendance-wali` at `/home/ubuntu/.cache/mso-worktrees/saas-satu-attendance-wali-hardening`; production app release: `16bad88-attendance-wali-hardening`.
+- Current Kesiswaan/Follow-Up hardening branch/worktree: `hardening/student-affairs-followup` at `/home/ubuntu/.cache/mso-worktrees/saas-satu-student-affairs-followup-hardening`; production app release: `0d52d90-student-affairs-followup`.
 - AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 20 September 2026.
 - Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md). Critical confirmed context is now independent of the project worktree.
 - `.agent/` adalah operational Project/RASMIC memory yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status, tetapi jangan mengandalkannya sebagai satu-satunya memory permanen.
@@ -669,3 +671,13 @@ Demo company is DEMO-PKL-01 / PT Demo PKL School OS. It links one existing grade
 
 Backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dump
 Cleanup: /home/ubuntu/backups/SaaS_Satu/pkl-demo-smkn12-20260921.cleanup.sql
+
+
+## 3.4 Presensi Harian + Wali Kelas production-grade — 22 September 2026
+
+Release `16bad88-attendance-wali-hardening` is live for backend and static. SMKN 12 Garut has 50 active rombels, all 50 have homeroom teachers, and daily-attendance production rows remain 0 after isolated UAT. A two-tenant real-database UAT passed 33/33 and was fully cleaned. Full regression is 156/156 across 29 files. The server now enforces active-semester date bounds, same-tenant STUDENT-only roster relations, explicit report selector scope, and TEACHER-only Wali Kelas personal workspace behavior. `ALPA` propagation to EWS Gen 2 was verified. See [`RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md`](./RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md).
+
+
+## 3.5 Kesiswaan Terpadu + Tindak Lanjut production-grade — 22 September 2026
+
+Release `0d52d90-student-affairs-followup` is live for backend and static. Production read-only checks verified both Kesiswaan and the Follow-Up manual student selector now cover all **1,539 / 1,539** SMKN 12 Garut students instead of the former 1,500 and 500 caps. Isolated multi-tenant real-DB UAT passed **55/55**, full regression passed **157/157 across 29 files**, and temporary UAT data was fully removed. Genuine SMKN 12 Kesiswaan and Follow-Up production tables remain at zero rows. Hardened contracts include active-year homeroom scope, explicit class/student selectors, no future violation/achievement dates, valid same-school teacher/admin Follow-Up assignees, optimistic concurrency, clean reopen metadata, auto-follow-up synchronization, and Student Affairs signals into EWS Gen 2. See [`RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`](./RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md).

@@ -27,6 +27,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - PKL Gen 2 UAT & Operational Hardening: [`RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md`](./RELEASE_2026-09-21_PKL_GEN2_UAT_HARDENING.md).
    - PKL Gen2 Foundation permission fix: [`RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`](./RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md).
    - PKL Mitra DUDI edit validation fix: [`RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md`](./RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md).
+   - Presensi Harian + Wali Kelas production-grade hardening: [`RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md`](./RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md).
 
 2. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
    - Spesifikasi stack teknologi (Wasp v0.25, React 19, Node.js 24, Prisma, PostgreSQL).
@@ -117,3 +118,5 @@ node scratch/test_crud_manual.mjs
 ```
 
 Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DEMO_DATA.md) dan jangan menjalankan cleanup ad-hoc di database production.
+
+   - Kesiswaan Terpadu + Tindak Lanjut production-grade hardening: [`RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`](./RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md).

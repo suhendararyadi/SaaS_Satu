@@ -351,7 +351,7 @@ Do not store raw student/PTK PII, credentials, tokens, or private keys in either
 
 ## 13. Current continuation point
 
-PKL Foundation + the complete PKL Generasi Kedua workflow suite are finished and live. Until authoritative PKL data is supplied, do not seed synthetic PKL production records; focus only on review/refinement or approved next features.
+PKL Foundation + the complete PKL Generasi Kedua workflow suite are finished and live. Presensi Harian + Wali Kelas and Kesiswaan Terpadu + Tindak Lanjut have also completed production-grade hardening. The current application release is `0d52d90-student-affairs-followup`. The strongest next verification step is cross-module EWS Gen 2 UAT across Presensi Harian, Kesiswaan, Tindak Lanjut, and PKL rather than reopening completed modules without a concrete regression. Until authoritative PKL data is supplied, do not seed additional synthetic PKL production records beyond explicitly authorized reversible demo data.
 
 Before starting the next feature:
 
@@ -376,3 +376,31 @@ Pre-demo backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dum
 Cleanup script: /home/ubuntu/backups/SaaS_Satu/pkl-demo-smkn12-20260921.cleanup.sql
 
 When the owner says testing is complete, remove this demo dataset and restore the zero-PKL baseline.
+
+
+## Presensi Harian + Wali Kelas production-grade — 22 September 2026
+
+Production release: `16bad88-attendance-wali-hardening`.
+
+Verified baseline: SMKN 12 Garut 1,539 students, 50 active rombels, 50/50 homeroom assignments, 0 genuine daily-attendance rows. Isolated two-tenant real-DB UAT: **33/33 PASS** and fully cleaned. Full regression: **156/156 PASS across 29 files**. Wasp build, server bundle, SSR/client builds, full preflight/deploy, idempotent re-deploy, and unauthenticated operation security checks all PASS.
+
+Important contracts now enforced: active-semester date bounds; complete roster exactly once; same-tenant STUDENT-only relations; explicit class/student report selection must remain in authorized scope; Wali Kelas is a personal workspace only for an assigned `TEACHER`; Admin uses Struktur & Penugasan plus Presensi Harian instead; `ALPA` feeds EWS Gen 2.
+
+Release handoff: [`RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md`](./RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md).
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-attendance-wali-uat-20260922.dump`.
+
+
+## Kesiswaan Terpadu + Tindak Lanjut production-grade — 22 September 2026
+
+Production release: `0d52d90-student-affairs-followup`.
+
+Production read verification: Kesiswaan students **1,539/1,539** and Follow-Up student options **1,539/1,539**. Genuine SMKN 12 Garut StudentViolation, StudentAchievement, StudentCoaching, StudentPermit, StudentAffairsEvent, and SchoolFollowUpCase rows remain zero.
+
+Isolated real-DB UAT: **55/55 PASS**. Full regression: **157/157 PASS across 29 files**. Wasp build, server bundle, SSR/client builds, immutable full deploy, idempotent redeploy, 12 protected-operation auth checks, post-restart logs, and VPS health checks PASS.
+
+Important contracts: active-year homeroom scope only; explicit class/student selectors remain within authorized scope; historical violation/achievement dates cannot be future; Follow-Up assignee must be same-school TEACHER/SCHOOL_ADMIN; mutable workflow records use optimistic `updatedAt` guards; reopen clears stale resolution/approval metadata while audit events remain; HIGH/CRITICAL Student Affairs findings can synchronize to Follow-Up and feed EWS Gen 2.
+
+Release handoff: [`RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md`](./RELEASE_2026-09-22_STUDENT_AFFAIRS_FOLLOWUP_HARDENING.md).
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-student-affairs-followup-uat-20260922.dump`.
