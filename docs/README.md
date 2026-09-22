@@ -126,3 +126,5 @@ Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DE
    - Attendance 360 implementation/source-of-truth plan: [`ATTENDANCE_360_IMPLEMENTATION_PLAN.md`](./ATTENDANCE_360_IMPLEMENTATION_PLAN.md).
 
    - Student mobile Attendance UI release: [`RELEASE_2026-09-23_STUDENT_MOBILE_ATTENDANCE_UI.md`](./RELEASE_2026-09-23_STUDENT_MOBILE_ATTENDANCE_UI.md).
+
+   - Student mobile selfie/navigation refinement: [`RELEASE_2026-09-23_STUDENT_MOBILE_SELFIE_NAV_REFINEMENT.md`](./RELEASE_2026-09-23_STUDENT_MOBILE_SELFIE_NAV_REFINEMENT.md).

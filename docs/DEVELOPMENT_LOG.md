@@ -1167,3 +1167,11 @@ Handoff: `docs/RELEASE_2026-09-22_ATTENDANCE_360.md`.
 Production student attendance mobile UX was redesigned using the user's external attendance-app screenshots as a composition reference while preserving the School OS `DESIGN.md` Apple-HIG visual authority. Mobile `/school/my-attendance` now has a personal student header, server-relative live clock, location/distance preview, one dominant attendance CTA, explicit radius/GPS/schedule state, attendance schedule/recorded times, evidence/selfie section, history, and floating `Riwayat · Presensi · Akun` navigation. Desktop remains unchanged.
 
 Attendance behavior/security was not weakened: server geofence, schedule/calendar, selfie, idempotency, tenant isolation, and canonical daily attendance remain authoritative. Full regression **163/163 across 30 files**, Wasp build/server bundle/SSR/client PASS, immutable deploy PASS, repeat deploy idempotent. Production release: `c083fdf-student-mobile-attendance`; rollback: `d77dd38-attendance360`.
+
+---
+
+## 23 September 2026 — Student mobile selfie/navigation refinement
+
+Student mobile attendance was simplified further. `/school/my-attendance` now uses the same bottom-navigation set as the student home instead of a special page-only navigation. The mobile `Verifikasi presensi` card was removed; the large `MASUK`/`PULANG` action now invokes front-camera capture directly when selfie evidence is required, uploads evidence, then submits the existing server-authoritative attendance operation automatically. Student mobile hamburger/sidebar access was removed while desktop sidebar and non-student mobile drawers remain unchanged.
+
+Quality gate: Wasp build PASS, **163/163 regression tests across 30 files**, server bundle PASS, Vite SSR/client PASS, immutable preflight/deploy PASS, repeat deploy idempotent. Runtime release `eada47c-student-mobile-selfie-nav`; rollback `c083fdf-student-mobile-attendance`.

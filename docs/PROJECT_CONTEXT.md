@@ -700,3 +700,9 @@ Release record: [`RELEASE_2026-09-22_ATTENDANCE_360.md`](./RELEASE_2026-09-22_AT
 Release `c083fdf-student-mobile-attendance` is live. The student mobile attendance page adopts the task hierarchy of the user-supplied attendance reference (personal header, dominant attendance action, distance/status feedback, schedule, history, bottom navigation) while continuing to use the existing School OS HIG tokens/components from `DESIGN.md`. `DESIGN.md` remains unchanged and authoritative.
 
 No schema or attendance-policy logic changed. Validation remains server-authoritative. Quality gate: **163/163 regression tests**, Wasp build, server bundle, Vite SSR/client, immutable preflight/deploy, repeat idempotent deploy, auth-boundary smoke, service/log health, and production data-integrity checks all PASS.
+
+## Student mobile navigation rule — 23 September 2026
+
+Student mobile views use bottom navigation as the primary navigation mechanism and do **not** expose the desktop sidebar through a mobile hamburger/drawer. Desktop student views retain the sidebar. Student attendance uses the same bottom-nav composition as student home.
+
+For selfie-required Attendance 360 actions on mobile, the dominant `MASUK`/`PULANG` action directly starts native camera capture; after authenticated evidence upload succeeds, the existing server-side attendance action is submitted with that evidence key. Do not reintroduce a separate `Verifikasi presensi` step on mobile unless requirements explicitly change.

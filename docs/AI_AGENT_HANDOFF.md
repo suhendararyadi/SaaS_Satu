@@ -430,3 +430,12 @@ Runtime release: `c083fdf-student-mobile-attendance`; runtime commit: `c083fdf`.
 Do not regress the new mobile hierarchy back to a generic desktop card stack. Also do not copy the external reference's branding/visual styling. Preserve the existing Attendance 360 server authority for geofence, GPS accuracy, selfie, schedule/calendar, idempotency and tenant isolation. Desktop behavior remains unchanged.
 
 Release record: `docs/RELEASE_2026-09-23_STUDENT_MOBILE_ATTENDANCE_UI.md`.
+
+## Student mobile attendance interaction rule — 23 September 2026
+
+Live release `eada47c-student-mobile-selfie-nav` establishes two UX rules:
+
+1. STUDENT mobile has no sidebar/hamburger drawer; use the shared student bottom navigation. Desktop sidebar remains.
+2. On mobile Attendance 360, tapping the large `MASUK`/`PULANG` action opens the front-camera capture directly when selfie evidence is required. Successful evidence upload immediately feeds the existing `recordSelfAttendance` operation. Do not restore the removed mobile `Verifikasi presensi` card.
+
+Keep `DESIGN.md` authoritative and preserve server-side geofence/GPS/schedule/selfie/idempotency/tenant validation.
