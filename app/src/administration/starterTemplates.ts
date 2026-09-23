@@ -69,14 +69,17 @@ export const ADMINISTRATION_STARTER_TEMPLATES: StarterAdministrationTemplate[] =
     description: "Kerangka umum penugasan guru, tendik, atau peserta didik.",
     subjectTemplate: "Surat Tugas — {{manual.activityName}}",
     manualFields: [
-      { key: "manual.assignee", label: "Nama pihak yang ditugaskan", type: "textarea", required: true },
       { key: "manual.activityName", label: "Nama kegiatan/tugas", type: "text", required: true },
       { key: "manual.activityDate", label: "Tanggal/waktu kegiatan", type: "text", required: true },
       { key: "manual.location", label: "Tempat", type: "text", required: true },
       { key: "manual.notes", label: "Keterangan tambahan", type: "textarea", required: false },
     ],
     bodyHtml: `<p>Dengan ini memberikan tugas kepada:</p>
-<p><strong>{{manual.assignee}}</strong></p>
+<table><tbody>
+<tr><td>Nama</td><td>: {{staff.name}}</td></tr>
+<tr><td>NIP</td><td>: {{staff.nip}}</td></tr>
+<tr><td>Jabatan</td><td>: {{staff.title}}</td></tr>
+</tbody></table>
 <p>Untuk melaksanakan kegiatan <strong>{{manual.activityName}}</strong> pada {{manual.activityDate}} bertempat di {{manual.location}}.</p>
 <p>{{manual.notes}}</p>
 <p>Demikian surat tugas ini dibuat untuk dilaksanakan dengan penuh tanggung jawab.</p>`,
@@ -192,6 +195,8 @@ export const ADMINISTRATION_STARTER_TEMPLATES: StarterAdministrationTemplate[] =
 export const ADMINISTRATION_ALLOWED_VARIABLES = [
   "school.name", "school.npsn", "school.address", "school.city", "school.province", "school.phone", "school.email",
   "student.name", "student.nis", "student.nisn", "student.className", "student.department",
+  "staff.name", "staff.nip", "staff.title", "staff.unitName",
+  "principal.name", "principal.nip", "principal.title",
   "academicYear.yearName", "academicYear.semester",
-  "document.subject", "document.date", "document.recipientName", "document.recipientAddress",
+  "document.number", "document.subject", "document.date", "document.recipientName", "document.recipientAddress",
 ] as const;

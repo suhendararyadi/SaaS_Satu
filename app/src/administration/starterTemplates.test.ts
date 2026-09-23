@@ -32,3 +32,20 @@ describe("TU starter templates", () => {
     }
   });
 });
+
+it("allows safe staff and principal placeholders for correspondence", () => {
+  expect(ADMINISTRATION_ALLOWED_VARIABLES).toContain("staff.name");
+  expect(ADMINISTRATION_ALLOWED_VARIABLES).toContain("staff.nip");
+  expect(ADMINISTRATION_ALLOWED_VARIABLES).toContain("principal.name");
+  expect(ADMINISTRATION_ALLOWED_VARIABLES).toContain("principal.nip");
+  expect(ADMINISTRATION_ALLOWED_VARIABLES).toContain("document.number");
+});
+
+it("assignment starter uses selected staff master data", () => {
+  const assignment = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "ASSIGNMENT");
+  expect(assignment).toBeTruthy();
+  expect(assignment?.bodyHtml).toContain("{{staff.name}}");
+  expect(assignment?.bodyHtml).toContain("{{staff.nip}}");
+  expect(assignment?.bodyHtml).toContain("{{staff.title}}");
+  expect(assignment?.manualFields.some((field) => field.key === "manual.assignee")).toBe(false);
+});

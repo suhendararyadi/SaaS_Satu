@@ -84,6 +84,39 @@ function renderPlain(template: string, variables: Record<string, any>) {
   return template.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_all, key: string) => String(getPathValue(variables, key) ?? "—")).replace(/[<>]/g, "");
 }
 
+function formatStaffDisplayName(name: string | null | undefined, profile: any) {
+  const base = String(name || "").trim();
+  const front = String(profile?.frontTitle || "").trim();
+  const back = String(profile?.backTitle || profile?.title || "").trim();
+  return [front, base].filter(Boolean).join(" ") + (back ? `, ${back.replace(/^,\s*/, "")}` : "");
+}
+
+async function resolvePrincipalSnapshot(schoolId: string) {
+  const assignment = await prisma.schoolStaffAssignment.findFirst({
+    where: { schoolId, role: "PRINCIPAL", isActive: true },
+    orderBy: [{ startDate: "desc" }, { updatedAt: "desc" }],
+    select: {
+      customTitle: true, unitName: true,
+      teacher: {
+        select: {
+          id: true, name: true, email: true,
+          teacherProfile: { select: { nip: true, frontTitle: true, backTitle: true, title: true, jobTitle: true } },
+        },
+      },
+    },
+  });
+  if (!assignment) return null;
+  const profile = assignment.teacher.teacherProfile;
+  return {
+    id: assignment.teacher.id,
+    name: formatStaffDisplayName(assignment.teacher.name, profile),
+    rawName: assignment.teacher.name || "",
+    nip: profile?.nip || "",
+    title: assignment.customTitle || profile?.jobTitle || "Kepala Sekolah",
+    unitName: assignment.unitName || "Pimpinan Sekolah",
+  };
+}
+
 function manualFieldKeys(variableSchema: any): string[] {
   const fields = Array.isArray(variableSchema?.fields) ? variableSchema.fields : [];
   return fields.map((field: any) => String(field?.key || "")).filter((key: string) => key.startsWith("manual."));
@@ -158,7 +191,7 @@ export const initializeAdministrationModule = async (_rawArgs: unknown, context:
 export const getAdministrationWorkspace = async (_rawArgs: unknown, context: { user?: User }) => {
   const user = ensureSchoolUser(context);
   const access = await resolveAdministrationAccess(user);
-  const [school, templates, registers, documents, statusGroups, recentAudit] = await Promise.all([
+  const [school, templates, registers, documents, statusGroups, recentAudit, principal] = await Promise.all([
     prisma.school.findUnique({ where: { id: user.schoolId }, select: { id: true, name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true, logoUrl: true } }),
     prisma.administrationTemplate.findMany({
       where: { schoolId: user.schoolId },
@@ -173,11 +206,13 @@ export const getAdministrationWorkspace = async (_rawArgs: unknown, context: { u
     }),
     prisma.administrationDocument.groupBy({ by: ["status"], where: { schoolId: user.schoolId }, _count: { _all: true } }),
     prisma.administrationAuditEvent.findMany({ where: { schoolId: user.schoolId }, orderBy: { createdAt: "desc" }, take: 20, select: { id: true, action: true, summary: true, createdAt: true, actor: { select: { id: true, name: true } } } }),
+    resolvePrincipalSnapshot(user.schoolId),
   ]);
 
   return {
     access,
     school,
+    principal,
     initialized: templates.length > 0,
     templates,
     registers,
@@ -196,6 +231,54 @@ export const getAdministrationStudentOptions = async (_rawArgs: unknown, context
     select: { id: true, name: true, username: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true, department: { select: { name: true } }, academicYear: { select: { yearName: true, semester: true } } } } },
     orderBy: [{ classRoom: { name: "asc" } }, { name: "asc" }],
     take: 2500,
+  });
+};
+
+const peopleSearchSchema = z.object({
+  query: z.string().trim().min(0).max(100).default(""),
+  type: z.enum(["STUDENT", "STAFF"]),
+  limit: z.number().int().min(1).max(30).default(15),
+});
+
+export const searchAdministrationPeople = async (rawArgs: unknown, context: { user?: User }) => {
+  const user = ensureSchoolUser(context);
+  await resolveAdministrationAccess(user);
+  const args = ensureArgsSchemaOrThrowHttpError(peopleSearchSchema, rawArgs);
+  const query = args.query.trim();
+  const contains = (value: string) => ({ contains: value, mode: "insensitive" as const });
+
+  if (args.type === "STUDENT") {
+    return prisma.user.findMany({
+      where: {
+        schoolId: user.schoolId, role: "STUDENT",
+        ...(query ? { OR: [
+          { name: contains(query) }, { username: contains(query) },
+          { studentProfile: { is: { nis: contains(query) } } },
+          { studentProfile: { is: { nisn: contains(query) } } },
+          { classRoom: { is: { name: contains(query) } } },
+        ] } : {}),
+      },
+      select: { id: true, name: true, username: true, role: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true, department: { select: { name: true } } } } },
+      orderBy: { name: "asc" }, take: args.limit,
+    });
+  }
+
+  return prisma.user.findMany({
+    where: {
+      schoolId: user.schoolId, role: { in: ["TEACHER", "SCHOOL_ADMIN"] },
+      ...(query ? { OR: [
+        { name: contains(query) }, { username: contains(query) }, { email: contains(query) },
+        { teacherProfile: { is: { nip: contains(query) } } },
+        { teacherProfile: { is: { nuptk: contains(query) } } },
+        { staffAssignments: { some: { isActive: true, OR: [{ customTitle: contains(query) }, { unitName: contains(query) }] } } },
+      ] } : {}),
+    },
+    select: {
+      id: true, name: true, username: true, email: true, role: true,
+      teacherProfile: { select: { nip: true, nuptk: true, frontTitle: true, backTitle: true, title: true, jobTitle: true } },
+      staffAssignments: { where: { isActive: true }, take: 3, select: { role: true, customTitle: true, unitName: true } },
+    },
+    orderBy: { name: "asc" }, take: args.limit,
   });
 };
 
@@ -241,6 +324,8 @@ export const setAdministrationTemplateStatus = async (rawArgs: unknown, context:
 const draftSchema = z.object({
   templateId: z.string().uuid(),
   relatedStudentId: z.string().uuid().nullable().optional(),
+  relatedStaffId: z.string().uuid().nullable().optional(),
+  documentNumber: z.string().trim().min(1).max(160),
   subject: z.string().trim().max(300).nullable().optional(),
   recipientName: z.string().trim().max(240).nullable().optional(),
   recipientAddress: z.string().trim().max(1000).nullable().optional(),
@@ -249,19 +334,26 @@ const draftSchema = z.object({
 });
 
 async function resolveDraftVariables(schoolId: string, args: z.infer<typeof draftSchema>) {
-  const [school, student] = await Promise.all([
-    prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true } }),
+  const [school, student, staff, principal, activeAcademicYear] = await Promise.all([
+    prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true, logoUrl: true } }),
     args.relatedStudentId ? prisma.user.findFirst({ where: { id: args.relatedStudentId, schoolId, role: "STUDENT" }, select: { id: true, name: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true, department: { select: { name: true } }, academicYear: { select: { yearName: true, semester: true } } } } } }) : null,
+    args.relatedStaffId ? prisma.user.findFirst({ where: { id: args.relatedStaffId, schoolId, role: { in: ["TEACHER", "SCHOOL_ADMIN"] } }, select: { id: true, name: true, teacherProfile: { select: { nip: true, frontTitle: true, backTitle: true, title: true, jobTitle: true } }, staffAssignments: { where: { isActive: true }, take: 3, select: { customTitle: true, unitName: true, role: true } } } }) : null,
+    resolvePrincipalSnapshot(schoolId),
+    prisma.academicYear.findFirst({ where: { schoolId, isActive: true }, orderBy: { yearName: "desc" }, select: { yearName: true, semester: true } }),
   ]);
   if (!school) throw new HttpError(404, "Sekolah tidak ditemukan.");
   if (args.relatedStudentId && !student) throw new HttpError(400, "Siswa tidak valid untuk sekolah ini.");
+  if (args.relatedStaffId && !staff) throw new HttpError(400, "Guru/tendik tidak valid untuk sekolah ini.");
   const manual: Record<string, any> = {};
   for (const [key, value] of Object.entries(args.manualData || {})) manual[key.replace(/^manual\./, "")] = value;
+  const staffAssignment = staff?.staffAssignments?.[0];
   return {
     school,
     student: { name: student?.name || "", nis: student?.studentProfile?.nis || "", nisn: student?.studentProfile?.nisn || "", className: student?.classRoom?.name || "", department: student?.classRoom?.department?.name || "" },
-    academicYear: { yearName: student?.classRoom?.academicYear?.yearName || "", semester: student?.classRoom?.academicYear?.semester || "" },
-    document: { subject: args.subject || "", date: new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" }).format(new Date()), recipientName: args.recipientName || "", recipientAddress: args.recipientAddress || "" },
+    staff: { name: staff ? formatStaffDisplayName(staff.name, staff.teacherProfile) : "", nip: staff?.teacherProfile?.nip || "", title: staffAssignment?.customTitle || staff?.teacherProfile?.jobTitle || "", unitName: staffAssignment?.unitName || "" },
+    principal: principal || { name: "", nip: "", title: "Kepala Sekolah", unitName: "" },
+    academicYear: { yearName: student?.classRoom?.academicYear?.yearName || activeAcademicYear?.yearName || "", semester: student?.classRoom?.academicYear?.semester || activeAcademicYear?.semester || "" },
+    document: { number: args.documentNumber || "", subject: args.subject || "", date: new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" }).format(new Date()), recipientName: args.recipientName || "", recipientAddress: args.recipientAddress || "" },
     manual,
   };
 }
@@ -283,7 +375,7 @@ export const createAdministrationDraft = async (rawArgs: unknown, context: { use
   variables.document.subject = renderedSubject;
   const renderedHtml = renderBody(version.bodyHtml, variables);
   const document = await prisma.administrationDocument.create({
-    data: { schoolId: user.schoolId, templateId: template.id, templateVersionId: version.id, status: "DRAFT", direction: "OUTGOING", title: template.name, subject: renderedSubject, recipientName: args.recipientName || null, recipientAddress: args.recipientAddress || null, relatedStudentId: args.relatedStudentId || null, manualData: args.manualData, variableSnapshot: variables, renderedHtml, notes: args.notes || null, createdById: user.id, updatedById: user.id },
+    data: { schoolId: user.schoolId, templateId: template.id, templateVersionId: version.id, status: "DRAFT", direction: "OUTGOING", title: template.name, subject: renderedSubject, recipientName: args.recipientName || null, recipientAddress: args.recipientAddress || null, relatedStudentId: args.relatedStudentId || null, relatedStaffId: args.relatedStaffId || null, documentNumber: args.documentNumber || null, manualData: args.manualData, variableSnapshot: variables, renderedHtml, notes: args.notes || null, createdById: user.id, updatedById: user.id },
   });
   await audit({ schoolId: user.schoolId, actorId: user.id, documentId: document.id, action: "DOCUMENT_CREATED", summary: `Draft ${template.name} dibuat.`, metadata: { templateId: template.id, templateVersion: version.version } });
   return document;
@@ -293,7 +385,7 @@ const documentIdSchema = z.object({ id: z.string().uuid() });
 export const getAdministrationDocument = async (rawArgs: unknown, context: { user?: User }) => {
   const user = ensureSchoolUser(context); await resolveAdministrationAccess(user);
   const args = ensureArgsSchemaOrThrowHttpError(documentIdSchema, rawArgs);
-  const document = await prisma.administrationDocument.findFirst({ where: { id: args.id, schoolId: user.schoolId }, include: { template: { select: { code: true, name: true, category: true } }, templateVersion: { select: { version: true, variableSchema: true, pageConfig: true } }, relatedStudent: { select: { id: true, name: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true } } } }, createdBy: { select: { id: true, name: true, email: true } }, auditEvents: { orderBy: { createdAt: "desc" }, take: 50, include: { actor: { select: { id: true, name: true } } } } } });
+  const document = await prisma.administrationDocument.findFirst({ where: { id: args.id, schoolId: user.schoolId }, include: { template: { select: { code: true, name: true, category: true } }, templateVersion: { select: { version: true, variableSchema: true, pageConfig: true } }, relatedStudent: { select: { id: true, name: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true } } } }, relatedStaff: { select: { id: true, name: true, teacherProfile: { select: { nip: true, frontTitle: true, backTitle: true, title: true, jobTitle: true } } } }, createdBy: { select: { id: true, name: true, email: true } }, auditEvents: { orderBy: { createdAt: "desc" }, take: 50, include: { actor: { select: { id: true, name: true } } } } } });
   if (!document) throw new HttpError(404, "Draft surat tidak ditemukan.");
   return { document, officialIssuingEnabled: false };
 };

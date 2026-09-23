@@ -341,6 +341,7 @@ model User {
   administrationDocumentsCreated AdministrationDocument[] @relation("AdministrationDocumentCreator")
   administrationDocumentsUpdated AdministrationDocument[] @relation("AdministrationDocumentUpdater")
   administrationStudentDocuments AdministrationDocument[] @relation("AdministrationDocumentStudent")
+  administrationStaffDocuments AdministrationDocument[] @relation("AdministrationDocumentStaff")
   administrationAuditEvents AdministrationAuditEvent[] @relation("AdministrationAuditActor")
 
   paymentProcessorUserId        String?   @unique
@@ -1754,6 +1755,8 @@ model AdministrationDocument {
   recipientAddress  String?
   relatedStudentId  String?
   relatedStudent    User?                        @relation("AdministrationDocumentStudent", fields: [relatedStudentId], references: [id], onDelete: SetNull)
+  relatedStaffId    String?
+  relatedStaff      User?                        @relation("AdministrationDocumentStaff", fields: [relatedStaffId], references: [id], onDelete: SetNull)
   manualData        Json                         @default("{}")
   variableSnapshot  Json                         @default("{}")
   renderedHtml      String                       @db.Text
@@ -1771,6 +1774,7 @@ model AdministrationDocument {
 
   @@index([schoolId, status, createdAt])
   @@index([schoolId, relatedStudentId])
+  @@index([schoolId, relatedStaffId])
   @@index([templateId, createdAt])
 }
 

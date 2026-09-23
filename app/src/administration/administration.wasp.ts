@@ -8,6 +8,7 @@ import {
   initializeAdministrationModule,
   getAdministrationWorkspace,
   getAdministrationStudentOptions,
+  searchAdministrationPeople,
   saveAdministrationTemplate,
   setAdministrationTemplateStatus,
   createAdministrationDraft,
@@ -24,6 +25,7 @@ const administrationEntities = [
 export const administrationSpec: Spec = [
   query(getAdministrationWorkspace, { entities: [...administrationEntities] }),
   query(getAdministrationStudentOptions, { entities: [...administrationEntities] }),
+  query(searchAdministrationPeople, { entities: [...administrationEntities] }),
   query(getAdministrationDocument, { entities: [...administrationEntities] }),
   action(initializeAdministrationModule, { entities: [...administrationEntities] }),
   action(saveAdministrationTemplate, { entities: [...administrationEntities] }),
