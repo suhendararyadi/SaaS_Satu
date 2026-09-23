@@ -76,8 +76,31 @@ function getPathValue(source: Record<string, any>, path: string) {
   return path.split(".").reduce<any>((value, key) => value?.[key], source);
 }
 
+function hasRenderableValue(value: unknown) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(value);
+}
+
+function applyConditionalBlocks(template: string, variables: Record<string, any>) {
+  let result = template;
+  const pattern = /\{\{#(if|unless)\s+([a-zA-Z0-9_.-]+)\}\}([\s\S]*?)\{\{\/(?:if|unless)\}\}/g;
+  for (let i = 0; i < 12; i += 1) {
+    let changed = false;
+    result = result.replace(pattern, (_all, mode: string, key: string, content: string) => {
+      changed = true;
+      const present = hasRenderableValue(getPathValue(variables, key));
+      return mode === "if" ? (present ? content : "") : (!present ? content : "");
+    });
+    if (!changed) break;
+  }
+  return result;
+}
+
 function renderBody(template: string, variables: Record<string, any>) {
-  return sanitizeTemplateHtml(template).replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_all, key: string) => escapeHtml(getPathValue(variables, key) ?? "—"));
+  const conditional = applyConditionalBlocks(template, variables);
+  return sanitizeTemplateHtml(conditional).replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_all, key: string) => escapeHtml(getPathValue(variables, key) ?? "—"));
 }
 
 function renderPlain(template: string, variables: Record<string, any>) {
@@ -126,8 +149,51 @@ function validateTemplateVariables(bodyHtml: string, subjectTemplate: string | n
   const allowed = new Set<string>([...ADMINISTRATION_ALLOWED_VARIABLES, ...manualFieldKeys(variableSchema)]);
   const text = `${bodyHtml}\n${subjectTemplate || ""}`;
   const used = [...text.matchAll(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g)].map((match) => match[1]);
-  const invalid = [...new Set(used.filter((key) => !allowed.has(key)))];
+  const conditional = [...text.matchAll(/\{\{#(?:if|unless)\s+([a-zA-Z0-9_.-]+)\}\}/g)].map((match) => match[1]);
+  const invalid = [...new Set([...used, ...conditional].filter((key) => !allowed.has(key)))];
   if (invalid.length) throw new HttpError(400, `Variable template tidak diizinkan: ${invalid.join(", ")}`);
+  const opened = [...text.matchAll(/\{\{#(if|unless)\s+[a-zA-Z0-9_.-]+\}\}/g)].length;
+  const closed = [...text.matchAll(/\{\{\/(?:if|unless)\}\}/g)].length;
+  if (opened !== closed) throw new HttpError(400, "Blok kondisi template tidak seimbang.");
+}
+
+function formatManualDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" }).format(date);
+}
+
+function formatManualTime(value: string) {
+  if (!/^\d{2}:\d{2}$/.test(value)) return value;
+  const [hour, minute] = value.split(":");
+  return `${hour}.${minute} WIB`;
+}
+
+function buildFormattedManualData(variableSchema: any, rawData: Record<string, any>) {
+  const fields = Array.isArray(variableSchema?.fields) ? variableSchema.fields : [];
+  const byKey = new Map(fields.map((field: any) => [String(field?.key || ""), field]));
+  const manual: Record<string, any> = {};
+  for (const [fullKey, rawValue] of Object.entries(rawData || {})) {
+    const key = fullKey.replace(/^manual\./, "");
+    const field: any = byKey.get(fullKey);
+    const text = String(rawValue ?? "");
+    manual[key] = field?.type === "date" ? formatManualDate(text) : field?.type === "time" ? formatManualTime(text) : rawValue;
+  }
+  return manual;
+}
+
+function validateDraftContext(variableSchema: any, args: z.infer<typeof draftSchema>) {
+  const context = variableSchema?.context || {};
+  if (context.student === "required" && !args.relatedStudentId) throw new HttpError(400, "Template ini memerlukan data siswa.");
+  if (context.staff === "required" && !args.relatedStaffId) throw new HttpError(400, "Template ini memerlukan data guru/tendik.");
+  if (context.recipient === "required" && !String(args.recipientName || "").trim()) throw new HttpError(400, "Template ini memerlukan penerima/tujuan surat.");
+  if (context.recipientAddress === "required" && !String(args.recipientAddress || "").trim()) throw new HttpError(400, "Template ini memerlukan alamat penerima.");
+  const requireOneOf = Array.isArray(context.requireOneOf) ? context.requireOneOf : [];
+  if (requireOneOf.length) {
+    const satisfied = requireOneOf.some((key: string) => key === "student" ? !!args.relatedStudentId : key === "staff" ? !!args.relatedStaffId : false);
+    if (!satisfied) throw new HttpError(400, "Pilih minimal satu siswa atau guru/tendik terkait untuk template ini.");
+  }
 }
 
 async function audit(input: { schoolId: string; actorId?: string | null; documentId?: string | null; action: any; summary: string; metadata?: any }) {
@@ -159,7 +225,7 @@ export const initializeAdministrationModule = async (_rawArgs: unknown, context:
               version: 1,
               subjectTemplate: starter.subjectTemplate,
               bodyHtml: sanitizeTemplateHtml(starter.bodyHtml),
-              variableSchema: { fields: starter.manualFields },
+              variableSchema: { fields: starter.manualFields, context: starter.context, contentProfile: "GEN2" },
               pageConfig: { size: "A4", marginMm: { top: 25, right: 20, bottom: 20, left: 25 }, starter: true },
               createdById: user.id,
             },
@@ -333,7 +399,7 @@ const draftSchema = z.object({
   notes: z.string().trim().max(2000).nullable().optional(),
 });
 
-async function resolveDraftVariables(schoolId: string, args: z.infer<typeof draftSchema>) {
+async function resolveDraftVariables(schoolId: string, args: z.infer<typeof draftSchema>, variableSchema: any) {
   const [school, student, staff, principal, activeAcademicYear] = await Promise.all([
     prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true, logoUrl: true, departments: { orderBy: { name: "asc" }, select: { code: true, name: true } } } }),
     args.relatedStudentId ? prisma.user.findFirst({ where: { id: args.relatedStudentId, schoolId, role: "STUDENT" }, select: { id: true, name: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true, department: { select: { name: true } }, academicYear: { select: { yearName: true, semester: true } } } } } }) : null,
@@ -344,8 +410,7 @@ async function resolveDraftVariables(schoolId: string, args: z.infer<typeof draf
   if (!school) throw new HttpError(404, "Sekolah tidak ditemukan.");
   if (args.relatedStudentId && !student) throw new HttpError(400, "Siswa tidak valid untuk sekolah ini.");
   if (args.relatedStaffId && !staff) throw new HttpError(400, "Guru/tendik tidak valid untuk sekolah ini.");
-  const manual: Record<string, any> = {};
-  for (const [key, value] of Object.entries(args.manualData || {})) manual[key.replace(/^manual\./, "")] = value;
+  const manual = buildFormattedManualData(variableSchema, args.manualData || {});
   const staffAssignment = staff?.staffAssignments?.[0];
   return {
     school,
@@ -367,10 +432,12 @@ export const createAdministrationDraft = async (rawArgs: unknown, context: { use
   });
   const version = template?.versions[0];
   if (!template || !version) throw new HttpError(404, "Template aktif tidak ditemukan.");
-  const fields = Array.isArray((version.variableSchema as any)?.fields) ? (version.variableSchema as any).fields : [];
+  const variableSchema = version.variableSchema as any;
+  const fields = Array.isArray(variableSchema?.fields) ? variableSchema.fields : [];
   const missing = fields.filter((field: any) => field.required && !String(args.manualData?.[field.key] ?? "").trim()).map((field: any) => field.label || field.key);
   if (missing.length) throw new HttpError(400, `Field wajib belum diisi: ${missing.join(", ")}`);
-  const variables = await resolveDraftVariables(user.schoolId, args);
+  validateDraftContext(variableSchema, args);
+  const variables = await resolveDraftVariables(user.schoolId, args, variableSchema);
   const renderedSubject = args.subject || (version.subjectTemplate ? renderPlain(version.subjectTemplate, variables) : template.name);
   variables.document.subject = renderedSubject;
   const renderedHtml = renderBody(version.bodyHtml, variables);
@@ -381,11 +448,60 @@ export const createAdministrationDraft = async (rawArgs: unknown, context: { use
   return document;
 };
 
+const refreshDraftSchema = z.object({ id: z.string().uuid(), expectedUpdatedAt: z.string().datetime() });
+export const refreshAdministrationDraftFromLatestTemplate = async (rawArgs: unknown, context: { user?: User }) => {
+  const user = ensureSchoolUser(context); await requireDocumentManager(user);
+  const args = ensureArgsSchemaOrThrowHttpError(refreshDraftSchema, rawArgs);
+  const existing = await prisma.administrationDocument.findFirst({
+    where: { id: args.id, schoolId: user.schoolId },
+    select: {
+      id: true, status: true, updatedAt: true, templateId: true, templateVersionId: true,
+      relatedStudentId: true, relatedStaffId: true, documentNumber: true, recipientName: true, recipientAddress: true,
+      manualData: true, notes: true,
+      template: { select: { name: true, currentVersion: true, versions: { orderBy: { version: "desc" }, take: 1, select: { id: true, version: true, subjectTemplate: true, bodyHtml: true, variableSchema: true } } } },
+    },
+  });
+  if (!existing) throw new HttpError(404, "Draft surat tidak ditemukan.");
+  if (!(["DRAFT", "RETURNED_FOR_REVISION"] as string[]).includes(existing.status)) throw new HttpError(400, "Hanya draft atau surat yang dikembalikan untuk revisi yang dapat memakai redaksi terbaru.");
+  if (existing.updatedAt.getTime() !== new Date(args.expectedUpdatedAt).getTime()) throw new HttpError(409, "Draft telah berubah. Muat ulang sebelum memperbarui redaksi.");
+  const version = existing.template.versions[0];
+  if (!version) throw new HttpError(404, "Versi template terbaru tidak ditemukan.");
+  if (version.id === existing.templateVersionId) return { ok: true, idempotent: true, version: version.version };
+  const variableSchema = version.variableSchema as any;
+  const draftArgs = {
+    templateId: existing.templateId,
+    relatedStudentId: existing.relatedStudentId,
+    relatedStaffId: existing.relatedStaffId,
+    documentNumber: existing.documentNumber || "",
+    subject: null,
+    recipientName: existing.recipientName,
+    recipientAddress: existing.recipientAddress,
+    manualData: (existing.manualData || {}) as Record<string, any>,
+    notes: existing.notes,
+  };
+  const parsed = ensureArgsSchemaOrThrowHttpError(draftSchema, draftArgs);
+  const fields = Array.isArray(variableSchema?.fields) ? variableSchema.fields : [];
+  const missing = fields.filter((field: any) => field.required && !String(parsed.manualData?.[field.key] ?? "").trim()).map((field: any) => field.label || field.key);
+  if (missing.length) throw new HttpError(400, `Draft lama belum memiliki field yang sekarang wajib: ${missing.join(", ")}. Buat draft baru atau lengkapi data terlebih dahulu.`);
+  validateDraftContext(variableSchema, parsed);
+  const variables = await resolveDraftVariables(user.schoolId, parsed, variableSchema);
+  const renderedSubject = version.subjectTemplate ? renderPlain(version.subjectTemplate, variables) : existing.template.name;
+  variables.document.subject = renderedSubject;
+  const renderedHtml = renderBody(version.bodyHtml, variables);
+  const result = await prisma.administrationDocument.updateMany({
+    where: { id: existing.id, schoolId: user.schoolId, updatedAt: new Date(args.expectedUpdatedAt) },
+    data: { templateVersionId: version.id, subject: renderedSubject, variableSnapshot: variables, renderedHtml, updatedById: user.id, revision: { increment: 1 } },
+  });
+  if (result.count !== 1) throw new HttpError(409, "Draft telah berubah. Muat ulang sebelum memperbarui redaksi.");
+  await audit({ schoolId: user.schoolId, actorId: user.id, documentId: existing.id, action: "DOCUMENT_UPDATED", summary: `Draft diperbarui menggunakan redaksi template versi ${version.version}.`, metadata: { templateVersion: version.version, source: "GEN2_REFRESH" } });
+  return { ok: true, idempotent: false, version: version.version };
+};
+
 const documentIdSchema = z.object({ id: z.string().uuid() });
 export const getAdministrationDocument = async (rawArgs: unknown, context: { user?: User }) => {
   const user = ensureSchoolUser(context); await resolveAdministrationAccess(user);
   const args = ensureArgsSchemaOrThrowHttpError(documentIdSchema, rawArgs);
-  const document = await prisma.administrationDocument.findFirst({ where: { id: args.id, schoolId: user.schoolId }, include: { template: { select: { code: true, name: true, category: true } }, templateVersion: { select: { version: true, variableSchema: true, pageConfig: true } }, relatedStudent: { select: { id: true, name: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true } } } }, relatedStaff: { select: { id: true, name: true, teacherProfile: { select: { nip: true, frontTitle: true, backTitle: true, title: true, jobTitle: true } } } }, createdBy: { select: { id: true, name: true, email: true } }, auditEvents: { orderBy: { createdAt: "desc" }, take: 50, include: { actor: { select: { id: true, name: true } } } } } });
+  const document = await prisma.administrationDocument.findFirst({ where: { id: args.id, schoolId: user.schoolId }, include: { template: { select: { code: true, name: true, category: true, currentVersion: true, isStarter: true } }, templateVersion: { select: { version: true, variableSchema: true, pageConfig: true } }, relatedStudent: { select: { id: true, name: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true } } } }, relatedStaff: { select: { id: true, name: true, teacherProfile: { select: { nip: true, frontTitle: true, backTitle: true, title: true, jobTitle: true } } } }, createdBy: { select: { id: true, name: true, email: true } }, auditEvents: { orderBy: { createdAt: "desc" }, take: 50, include: { actor: { select: { id: true, name: true } } } } } });
   if (!document) throw new HttpError(404, "Draft surat tidak ditemukan.");
   return { document, officialIssuingEnabled: false };
 };

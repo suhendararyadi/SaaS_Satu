@@ -49,3 +49,61 @@ it("assignment starter uses selected staff master data", () => {
   expect(assignment?.bodyHtml).toContain("{{staff.title}}");
   expect(assignment?.manualFields.some((field) => field.key === "manual.assignee")).toBe(false);
 });
+
+it("defines an explicit context contract for every Gen 2 template", () => {
+  for (const template of ADMINISTRATION_STARTER_TEMPLATES) {
+    expect(template.context).toBeTruthy();
+    expect(["hidden", "optional", "required"]).toContain(template.context.student);
+    expect(["hidden", "optional", "required"]).toContain(template.context.staff);
+    expect(["hidden", "optional", "required"]).toContain(template.context.recipient);
+  }
+});
+
+it("uses context-aware master-data requirements for key school letters", () => {
+  const active = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "STUDENT-ACTIVE");
+  const assignment = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "ASSIGNMENT");
+  const recommendation = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "RECOMMENDATION");
+  const parentCall = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "PARENT-CALL");
+  expect(active?.context.student).toBe("required");
+  expect(assignment?.context.staff).toBe("required");
+  expect(assignment?.context.student).toBe("hidden");
+  expect(recommendation?.context.requireOneOf).toEqual(["student", "staff"]);
+  expect(parentCall?.context.student).toBe("required");
+});
+
+it("uses structured date/time inputs where administrative wording needs them", () => {
+  const assignment = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "ASSIGNMENT");
+  const invitation = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "INVITATION");
+  const parentCall = ADMINISTRATION_STARTER_TEMPLATES.find((template) => template.code === "PARENT-CALL");
+  expect(assignment?.manualFields.find((field) => field.key === "manual.activityDate")?.type).toBe("date");
+  expect(assignment?.manualFields.find((field) => field.key === "manual.activityTime")?.type).toBe("time");
+  expect(invitation?.manualFields.find((field) => field.key === "manual.activityTime")?.required).toBe(true);
+  expect(parentCall?.manualFields.find((field) => field.key === "manual.meetingDate")?.type).toBe("date");
+});
+
+it("keeps template conditional blocks balanced and non-nested", () => {
+  for (const template of ADMINISTRATION_STARTER_TEMPLATES) {
+    const tokens = [...template.bodyHtml.matchAll(/\{\{(#(?:if|unless)\s+[a-zA-Z0-9_.-]+|\/(?:if|unless))\}\}/g)].map((match) => match[1]);
+    let depth = 0;
+    let maxDepth = 0;
+    for (const token of tokens) {
+      if (token.startsWith("#")) {
+        depth += 1;
+        maxDepth = Math.max(maxDepth, depth);
+      } else {
+        depth -= 1;
+        expect(depth).toBeGreaterThanOrEqual(0);
+      }
+    }
+    expect(depth).toBe(0);
+    expect(maxDepth).toBeLessThanOrEqual(1);
+  }
+});
+
+it("ships mature starter wording instead of blank generic shells", () => {
+  for (const template of ADMINISTRATION_STARTER_TEMPLATES) {
+    expect(template.description.toLowerCase()).not.toContain("kerangka umum");
+    expect(template.bodyHtml.length).toBeGreaterThan(250);
+    expect(template.bodyHtml).toMatch(/Demikian|Atas (?:perhatian|kesempatan)|menerangkan|memberikan tugas/i);
+  }
+});

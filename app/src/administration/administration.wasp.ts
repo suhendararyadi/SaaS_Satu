@@ -12,6 +12,7 @@ import {
   saveAdministrationTemplate,
   setAdministrationTemplateStatus,
   createAdministrationDraft,
+  refreshAdministrationDraftFromLatestTemplate,
   getAdministrationDocument,
   updateAdministrationDocumentStatus,
 } from "./operations" with { type: "ref" };
@@ -31,6 +32,7 @@ export const administrationSpec: Spec = [
   action(saveAdministrationTemplate, { entities: [...administrationEntities] }),
   action(setAdministrationTemplateStatus, { entities: [...administrationEntities] }),
   action(createAdministrationDraft, { entities: [...administrationEntities] }),
+  action(refreshAdministrationDraftFromLatestTemplate, { entities: [...administrationEntities] }),
   action(updateAdministrationDocumentStatus, { entities: [...administrationEntities] }),
 
   route("AdministrationDashboardRoute", "/school/administration", page(AdministrationDashboardPage, { authRequired: true })),
