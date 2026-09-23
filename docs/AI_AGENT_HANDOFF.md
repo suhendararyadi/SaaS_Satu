@@ -481,3 +481,23 @@ Resolve signer identity from the active `PRINCIPAL` SchoolStaffAssignment + Teac
 SMKN 12 Garut starter `ASSIGNMENT` is version 2 and uses `staff.name`, `staff.nip`, `staff.title`. Keep sensitive fields outside the template whitelist.
 
 Release record: `docs/RELEASE_2026-09-23_TU_LETTERHEAD_PERSON_SEARCH.md`.
+
+## TU exact letterhead live — 23 September 2026
+
+Runtime `3a675e4-tu-letterhead-exact`. The authoritative TU header renderer is `app/src/administration/AdministrationLetterhead.tsx` and is intentionally based on measured geometry/fonts from the user-supplied Jawa Barat administrative letter PDF.
+
+Critical non-regression rules:
+
+- use F4 `816×1248px` preview canvas;
+- Times New Roman hierarchy 14/18/6/7 pt;
+- exactly one `/administration/jawa-barat-emblem.png` on the left;
+- do not restore a right-side Disdik logo;
+- keep the double lower rule;
+- school name/contact values come from `School`;
+- Program Keahlian comes from tenant `Department` rows;
+- do not invent missing website/postal data;
+- retain manual number, principal resolver, and person autocomplete behavior.
+
+`CABANG DINAS PENDIDIKAN WILAYAH VI` currently follows the supplied reference. If another tenant needs a different Cabang Dinas, add an explicit administration identity configuration; never infer it silently.
+
+Release record: `docs/RELEASE_2026-09-23_TU_EXACT_JABAR_LETTERHEAD.md`.

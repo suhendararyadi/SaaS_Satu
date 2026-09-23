@@ -741,3 +741,19 @@ Live release `7ce72db-tu-letterhead-search` establishes the current TU correspon
 - `ASSIGNMENT` starter v2 uses `staff.*` master-data variables.
 
 Do not reintroduce huge client-side student selects or free-text principal identity. Official issuance remains gated.
+
+## TU official letterhead baseline — 23 September 2026
+
+Do not redesign the TU document header as a generic SaaS card/header. The administrative document canvas has its own official rendering contract derived from the user-supplied Jawa Barat school letter PDF:
+
+- F4 8.5×13 in;
+- Times New Roman;
+- 14 pt government/dinas/cabang lines;
+- 18 pt bold school name;
+- 6 pt italic Program Keahlian baseline;
+- 7 pt italic contact lines;
+- one Jabar emblem on the left only;
+- double horizontal rule;
+- School/Department/contact values from tenant master data.
+
+Application chrome around the document still follows `DESIGN.md`. Runtime release: `3a675e4-tu-letterhead-exact`.

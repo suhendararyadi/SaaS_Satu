@@ -1459,3 +1459,11 @@ Implemented live in `7ce72db-tu-letterhead-search`:
 - Surat Tugas starter v2 based on staff master data.
 
 This refinement does not change the governance decision that official issue/TTE remains disabled until the school confirms the full issuance policy.
+
+---
+
+## 28. Official Jawa Barat letterhead renderer — 23 September 2026
+
+Implemented in `3a675e4-tu-letterhead-exact` after reconstructing the uploaded administrative letter as a DOCX reference and measuring the PDF directly.
+
+The TU renderer now preserves the official F4/Times-New-Roman/single-emblem/double-line header structure while using dynamic School OS master data for school name, program expertise, and official contact identity. This renderer is the baseline for future print/PDF work and must not be replaced by the School OS HIG visual language inside the paper itself.

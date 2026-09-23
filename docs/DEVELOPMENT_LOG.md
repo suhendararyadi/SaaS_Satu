@@ -1199,3 +1199,13 @@ Official numbering/signing/issuing is intentionally disabled. The starter regist
 TU correspondence now uses a shared Jawa Barat/Dinas Pendidikan-style letterhead inspired by the user's uploaded reference, with school identity sourced from School OS. Nomor Surat is mandatory manual input. Active Principal identity/NIP is resolved automatically from `SchoolStaffAssignment + TeacherProfile`. Student and guru/tendik selection now use debounced tenant-scoped database autocomplete instead of preloading large lists. A related staff relation was added to AdministrationDocument, and Surat Tugas starter was versioned to v2 to render selected staff name/NIP/title.
 
 Real-DB clone UAT **23/23 PASS**; full regression **169/169 across 31 files**; Wasp build/server bundle/Vite SSR+client PASS; additive migration and immutable deploy PASS; repeat deploy idempotent. Runtime release `7ce72db-tu-letterhead-search`; rollback `4231a13-tu-foundation`.
+
+---
+
+## 23 September 2026 — TU exact Jawa Barat letterhead baseline
+
+Rebuilt the TU correspondence letterhead from direct measurements of the user-supplied `SURAT DISPEN PANITIA DONOR DARAH.pdf`. The live preview now uses an F4 8.5×13 in canvas, Times New Roman 14/18/6/7 pt hierarchy, one exact Jabar emblem extracted from the reference, the source-aligned left emblem positioning, and two separate lower rules. The previous right-side Disdik logo was removed because it is not present in the administrative reference.
+
+School name, Program Keahlian (Department list), address, city/province, phone and email now come from tenant master data and are included in draft snapshots. No website/postal value is invented when School master data does not contain it.
+
+Targeted renderer tests 4/4 PASS; real-DB clone UAT 15/15 PASS; full regression **173/173 across 32 files**; Wasp/server/SSR/client builds PASS; immutable deploy and repeat idempotence PASS. Runtime `3a675e4-tu-letterhead-exact`.
