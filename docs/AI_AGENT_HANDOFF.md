@@ -447,3 +447,7 @@ Live runtime release: `8a6d5c2-student-account-profile`.
 School OS STUDENT users with `schoolId` must see a read-only school profile on `/account`, rendered in `SchoolLayout`, not the generic SaaS subscription/credits/payment account view. The self-profile operation is `getMyStudentAccountProfile`; it must remain scoped to authenticated `context.user.id` + `context.user.schoolId` and role `STUDENT`, with no arbitrary target id.
 
 Privacy rule: do not add NIK/KK, parent NIK, bank account, KIP/KPS number, home coordinates or physical measurements to the student account summary without a new explicit requirement and privacy review. Preserve `DESIGN.md`, shared student bottom navigation and the no-sidebar-on-student-mobile rule.
+
+## Planned module — Tata Usaha (TU)
+
+Authoritative implementation blueprint: [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TATA_USAHA_MODULE.md). Implementation has **not started**. The baseline is correspondence-first: capability/assignment, versioned templates, server-side atomic numbering, approval/signing workflow, immutable issued PDFs, QR verification, incoming mail/disposition, service requests, and archive metadata. Do not hard-code one school/province format; use tenant Administrative Rules Profile.

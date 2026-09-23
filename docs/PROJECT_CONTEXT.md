@@ -712,3 +712,7 @@ For selfie-required Attendance 360 actions on mobile, the dominant `MASUK`/`PULA
 For role `STUDENT` with a School OS school assignment, `/account` is a school/student profile surface, not a SaaS subscriber profile. Display school identity, student identity, class/department/academic-year, safe contact/address/family summary, and login identity from the existing School OS database. Keep it read-only unless a future explicit self-service data-change workflow is designed.
 
 Do not expose NIK/KK, parent NIKs, bank account information, KIP/KPS numbers, home coordinates or physical measurements in the student account summary. `getMyStudentAccountProfile` is intentionally self-only and accepts no target student id. Generic SaaS plan/billing account content remains for non-student users only.
+
+## Planned module — Tata Usaha (TU) — 23 September 2026
+
+Blueprint stored in [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TATA_USAHA_MODULE.md). Primary goal is automated correspondence from versioned templates backed by existing School OS master data. Recommended order: governance discovery → TU foundation/template/numbering → outgoing correspondence → incoming/disposition → service requests → archive/retention → advanced TTE/integrations. Implementation has not started.

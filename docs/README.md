@@ -130,3 +130,5 @@ Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DE
    - Student mobile selfie/navigation refinement: [`RELEASE_2026-09-23_STUDENT_MOBILE_SELFIE_NAV_REFINEMENT.md`](./RELEASE_2026-09-23_STUDENT_MOBILE_SELFIE_NAV_REFINEMENT.md).
 
    - Student account school-profile release: [`RELEASE_2026-09-23_STUDENT_ACCOUNT_SCHOOL_PROFILE.md`](./RELEASE_2026-09-23_STUDENT_ACCOUNT_SCHOOL_PROFILE.md).
+
+- Tata Usaha (TU) module blueprint: [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TATA_USAHA_MODULE.md).
