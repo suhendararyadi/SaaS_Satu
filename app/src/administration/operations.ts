@@ -192,7 +192,7 @@ export const getAdministrationWorkspace = async (_rawArgs: unknown, context: { u
   const user = ensureSchoolUser(context);
   const access = await resolveAdministrationAccess(user);
   const [school, templates, registers, documents, statusGroups, recentAudit, principal] = await Promise.all([
-    prisma.school.findUnique({ where: { id: user.schoolId }, select: { id: true, name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true, logoUrl: true } }),
+    prisma.school.findUnique({ where: { id: user.schoolId }, select: { id: true, name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true, logoUrl: true, departments: { orderBy: { name: "asc" }, select: { code: true, name: true } } } }),
     prisma.administrationTemplate.findMany({
       where: { schoolId: user.schoolId },
       select: { id: true, code: true, name: true, category: true, description: true, status: true, currentVersion: true, isStarter: true, updatedAt: true, versions: { orderBy: { version: "desc" }, take: 1, select: { id: true, version: true, subjectTemplate: true, bodyHtml: true, variableSchema: true, pageConfig: true, createdAt: true } } },
@@ -335,7 +335,7 @@ const draftSchema = z.object({
 
 async function resolveDraftVariables(schoolId: string, args: z.infer<typeof draftSchema>) {
   const [school, student, staff, principal, activeAcademicYear] = await Promise.all([
-    prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true, logoUrl: true } }),
+    prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, npsn: true, address: true, city: true, province: true, phone: true, email: true, logoUrl: true, departments: { orderBy: { name: "asc" }, select: { code: true, name: true } } } }),
     args.relatedStudentId ? prisma.user.findFirst({ where: { id: args.relatedStudentId, schoolId, role: "STUDENT" }, select: { id: true, name: true, studentProfile: { select: { nis: true, nisn: true } }, classRoom: { select: { name: true, department: { select: { name: true } }, academicYear: { select: { yearName: true, semester: true } } } } } }) : null,
     args.relatedStaffId ? prisma.user.findFirst({ where: { id: args.relatedStaffId, schoolId, role: { in: ["TEACHER", "SCHOOL_ADMIN"] } }, select: { id: true, name: true, teacherProfile: { select: { nip: true, frontTitle: true, backTitle: true, title: true, jobTitle: true } }, staffAssignments: { where: { isActive: true }, take: 3, select: { customTitle: true, unitName: true, role: true } } } }) : null,
     resolvePrincipalSnapshot(schoolId),
