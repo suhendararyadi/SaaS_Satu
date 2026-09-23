@@ -3,10 +3,12 @@
 // Security contract (do not weaken without review):
 //  - Auth: `Authorization: Bearer <INTEGRATION_TOKEN>` — no session/cookie auth.
 //  - Read-only: every handler performs Prisma reads only. No create/update/delete.
-//  - Not publicly reachable: nginx must deny /operations/integration/ from the
+//  - Not publicly reachable: nginx denies /operations/integration/ from the
 //    internet; OpenClaw calls it over loopback (http://127.0.0.1:3101).
 //  - PII minimization: responses are aggregates by default; student names are
 //    included only when the caller explicitly asks with `detail=1`.
+//  - Tenant isolation: every query is scoped by `schoolId`; responses always
+//    carry school identity so an all-tenant query is never ambiguous.
 
 import { prisma } from "wasp/server";
 import { timingSafeEqual } from "node:crypto";
@@ -63,10 +65,28 @@ export const integrationAttendanceDailyApi = async (req: any, res: any, _context
   if (!isAuthorized(req)) return unauthorized(res);
 
   const rawDate = String(req.query?.date || "").trim();
-  if (rawDate && !YMD_RE.test(rawDate)) {
-    return res.status(400).json({ error: "invalid_date", expected: "YYYY-MM-DD" });
+  const rawFrom = String(req.query?.from || "").trim();
+  const rawTo = String(req.query?.to || "").trim();
+
+  let from: string;
+  let to: string;
+  let mode: "date" | "range";
+
+  if (rawFrom || rawTo) {
+    mode = "range";
+    to = rawTo || todayYmd();
+    from = rawFrom || to;
+    if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to) {
+      return res.status(400).json({ error: "invalid_range", expected: "YYYY-MM-DD", detail: "from must be <= to" });
+    }
+  } else {
+    mode = "date";
+    if (rawDate && !YMD_RE.test(rawDate)) {
+      return res.status(400).json({ error: "invalid_date", expected: "YYYY-MM-DD" });
+    }
+    from = rawDate || todayYmd();
+    to = from;
   }
-  const dateOnly = rawDate || todayYmd();
 
   const schoolFilter = await resolveSchoolId(String(req.query?.school || ""));
   if (schoolFilter === null) return res.status(404).json({ error: "school_not_found" });
@@ -74,40 +94,52 @@ export const integrationAttendanceDailyApi = async (req: any, res: any, _context
   const detail = String(req.query?.detail || "") === "1";
 
   const rows = await prisma.schoolDailyAttendance.findMany({
-    where: { dateOnly, ...(schoolFilter ? { schoolId: schoolFilter } : {}) },
+    where: { dateOnly: { gte: from, lte: to }, ...(schoolFilter ? { schoolId: schoolFilter } : {}) },
     select: {
       status: true,
       lateMinutes: true,
       earlyLeave: true,
       notes: true,
       classRoomId: true,
+      schoolId: true,
+      school: { select: { name: true, slug: true } },
       classRoom: { select: { name: true, gradeLevel: true } },
       student: { select: { name: true } },
     },
+    orderBy: [{ dateOnly: "asc" }],
     take: MAX_ROWS,
   });
 
-  const grouped = new Map<string, any[]>();
+  // Per class room (school identity included so all-tenant answers are unambiguous).
+  const groupedClasses = new Map<string, any[]>();
   for (const row of rows) {
-    const bucket = grouped.get(row.classRoomId);
+    const bucket = groupedClasses.get(row.classRoomId);
     if (bucket) bucket.push(row);
-    else grouped.set(row.classRoomId, [row]);
+    else groupedClasses.set(row.classRoomId, [row]);
   }
 
-  const classes = [...grouped.entries()]
+  const classes = [...groupedClasses.entries()]
     .map(([classRoomId, list]) => {
       const first = list[0];
       const summary = summarizeAttendanceStatuses(list);
       const nonPresent = detail
         ? list
             .filter((row) => row.status !== "HADIR")
-            .map((row) => ({ name: row.student?.name ?? null, status: row.status, notes: row.notes ?? null }))
+            .map((row) => ({
+              name: row.student?.name ?? null,
+              status: row.status,
+              date: row.dateOnly ?? null,
+              notes: row.notes ?? null,
+            }))
         : undefined;
 
       return {
         classRoomId,
         className: first?.classRoom?.name ?? "(tanpa kelas)",
         gradeLevel: first?.classRoom?.gradeLevel ?? null,
+        schoolId: first?.schoolId ?? null,
+        schoolName: first?.school?.name ?? null,
+        schoolSlug: first?.school?.slug ?? null,
         summary,
         rate: attendanceRate(list),
         ...(nonPresent ? { nonPresent } : {}),
@@ -115,18 +147,47 @@ export const integrationAttendanceDailyApi = async (req: any, res: any, _context
     })
     .sort(
       (a, b) =>
-        (a.gradeLevel ?? 0) - (b.gradeLevel ?? 0) || String(a.className).localeCompare(String(b.className)),
+        String(a.schoolName ?? "").localeCompare(String(b.schoolName ?? "")) ||
+        (a.gradeLevel ?? 0) - (b.gradeLevel ?? 0) ||
+        String(a.className).localeCompare(String(b.className)),
     );
+
+  // Per school rollup — answers "which tenant" without a second query.
+  const groupedSchools = new Map<string, any[]>();
+  for (const row of rows) {
+    const bucket = groupedSchools.get(row.schoolId);
+    if (bucket) bucket.push(row);
+    else groupedSchools.set(row.schoolId, [row]);
+  }
+
+  const schools = [...groupedSchools.entries()]
+    .map(([schoolId, list]) => {
+      const first = list[0];
+      return {
+        schoolId,
+        schoolName: first?.school?.name ?? null,
+        schoolSlug: first?.school?.slug ?? null,
+        records: list.length,
+        classCount: new Set(list.map((row) => row.classRoomId)).size,
+        summary: summarizeAttendanceStatuses(list),
+        rate: attendanceRate(list),
+      };
+    })
+    .sort((a, b) => String(a.schoolName ?? "").localeCompare(String(b.schoolName ?? "")));
 
   return res.json({
     ok: true,
-    date: dateOnly,
+    mode,
+    date: mode === "date" ? from : null,
+    from,
+    to,
     school: schoolFilter ?? null,
     detail,
     totalRecords: rows.length,
     totals: summarizeAttendanceStatuses(rows),
     rate: attendanceRate(rows),
     classes,
+    schools,
   });
 };
 
@@ -138,7 +199,7 @@ export const integrationAttendanceStudentApi = async (req: any, res: any, _conte
 
   const to = String(req.query?.to || "").trim() || todayYmd();
   const from = String(req.query?.from || "").trim() || new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
-  if (!YMD_RE.test(from) || !YMD_RE.test(to)) {
+  if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to) {
     return res.status(400).json({ error: "invalid_range", expected: "YYYY-MM-DD" });
   }
 
