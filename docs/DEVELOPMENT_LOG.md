@@ -1227,3 +1227,17 @@ Verifikasi blue-green di port 3102 sebelum cutover: Wasp build PASS, server bund
 Satu kegagalan build ditemukan dan diperbaiki: router generated memanggil handler dengan tiga argumen sehingga setiap handler perlu parameter ketiga opsional `_context?: unknown` (selaras `schoolSiteSitemapApi`). Re-bundle PASS.
 
 Runtime release backend `884abc6-openclaw-integration`; rollback `5a4d731-tu-content-gen2`; static release tidak berubah (tidak ada perubahan client). Backup: `pre-openclaw-integration-20260923-140715.dump` (77 tabel), `staging.env.bak-20260923-142227`, `nginx-sekolah.conf.bak-20260923-142236`. Otomasi `School OS - rekap absensi harian` pukul **09:00 Asia/Jakarta** mengirim ringkasan ke Telegram pemilik.
+
+---
+
+## 23 September 2026 — Integrasi OpenClaw: atribusi tenant + rentang tanggal
+
+Tindak lanjut karena School OS multi-tenant dan pemilik ingin bertanya per sekolah. Endpoint harian sekarang membawa identitas tenant di setiap baris kelas (`schoolId`, `schoolName`, `schoolSlug`) dan menambahkan rollup `schools[]` per tenant (`records`, `classCount`, `summary`, `rate`), sehingga pertanyaan "semua sekolah" tidak lagi ambigu. Endpoint harian juga menerima `from`/`to` untuk rentang tanggal dan melaporkan `mode` (`date`/`range`), `from`, `to`; rentang invalid (`from > to`) ditolak **400**. Urutan kelas kini sekolah → jenjang → nama kelas.
+
+Kontrak keamanan tidak berubah: bearer `INTEGRATION_TOKEN` diperiksa di handler, fail-closed, timing-safe, hanya Prisma read, agregat default (`detail=1` untuk nama), nginx 404 untuk jalur publik, loopback-only.
+
+Verifikasi blue-green di 3102: atribusi sekolah per kelas PASS, rollup `schools[]` PASS, filter `?school=` PASS, rentang `?from=&to=` PASS (`mode=range`, 29 catatan, rate 79%), rentang invalid **400**, tenant tanpa data tetap 0 tanpa error. Setelah cutover: homepage **200**, endpoint publik **404**, script ringkasan produksi PASS dengan atribusi sekolah.
+
+Defect pada script operator ditemukan dan diperbaiki: menuliskan `$(cat …token…)` ke file helper membuat nilainya ter-redaksi saat penulisan, sehingga request terkirim dengan header tidak valid. `schoolos-attendance-summary.sh` dan `schoolos-api.sh` kini membaca token dengan `read -r TOKEN < "$TOKEN_FILE"` dan tidak lagi memakai command substitution.
+
+Runtime release backend `34fcd3b-openclaw-tenant-attribution`; rollback `884abc6-openclaw-integration`; static release tidak berubah.

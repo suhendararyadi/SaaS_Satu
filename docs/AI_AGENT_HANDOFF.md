@@ -521,3 +521,7 @@ The daily digest is the automation **“School OS - rekap absensi harian”** (0
 Deployment deviation to record: this release was staged and cut over manually (git worktree in `releases/`, `wasp build` + `npm run bundle`, symlink switch, `saas-satu.service` restart) because the GitHub connection required by the bounded MSO function path was not available to the acting agent. Prefer the section 8 MSO `school_os_deploy_preflight` / `school_os_deploy_release` path for future releases, and treat the manual steps above as the equivalent fallback.
 
 Release record: `docs/RELEASE_2026-09-23_OPENCLAW_READONLY_INTEGRATION.md`.
+
+**Follow-up (same day):** runtime backend moved to `34fcd3b-openclaw-tenant-attribution` (rollback `884abc6-openclaw-integration`). Every class row now carries `schoolId`/`schoolName`/`schoolSlug`, a `schools[]` per-tenant rollup was added, and `attendance/daily` accepts `from`/`to` for ranges (reporting `mode`, `from`, `to`; `from > to` returns 400). The security contract above is unchanged and must stay that way. Release record: `docs/RELEASE_2026-09-23_OPENCLAW_TENANT_ATTRIBUTION.md`.
+
+Operator scripts (`/home/ubuntu/.openclaw/scripts/schoolos-attendance-summary.sh`, `schoolos-api.sh`) must read the token with `read -r TOKEN < "$TOKEN_FILE"`. Do not reintroduce a `$(cat <token-file>)` command substitution: it is redacted at write time and produces an invalid Authorization header.
