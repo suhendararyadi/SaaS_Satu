@@ -36,6 +36,7 @@ import { STAFF_ASSIGNMENT_META, type StaffAssignmentRoleCode } from "../staffAss
 interface SchoolLayoutProps { user: AuthUser; children: ReactNode }
 
 const pageTitles: Array<[string, string]> = [
+  ["/account", "Akun Siswa"],
   ["/school/admin/schools", "Organisasi Sekolah"],
   ["/school/website/preview", "Pratinjau Website"],
   ["/school/website", "Website Sekolah"],
