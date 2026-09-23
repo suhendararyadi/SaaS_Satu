@@ -501,3 +501,23 @@ Critical non-regression rules:
 `CABANG DINAS PENDIDIKAN WILAYAH VI` currently follows the supplied reference. If another tenant needs a different Cabang Dinas, add an explicit administration identity configuration; never infer it silently.
 
 Release record: `docs/RELEASE_2026-09-23_TU_EXACT_JABAR_LETTERHEAD.md`.
+
+## OpenClaw read-only integration live — 23 September 2026
+
+Runtime backend `884abc6-openclaw-integration` (rollback `5a4d731-tu-content-gen2`). Static release unchanged: no client code was touched.
+
+Any agent continuing this work must preserve the integration security contract:
+
+- the surface lives under `/operations/integration/*` and is declared `api("GET", …)` with `auth: false`, with authorization performed **inside** each handler against the bearer `INTEGRATION_TOKEN`;
+- it must stay **fail-closed**: an absent token, or one shorter than 16 characters, denies every request; never make it fall open;
+- token comparison stays timing-safe;
+- handlers must remain **reads only** (Prisma `findMany`/`findUnique`); never add a write path to this surface;
+- keep responses aggregated by default; student names only with `detail=1`;
+- nginx must keep `location ^~ /operations/integration/ { return 404; }` ahead of the `/operations/` proxy so the surface stays loopback-only;
+- the token lives in `/etc/saas-satu/staging.env` (app, root 0600) and `/home/ubuntu/.openclaw/secrets/schoolos-integration-token` (OpenClaw, 0600). It must never appear in chat, logs, docs, commits, or the model context.
+
+The daily digest is the automation **“School OS - rekap absensi harian”** (09:00 Asia/Jakarta) running `/home/ubuntu/.openclaw/scripts/schoolos-attendance-summary.sh`.
+
+Deployment deviation to record: this release was staged and cut over manually (git worktree in `releases/`, `wasp build` + `npm run bundle`, symlink switch, `saas-satu.service` restart) because the GitHub connection required by the bounded MSO function path was not available to the acting agent. Prefer the section 8 MSO `school_os_deploy_preflight` / `school_os_deploy_release` path for future releases, and treat the manual steps above as the equivalent fallback.
+
+Release record: `docs/RELEASE_2026-09-23_OPENCLAW_READONLY_INTEGRATION.md`.

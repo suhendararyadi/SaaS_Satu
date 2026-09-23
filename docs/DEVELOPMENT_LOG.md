@@ -1209,3 +1209,21 @@ Rebuilt the TU correspondence letterhead from direct measurements of the user-su
 School name, Program Keahlian (Department list), address, city/province, phone and email now come from tenant master data and are included in draft snapshots. No website/postal value is invented when School master data does not contain it.
 
 Targeted renderer tests 4/4 PASS; real-DB clone UAT 15/15 PASS; full regression **173/173 across 32 files**; Wasp/server/SSR/client builds PASS; immutable deploy and repeat idempotence PASS. Runtime `3a675e4-tu-letterhead-exact`.
+
+---
+
+## 23 September 2026 — OpenClaw read-only integration API live
+
+School OS sekarang punya pintu baca khusus untuk asisten eksternal (OpenClaw) di `/operations/integration/*`. Tujuannya agar rekap absensi harian bisa dibaca tanpa membuka panel. Konsep yang disepakati pemilik produk: **A + C** — endpoint read-only bertoken (A) + ringkasan terjadwal ke Telegram (C).
+
+Yang dikirim: tiga file aditif di `app/src/integration/` (`env.ts`, `integration.wasp.ts`, `integrationApi.ts`, 206 baris) dan dua perubahan aditif (+4 baris) di `app/main.wasp.ts` serta `app/src/env.ts`.
+
+Endpoint: `GET /operations/integration/schools`, `GET /operations/integration/attendance/daily`, `GET /operations/integration/attendance/student/:studentId`.
+
+Kontrak keamanan: bearer `INTEGRATION_TOKEN` diperiksa di dalam handler (deklarasi tetap `auth: false`), **fail-closed** bila token kosong/<16 karakter, perbandingan timing-safe, **hanya Prisma read**, respons agregat secara default (nama siswa hanya dengan `detail=1`), dan nginx mengembalikan 404 untuk jalur ini dari internet sehingga hanya dapat diakses lewat loopback.
+
+Verifikasi blue-green di port 3102 sebelum cutover: Wasp build PASS, server bundle PASS, tanpa token **401**, token salah **401**, `GET /schools` **200** (3 tenant), `GET /attendance/daily` **200**, `POST` **404** (tidak ada jalur tulis), `date=abc` **400**. Setelah cutover: homepage **200**, endpoint publik **404**, loopback tanpa token **401**, loopback dengan token **200**.
+
+Satu kegagalan build ditemukan dan diperbaiki: router generated memanggil handler dengan tiga argumen sehingga setiap handler perlu parameter ketiga opsional `_context?: unknown` (selaras `schoolSiteSitemapApi`). Re-bundle PASS.
+
+Runtime release backend `884abc6-openclaw-integration`; rollback `5a4d731-tu-content-gen2`; static release tidak berubah (tidak ada perubahan client). Backup: `pre-openclaw-integration-20260923-140715.dump` (77 tabel), `staging.env.bak-20260923-142227`, `nginx-sekolah.conf.bak-20260923-142236`. Otomasi `School OS - rekap absensi harian` pukul **09:00 Asia/Jakarta** mengirim ringkasan ke Telegram pemilik.
