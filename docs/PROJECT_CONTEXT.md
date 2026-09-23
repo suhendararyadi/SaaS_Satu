@@ -716,3 +716,7 @@ Do not expose NIK/KK, parent NIKs, bank account information, KIP/KPS numbers, ho
 ## Planned module — Tata Usaha (TU) — 23 September 2026
 
 Blueprint stored in [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TATA_USAHA_MODULE.md). Primary goal is automated correspondence from versioned templates backed by existing School OS master data. Recommended order: governance discovery → TU foundation/template/numbering → outgoing correspondence → incoming/disposition → service requests → archive/retention → advanced TTE/integrations. Implementation has not started.
+
+## TU Phase 0 — SMKN 12 Garut discovery baseline
+
+Read-only production discovery found complete core school identity, 1,539 students, 50 rombels, 7 departments, one Principal assignment, four Wakasek assignments and 22 active `Tenaga Administrasi Sekolah` assignments. All 22 TU candidates currently use primary role `TEACHER` and none has Auth. No structured Kepala TU assignment exists yet. Official letter samples, numbering/classification, approval routes, signer authority, letterhead asset and retention rules remain pending. See the three `TU_PHASE0_*` docs.

@@ -132,3 +132,7 @@ Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DE
    - Student account school-profile release: [`RELEASE_2026-09-23_STUDENT_ACCOUNT_SCHOOL_PROFILE.md`](./RELEASE_2026-09-23_STUDENT_ACCOUNT_SCHOOL_PROFILE.md).
 
 - Tata Usaha (TU) module blueprint: [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TATA_USAHA_MODULE.md).
+
+- TU Phase 0 configuration pack — SMKN 12 Garut: [`TU_PHASE0_SMKN12_GARUT_CONFIGURATION_PACK.md`](./TU_PHASE0_SMKN12_GARUT_CONFIGURATION_PACK.md).
+- TU governance contract: [`TU_PHASE0_GOVERNANCE_CONTRACT.md`](./TU_PHASE0_GOVERNANCE_CONTRACT.md).
+- TU template intake register: [`TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md`](./TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md).

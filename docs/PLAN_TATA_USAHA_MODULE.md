@@ -1392,3 +1392,21 @@ Modul dianggap production-grade jika:
 - manual UAT operator TU + Kepala Sekolah PASS;
 - dokumentasi dan rollback tersedia.
 
+
+---
+
+## 25. Phase 0 execution status — 23 September 2026
+
+Phase 0 discovery baseline untuk tenant pertama **SMKN 12 GARUT** sudah dieksekusi secara read-only terhadap data School OS production.
+
+Artefak:
+
+- [`TU_PHASE0_SMKN12_GARUT_CONFIGURATION_PACK.md`](./TU_PHASE0_SMKN12_GARUT_CONFIGURATION_PACK.md);
+- [`TU_PHASE0_GOVERNANCE_CONTRACT.md`](./TU_PHASE0_GOVERNANCE_CONTRACT.md);
+- [`TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md`](./TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md).
+
+Data yang sudah siap: identity sekolah, 1.539 siswa, 50 rombel, 7 program/konsentrasi, Kepala Sekolah candidate, empat Wakasek candidate, 22 tenaga administrasi candidate, dan academic year aktif.
+
+Blocker sebelum surat production dapat diterbitkan: sample surat resmi, pattern penomoran/register, kode klasifikasi, assignment Kepala TU, approval/paraf matrix, signer authority per template, logo/kop asset, retention profile, dan kebijakan TTE.
+
+Phase 1 foundation boleh dirancang dengan feature gate; `ISSUED` production tidak boleh dibuka sebelum blocker kritis dikonfirmasi.

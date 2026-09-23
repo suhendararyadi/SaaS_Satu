@@ -451,3 +451,7 @@ Privacy rule: do not add NIK/KK, parent NIK, bank account, KIP/KPS number, home 
 ## Planned module — Tata Usaha (TU)
 
 Authoritative implementation blueprint: [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TATA_USAHA_MODULE.md). Implementation has **not started**. The baseline is correspondence-first: capability/assignment, versioned templates, server-side atomic numbering, approval/signing workflow, immutable issued PDFs, QR verification, incoming mail/disposition, service requests, and archive metadata. Do not hard-code one school/province format; use tenant Administrative Rules Profile.
+
+## TU Phase 0 discovery executed — 23 September 2026
+
+SMKN 12 Garut Phase 0 is documented in `TU_PHASE0_SMKN12_GARUT_CONFIGURATION_PACK.md`, `TU_PHASE0_GOVERNANCE_CONTRACT.md`, and `TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md`. Read these before implementing TU. Do not invent numbering/classification/signer rules. Current production data shows a Principal candidate, four Wakasek candidates, and 22 Tenaga Administrasi candidates, but no structured Kepala TU assignment and no Auth for those 22 staff. Phase 1 may build a gated foundation; production `ISSUED` must remain disabled until official samples/rules are confirmed.
