@@ -20,12 +20,15 @@ import { pklSpec } from "./src/pkl/pkl.wasp";
 import { lmsSpec } from "./src/lms/lms.wasp";
 import { governanceSpec } from "./src/governance/governance.wasp";
 import { reportsSpec } from "./src/reports/reports.wasp";
+import { attendance360Spec } from "./src/attendance360/attendance360.wasp";
+import { administrationSpec } from "./src/administration/administration.wasp";
+import { integrationSpec } from "./src/integration/integration.wasp";
 
 
 export default app({
-  name: "OpenSaaS",
+  name: "SaaSSatu",
   wasp: { version: "^0.25.0" },
-  title: "My Open SaaS App",
+  title: "SaaS Satu Smart School",
   head,
   auth: authConfig,
   db: {
@@ -55,10 +58,13 @@ export default app({
     analyticsSpec,
     adminSpec,
     schoolSpec,
+    attendance360Spec,
+    administrationSpec,
     pklSpec,
     lmsSpec,
     governanceSpec,
     reportsSpec,
+    integrationSpec,
   ],
 });
 

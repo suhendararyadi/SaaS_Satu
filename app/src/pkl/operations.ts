@@ -2,15 +2,33 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { ensureSchoolUser, requireSchoolAdmin, requireTeacher } from "../school/authGuards";
+import { ensureSchoolUser, requireSchoolAdmin, requireStudent, requirePklAccess, requirePklMonitoring, requireAnySchoolCapability } from "../school/authGuards";
+import { type SchoolScopedUser } from "../school/types";
 import { calculateDistanceMeters, isWithinGeofence } from "./geofence";
+import { getPklEwsAlertsForScope } from "./ews";
+import {
+  isValidPklDateRange,
+  normalizeOptionalPklText,
+  normalizePklCode,
+  parsePklDate,
+} from "./foundationPolicy";
+import { companySchema } from "./companyPolicy";
+
+
+function getPklPlacementScope(user: SchoolScopedUser) {
+  if (user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN") return {};
+  if (user.role === "STUDENT") return { studentId: user.id };
+  if (user.role === "TEACHER") return { teacherSupervisorId: user.id };
+  if (user.role === "DUDI_MENTOR") return { dudiMentorId: user.id };
+  throw new HttpError(403, "Peran akun ini tidak memiliki akses ke data PKL.");
+}
 
 // ==========================================
 // 1. DUDI / Company Operations
 // ==========================================
 
 export const getCompanies = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireSchoolAdmin(context);
 
   return prisma.company.findMany({
     where: { schoolId: user.schoolId },
@@ -26,42 +44,87 @@ export const getCompanies = async (_args: unknown, context: { user?: User }) => 
           },
         },
       },
+      departmentLinks: {
+        where: { isActive: true },
+        include: { department: { select: { id: true, code: true, name: true } } },
+        orderBy: { department: { code: "asc" } },
+      },
       _count: {
-        select: { placements: true },
+        select: { placements: true, mentors: true, pklCapacities: true },
       },
     },
     orderBy: { name: "asc" },
   });
 };
 
-const companySchema = z.object({
-  name: z.string().min(2, "Nama perusahaan minimal 2 karakter"),
-  industrySector: z.string().optional(),
-  address: z.string().min(3, "Alamat wajib diisi"),
-  picName: z.string().optional(),
-  picPhone: z.string().optional(),
-  latitude: z.number().optional().nullable(),
-  longitude: z.number().optional().nullable(),
-  radiusMeters: z.number().int().min(10).max(5000).default(100),
-  maxQuota: z.number().int().min(1).default(5),
-});
+function parseCompanyPartnershipDates(
+  startValue?: string | null,
+  endValue?: string | null,
+) {
+  const partnershipStartDate = parsePklDate(startValue);
+  const partnershipEndDate = parsePklDate(endValue);
+  if (startValue && !partnershipStartDate) {
+    throw new HttpError(400, "Tanggal mulai kerja sama tidak valid.");
+  }
+  if (endValue && !partnershipEndDate) {
+    throw new HttpError(400, "Tanggal selesai kerja sama tidak valid.");
+  }
+  if (!isValidPklDateRange(partnershipStartDate, partnershipEndDate)) {
+    throw new HttpError(400, "Tanggal mulai kerja sama harus lebih awal daripada tanggal selesai.");
+  }
+  return { partnershipStartDate, partnershipEndDate };
+}
+
+async function ensureUniqueCompanyCode(
+  schoolId: string,
+  code: string | null,
+  excludeId?: string,
+) {
+  if (!code) return;
+  const duplicate = await prisma.company.findFirst({
+    where: {
+      schoolId,
+      code,
+      ...(excludeId ? { NOT: { id: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (duplicate) throw new HttpError(400, "Kode mitra sudah digunakan: " + code);
+}
 
 export const createCompany = async (rawArgs: unknown, context: { user?: User }) => {
   const admin = requireSchoolAdmin(context);
   const args = ensureArgsSchemaOrThrowHttpError(companySchema, rawArgs);
+  const code = normalizePklCode(args.code);
+  const { partnershipStartDate, partnershipEndDate } = parseCompanyPartnershipDates(
+    args.partnershipStartDate,
+    args.partnershipEndDate,
+  );
+  await ensureUniqueCompanyCode(admin.schoolId, code);
 
   return prisma.company.create({
     data: {
       schoolId: admin.schoolId,
+      code,
       name: args.name.trim(),
+      legalName: normalizeOptionalPklText(args.legalName),
       industrySector: args.industrySector?.trim() || null,
       address: args.address.trim(),
+      phone: normalizeOptionalPklText(args.phone),
+      email: normalizeOptionalPklText(args.email),
+      website: normalizeOptionalPklText(args.website),
       picName: args.picName?.trim() || null,
       picPhone: args.picPhone?.trim() || null,
       latitude: args.latitude ?? null,
       longitude: args.longitude ?? null,
       radiusMeters: args.radiusMeters,
       maxQuota: args.maxQuota,
+      partnershipStatus: args.partnershipStatus,
+      partnershipStartDate,
+      partnershipEndDate,
+      mouNumber: normalizeOptionalPklText(args.mouNumber),
+      notes: normalizeOptionalPklText(args.notes),
+      isActive: args.isActive,
     },
   });
 };
@@ -79,18 +142,36 @@ export const updateCompany = async (rawArgs: unknown, context: { user?: User }) 
   });
   if (!existing) throw new HttpError(404, "Data perusahaan tidak ditemukan.");
 
+  const code = normalizePklCode(args.code);
+  const { partnershipStartDate, partnershipEndDate } = parseCompanyPartnershipDates(
+    args.partnershipStartDate,
+    args.partnershipEndDate,
+  );
+  await ensureUniqueCompanyCode(admin.schoolId, code, args.id);
+
   return prisma.company.update({
     where: { id: args.id },
     data: {
+      code,
       name: args.name.trim(),
+      legalName: normalizeOptionalPklText(args.legalName),
       industrySector: args.industrySector?.trim() || null,
       address: args.address.trim(),
+      phone: normalizeOptionalPklText(args.phone),
+      email: normalizeOptionalPklText(args.email),
+      website: normalizeOptionalPklText(args.website),
       picName: args.picName?.trim() || null,
       picPhone: args.picPhone?.trim() || null,
       latitude: args.latitude ?? null,
       longitude: args.longitude ?? null,
       radiusMeters: args.radiusMeters,
       maxQuota: args.maxQuota,
+      partnershipStatus: args.partnershipStatus,
+      partnershipStartDate,
+      partnershipEndDate,
+      mouNumber: normalizeOptionalPklText(args.mouNumber),
+      notes: normalizeOptionalPklText(args.notes),
+      isActive: args.isActive,
     },
   });
 };
@@ -105,14 +186,22 @@ export const deleteCompany = async (rawArgs: unknown, context: { user?: User }) 
 
   const company = await prisma.company.findFirst({
     where: { id, schoolId: admin.schoolId },
-    include: { _count: { select: { placements: true } } },
+    include: {
+      _count: {
+        select: { placements: true, mentors: true, pklCapacities: true },
+      },
+    },
   });
   if (!company) throw new HttpError(404, "Data perusahaan tidak ditemukan.");
 
-  if (company._count.placements > 0) {
+  if (
+    company._count.placements > 0 ||
+    company._count.mentors > 0 ||
+    company._count.pklCapacities > 0
+  ) {
     throw new HttpError(
       400,
-      `Tidak dapat menghapus DUDI ini karena memiliki ${company._count.placements} riwayat penempatan siswa.`
+      "Mitra DUDI tidak dapat dihapus karena sudah memiliki histori penempatan, pembimbing DUDI, atau konfigurasi kapasitas. Nonaktifkan mitra agar histori tetap terjaga.",
     );
   }
 
@@ -129,7 +218,7 @@ const getPlacementsSchema = z.object({
 }).optional();
 
 export const getPlacements = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requirePklAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getPlacementsSchema || z.any(),
     rawArgs || {}
@@ -140,8 +229,7 @@ export const getPlacements = async (rawArgs: unknown, context: { user?: User }) 
       schoolId: user.schoolId,
       ...(filter?.companyId ? { companyId: filter.companyId } : {}),
       ...(filter?.status ? { status: filter.status } : {}),
-      ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
-      ...(user.role === "TEACHER" && !user.isAdmin ? { teacherSupervisorId: user.id } : {}),
+      ...getPklPlacementScope(user),
     },
     include: {
       student: {
@@ -306,7 +394,10 @@ const recordAttendanceSchema = z.object({
 });
 
 export const recordAttendance = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireStudent(context);
+  if (user.role !== "STUDENT") {
+    throw new HttpError(403, "Presensi PKL hanya dapat dicatat oleh akun peserta didik.");
+  }
   const args = ensureArgsSchemaOrThrowHttpError(recordAttendanceSchema, rawArgs);
 
   // Validate placement belongs to user or admin
@@ -314,7 +405,7 @@ export const recordAttendance = async (rawArgs: unknown, context: { user?: User 
     where: {
       id: args.placementId,
       schoolId: user.schoolId,
-      ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+      studentId: user.id,
     },
     include: { company: true },
   });
@@ -351,6 +442,13 @@ export const recordAttendance = async (rawArgs: unknown, context: { user?: User 
   // Indonesian date string YYYY-MM-DD (Asia/Jakarta)
   const now = new Date();
   const dateOnly = now.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const existingAttendance = await prisma.attendanceLog.findFirst({
+    where: { placementId: placement.id, dateOnly, type: args.type },
+    select: { id: true },
+  });
+  if (existingAttendance) {
+    throw new HttpError(409, `Presensi ${args.type} untuk hari ini sudah tercatat.`);
+  }
 
   return prisma.attendanceLog.create({
     data: {
@@ -374,7 +472,7 @@ const getAttendanceLogsSchema = z.object({
 }).optional();
 
 export const getAttendanceLogs = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requirePklAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getAttendanceLogsSchema || z.any(),
     rawArgs || {}
@@ -385,7 +483,7 @@ export const getAttendanceLogs = async (rawArgs: unknown, context: { user?: User
       placement: {
         schoolId: user.schoolId,
         ...(filter?.placementId ? { id: filter.placementId } : {}),
-        ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+        ...getPklPlacementScope(user),
       },
       ...(filter?.dateOnly ? { dateOnly: filter.dateOnly } : {}),
     },
@@ -414,14 +512,17 @@ const createDailyJournalSchema = z.object({
 });
 
 export const createDailyJournal = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireStudent(context);
+  if (user.role !== "STUDENT") {
+    throw new HttpError(403, "Jurnal PKL hanya dapat dibuat oleh akun peserta didik.");
+  }
   const args = ensureArgsSchemaOrThrowHttpError(createDailyJournalSchema, rawArgs);
 
   const placement = await prisma.placement.findFirst({
     where: {
       id: args.placementId,
       schoolId: user.schoolId,
-      ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+      studentId: user.id,
     },
   });
   if (!placement) throw new HttpError(404, "Penempatan tidak ditemukan.");
@@ -444,7 +545,7 @@ const getDailyJournalsSchema = z.object({
 }).optional();
 
 export const getDailyJournals = async (rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requirePklAccess(context);
   const filter = ensureArgsSchemaOrThrowHttpError(
     getDailyJournalsSchema || z.any(),
     rawArgs || {}
@@ -455,7 +556,7 @@ export const getDailyJournals = async (rawArgs: unknown, context: { user?: User 
       placement: {
         schoolId: user.schoolId,
         ...(filter?.placementId ? { id: filter.placementId } : {}),
-        ...(user.role === "STUDENT" ? { studentId: user.id } : {}),
+        ...getPklPlacementScope(user),
       },
       ...(filter?.status ? { status: filter.status } : {}),
     },
@@ -480,17 +581,22 @@ const reviewDailyJournalSchema = z.object({
 });
 
 export const reviewDailyJournal = async (rawArgs: unknown, context: { user?: User }) => {
-  const reviewer = requireTeacher(context);
+  const reviewer = requireAnySchoolCapability(context, ["teach", "mentor"]);
   const args = ensureArgsSchemaOrThrowHttpError(reviewDailyJournalSchema, rawArgs);
+
+  const reviewerScope =
+    !reviewer.isAdmin && reviewer.role === "TEACHER"
+      ? { teacherSupervisorId: reviewer.id }
+      : !reviewer.isAdmin && reviewer.role === "DUDI_MENTOR"
+        ? { dudiMentorId: reviewer.id }
+        : {};
 
   const journal = await prisma.dailyJournal.findFirst({
     where: {
       id: args.id,
       placement: {
         schoolId: reviewer.schoolId,
-        ...(!reviewer.isAdmin && reviewer.role === "TEACHER"
-          ? { teacherSupervisorId: reviewer.id }
-          : {}),
+        ...reviewerScope,
       },
     },
     select: { id: true },
@@ -516,116 +622,6 @@ export const reviewDailyJournal = async (rawArgs: unknown, context: { user?: Use
 // ==========================================
 
 export const getPklEwsAlerts = async (_args: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
-
-  // Find active placements in this school
-  const activePlacements = await prisma.placement.findMany({
-    where: {
-      schoolId: user.schoolId,
-      status: "ACTIVE",
-    },
-    include: {
-      student: {
-        select: {
-          id: true,
-          name: true,
-          studentProfile: true,
-          classRoom: { select: { name: true } },
-        },
-      },
-      company: { select: { id: true, name: true } },
-      teacherSupervisor: { select: { id: true, name: true } },
-      attendances: {
-        orderBy: { timestamp: "desc" },
-        take: 5,
-      },
-      journals: {
-        orderBy: { date: "desc" },
-        take: 5,
-      },
-    },
-  });
-
-  const alerts: Array<{
-    studentId: string;
-    studentName: string;
-    className: string;
-    companyName: string;
-    teacherName: string;
-    severity: "HIGH" | "MEDIUM" | "LOW";
-    issue: string;
-    details: string;
-  }> = [];
-
-  const now = new Date();
-
-  for (const p of activePlacements) {
-    const studentName = p.student?.name || "Siswa";
-    const className = p.student?.classRoom?.name || "-";
-    const companyName = p.company?.name || "-";
-    const teacherName = p.teacherSupervisor?.name || "Belum Ditugaskan";
-
-    // 1. Missing attendance in last 3 days
-    const recentAttendances = p.attendances;
-    if (recentAttendances.length === 0) {
-      alerts.push({
-        studentId: p.studentId,
-        studentName,
-        className,
-        companyName,
-        teacherName,
-        severity: "HIGH",
-        issue: "Belum Pernah Presensi",
-        details: "Siswa belum pernah mencatatkan kehadiran di lokasi PKL sejak penempatan dibuat.",
-      });
-    }
-
-    // 2. Out of radius check-ins
-    const outOfRadiusCount = recentAttendances.filter((a) => a.status === "DI LUAR RADIUS").length;
-    if (outOfRadiusCount > 0) {
-      alerts.push({
-        studentId: p.studentId,
-        studentName,
-        className,
-        companyName,
-        teacherName,
-        severity: "MEDIUM",
-        issue: `${outOfRadiusCount} Presensi Di Luar Radius DUDI`,
-        details: "Terdeteksi presensi dari luar radius geofence yang ditentukan oleh perusahaan mitra.",
-      });
-    }
-
-    // 3. Journal inactivity
-    const lastJournal = p.journals[0];
-    if (!lastJournal) {
-      alerts.push({
-        studentId: p.studentId,
-        studentName,
-        className,
-        companyName,
-        teacherName,
-        severity: "MEDIUM",
-        issue: "Belum Mengisi Jurnal",
-        details: "Belum ada laporan jurnal kegiatan harian yang diunggah siswa.",
-      });
-    } else {
-      const daysSinceLastJournal = Math.floor(
-        (now.getTime() - new Date(lastJournal.date).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysSinceLastJournal >= 3) {
-        alerts.push({
-          studentId: p.studentId,
-          studentName,
-          className,
-          companyName,
-          teacherName,
-          severity: "HIGH",
-          issue: `Jurnal Tertunda ${daysSinceLastJournal} Hari`,
-          details: `Terakhir kali mengisi jurnal pada ${new Date(lastJournal.date).toLocaleDateString("id-ID")}.`,
-        });
-      }
-    }
-  }
-
-  return alerts;
+  const user = requirePklMonitoring(context);
+  return getPklEwsAlertsForScope(user.schoolId, getPklPlacementScope(user));
 };

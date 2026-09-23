@@ -21,10 +21,11 @@ import {
   M3Badge,
   M3CircularProgress,
   M3Banner,
+  M3EmptyState,
   M3Text,
   M3Icon,
 } from "../../client/components/m3";
-
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const { data: school } = useQuery(getSchoolInfo);
@@ -34,11 +35,12 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const { data: teachers } = useQuery(getSchoolTeachers);
 
   const schoolLevel = school?.level || "SMA_SMK";
-  const isVocationalOrHighSchool = schoolLevel === "SMA_SMK";
+  const { usesDepartments } = getSchoolCapabilities(schoolLevel);
   const isElementary = schoolLevel === "SD_MI";
   const isJuniorHigh = schoolLevel === "SMP_MTS";
 
   const defaultGrade = isElementary ? "1" : isJuniorHigh ? "7" : "10";
+  const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -54,7 +56,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   }, [schoolLevel]);
 
   // Filters & Search & Pagination
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("spotlight") ?? "" : "");
   const [selectedGrade, setSelectedGrade] = useState("ALL");
   const [selectedDept, setSelectedDept] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,7 +65,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const openAddModal = () => {
     setName("");
     setGradeLevel(defaultGrade);
-    setDepartmentId(isVocationalOrHighSchool ? (departments?.[0]?.id || "") : "");
+    setDepartmentId(usesDepartments ? (departments?.[0]?.id || "") : "");
     const activeYear = academicYears?.find((y) => y.isActive);
     setAcademicYearId(activeYear?.id || academicYears?.[0]?.id || "");
     setHomeroomTeacherId("");
@@ -87,7 +89,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
       await createClassRoom({
         name: name.trim(),
         gradeLevel: Number(gradeLevel),
-        departmentId: isVocationalOrHighSchool && departmentId ? departmentId : undefined,
+        departmentId: usesDepartments && departmentId ? departmentId : undefined,
         academicYearId,
         homeroomTeacherId: homeroomTeacherId || null,
       });
@@ -113,15 +115,16 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   const filteredClasses = classes?.filter((c) => {
     if (selectedGrade !== "ALL" && String(c.gradeLevel) !== selectedGrade)
       return false;
-    if (isVocationalOrHighSchool && selectedDept !== "ALL" && c.departmentId !== selectedDept)
+    if (usesDepartments && selectedDept !== "ALL" && c.departmentId !== selectedDept)
       return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = c.name.toLowerCase().includes(q);
-      const matchDept =
+      const matchDept = usesDepartments && (
         c.department?.name?.toLowerCase().includes(q) ||
-        c.department?.code?.toLowerCase().includes(q);
-      return matchName || matchDept;
+        c.department?.code?.toLowerCase().includes(q)
+      );
+      return matchName || Boolean(matchDept);
     }
     return true;
   });
@@ -217,18 +220,6 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Data Master</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Rombongan Belajar (Kelas)
-          </span>
-        </div>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -240,6 +231,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
               Daftar kelas rombel dan penugasan wali kelas.
             </p>
           </div>
+          {canManage && (
           <M3Button
             variant="filled"
             size="md"
@@ -248,6 +240,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
           >
             Tambah Rombel
           </M3Button>
+          )}
         </div>
 
         {/* Filter Controls Card */}
@@ -255,7 +248,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <div className="flex-1 w-full">
               <M3TextField
-                placeholder="Cari nama kelas atau jurusan..."
+                placeholder={usesDepartments ? "Cari nama kelas atau jurusan..." : "Cari nama kelas..."}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -278,7 +271,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
               />
             </div>
 
-            {isVocationalOrHighSchool && (
+            {usesDepartments && (
               <div className="w-full sm:w-56">
                 <M3Select
                   options={departmentOptions}
@@ -304,15 +297,15 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
             <M3CircularProgress size={40} />
           </div>
         ) : filteredClasses?.length === 0 ? (
-          <M3Banner
-            variant="standard"
-            headline="Belum Ada Data Rombel Kelas"
-            supportingText="Tambahkan rombel kelas pertama Anda untuk mengorganisasikan data siswa dan presensi."
-            actionLabel="Tambah Kelas Baru"
-            onAction={openAddModal}
-            icon="meeting_room"
-            className="p-6"
-          />
+          <section className="hig-grouped-surface px-4 sm:px-5">
+            <M3EmptyState
+              icon="meeting_room"
+              title="Belum ada rombel kelas"
+              description="Tambahkan rombel pertama untuk mulai mengorganisasikan siswa, pembelajaran, dan presensi."
+              actionLabel={canManage ? "Tambah Kelas" : undefined}
+              onAction={canManage ? openAddModal : undefined}
+            />
+          </section>
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -327,12 +320,13 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
                       <div className="space-y-1">
                         <M3Badge variant="primary" size="sm">
                           Tingkat {c.gradeLevel}
-                          {c.department ? ` • ${c.department.code}` : ""}
+                          {usesDepartments && c.department ? ` • ${c.department.code}` : ""}
                         </M3Badge>
                         <h3 className="text-lg font-semibold text-md-on-surface">
                           {c.name}
                         </h3>
                       </div>
+                      {canManage && (
                       <M3Button
                         variant="icon"
                         size="icon-sm"
@@ -341,6 +335,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
                       >
                         <M3Icon name="delete" size={18} className="text-md-on-surface-variant hover:text-md-error" />
                       </M3Button>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-md-outline-variant/30 space-y-1.5 text-xs text-md-on-surface-variant">
@@ -401,7 +396,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           title="Tambah Rombel Kelas"
-          subtitle="Tentukan nama rombel, tingkat, jurusan, dan wali kelas."
+          subtitle={usesDepartments ? "Tentukan nama rombel, tingkat, jurusan, dan wali kelas." : "Tentukan nama rombel, tingkat, dan wali kelas."}
           icon={<M3Icon name="meeting_room" size={24} className="text-md-primary" />}
           actions={
             <>
@@ -454,7 +449,7 @@ export function ClassRoomsPage({ user }: { user: AuthUser }) {
               onChange={(e) => setGradeLevel(e.target.value)}
             />
 
-            {isVocationalOrHighSchool && (
+            {usesDepartments && (
               <M3Select
                 label="Konsentrasi Keahlian / Jurusan (Opsional)"
                 options={modalDepartmentOptions}

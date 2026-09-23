@@ -1,443 +1,183 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { type AuthUser } from "wasp/auth";
-import { Link } from "react-router";
 import {
-  useQuery,
+  correctAttendance,
+  deletePklWorkSchedule,
   getAttendanceLogs,
+  getCompanies,
+  getPklPeriods,
+  getPklWorkSchedules,
   getPlacements,
-  recordAttendance,
+  recordAttendanceException,
+  recordAttendanceGen2,
+  savePklWorkSchedule,
+  useQuery,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  M3Card,
-  M3Button,
-  M3TextField,
   M3Badge,
-  M3Table,
-  M3TableHeader,
-  M3TableBody,
-  M3TableRow,
-  M3TableHead,
-  M3TableCell,
-  M3CircularProgress,
   M3Banner,
-  M3Text,
-  M3Icon,
+  M3Button,
+  M3Card,
+  M3CircularProgress,
+  M3Dialog,
+  M3Select,
+  M3TextField,
 } from "../../client/components/m3";
+import { PklEvidenceUploader } from "../components/PklEvidenceUploader";
 
-import { calculateDistanceMeters } from "../geofence";
+const statusVariant: Record<string, any> = {
+  HADIR: "success", TERLAMBAT: "warning", IZIN: "primary", SAKIT: "secondary", ALPA: "error", LIBUR: "outline",
+};
 
 export function AttendancePage({ user }: { user: AuthUser }) {
-  const { data: placements } = useQuery(getPlacements);
-  const { data: logs, isLoading, refetch } = useQuery(getAttendanceLogs);
+  const placementsQ = useQuery(getPlacements);
+  const logsQ = useQuery(getAttendanceLogs);
+  const schedulesQ = useQuery(getPklWorkSchedules);
+  const periodsQ = useQuery(getPklPeriods);
+  const companiesQ = useQuery(getCompanies);
+  const placements: any[] = placementsQ.data || [];
+  const logs: any[] = logsQ.data || [];
+  const schedules: any[] = schedulesQ.data || [];
+  const periods: any[] = periodsQ.data || [];
+  const companies: any[] = companiesQ.data || [];
+  const isStudent = user.role === "STUDENT" && !user.isAdmin;
+  const isAdmin = user.role === "SCHOOL_ADMIN" || user.isAdmin;
+  const activePlacement = placements.find((p: any) => p.status === "ACTIVE");
 
-  // Active placement for current student (or first active placement if admin viewing)
-  const activePlacement = placements?.find((p) => p.status === "ACTIVE");
-
-  // Geolocation state
-  const [currentCoords, setCurrentCoords] = useState<{
-    latitude: number;
-    longitude: number;
-    accuracy: number;
-  } | null>(null);
+  const [coords, setCoords] = useState<{latitude:number;longitude:number;accuracy:number}|null>(null);
   const [geoError, setGeoError] = useState("");
-  const [loadingLocation, setLoadingLocation] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [notes, setNotes] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
-
-  // Search & Pagination for Attendance Logs
-  const [searchLog, setSearchLog] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [photoKey, setPhotoKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [exceptionOpen, setExceptionOpen] = useState(false);
+  const [exceptionStatus, setExceptionStatus] = useState<"IZIN"|"SAKIT">("IZIN");
+  const [exceptionNotes, setExceptionNotes] = useState("");
+  const [exceptionEvidence, setExceptionEvidence] = useState("");
 
   const fetchLocation = () => {
-    if (!navigator.geolocation) {
-      setGeoError("Browser ini tidak mendukung deteksi lokasi GPS.");
-      return;
-    }
-    setLoadingLocation(true);
-    setGeoError("");
+    if (!navigator.geolocation) { setGeoError("Browser tidak mendukung GPS."); return; }
+    setLocating(true); setGeoError("");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCurrentCoords({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: Math.round(pos.coords.accuracy),
-        });
-        setLoadingLocation(false);
-      },
-      (err) => {
-        setGeoError(
-          `Akses GPS gagal: ${err.message}. Pastikan izin lokasi aktif.`
-        );
-        setLoadingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      (pos) => { setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) }); setLocating(false); },
+      (err) => { setGeoError("GPS gagal: " + err.message); setLocating(false); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   };
+  useEffect(() => { if (isStudent) fetchLocation(); }, [isStudent]);
 
-  useEffect(() => {
-    fetchLocation();
-  }, []);
-
-  // Distance calculation if company has coords and user coords are ready
-  let distanceMeters: number | null = null;
-  let isInsideRadius = false;
-  const company = activePlacement?.company;
-
-  if (
-    currentCoords &&
-    company &&
-    company.latitude !== null &&
-    company.longitude !== null
-  ) {
-    distanceMeters = calculateDistanceMeters(
-      currentCoords.latitude,
-      currentCoords.longitude,
-      company.latitude,
-      company.longitude
-    );
-    isInsideRadius = distanceMeters <= company.radiusMeters;
-  }
-
-  const handleAttendance = async (type: "CHECK_IN" | "CHECK_OUT") => {
-    if (!activePlacement) {
-      alert("Anda belum memiliki penempatan PKL aktif.");
-      return;
-    }
-    setSubmitting(true);
-    setSuccessMsg("");
+  const record = async (type: "CHECK_IN"|"CHECK_OUT") => {
+    if (!activePlacement) return;
+    setBusy(true); setSuccess("");
     try {
-      await recordAttendance({
+      await recordAttendanceGen2({
         placementId: activePlacement.id,
         type,
-        latitude: currentCoords?.latitude || null,
-        longitude: currentCoords?.longitude || null,
-        notes: notes.trim() || null,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
+        photoUrl: photoKey || null,
+        notes: notes || null,
       });
-      setSuccessMsg(
-        `Presensi ${type === "CHECK_IN" ? "Masuk" : "Pulang"} berhasil dicatat!`
-      );
-      setNotes("");
-      await refetch();
-    } catch (err: any) {
-      alert(err.message || "Gagal mencatat presensi.");
-    } finally {
-      setSubmitting(false);
-    }
+      setSuccess(type === "CHECK_IN" ? "Check-in berhasil dicatat." : "Check-out berhasil dicatat.");
+      setNotes(""); setPhotoKey("");
+      await logsQ.refetch();
+    } catch (e:any) { alert(e?.message || "Presensi belum berhasil."); }
+    finally { setBusy(false); }
   };
 
-  const filteredLogs = logs?.filter((log) => {
-    if (searchLog.trim()) {
-      const q = searchLog.toLowerCase();
-      const matchStudent =
-        log.placement?.student?.name?.toLowerCase().includes(q);
-      const matchType = log.type.toLowerCase().includes(q);
-      const matchStatus = log.status.toLowerCase().includes(q);
-      return matchStudent || matchType || matchStatus;
-    }
-    return true;
-  });
+  const submitException = async () => {
+    if (!activePlacement || exceptionNotes.trim().length < 5) return;
+    setBusy(true);
+    try {
+      await recordAttendanceException({
+        placementId: activePlacement.id,
+        status: exceptionStatus,
+        notes: exceptionNotes,
+        evidenceUrl: exceptionEvidence || null,
+      });
+      setExceptionOpen(false); setExceptionNotes(""); setExceptionEvidence("");
+      await logsQ.refetch();
+    } catch (e:any) { alert(e?.message || "Pengajuan belum berhasil."); }
+    finally { setBusy(false); }
+  };
 
-  const totalItems = filteredLogs?.length || 0;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return logs.filter((row:any) => !q || [row.placement?.student?.name,row.placement?.company?.name,row.status,row.type,row.dateOnly].filter(Boolean).some((v:any)=>String(v).toLowerCase().includes(q)));
+  }, [logs,search]);
 
-  const paginatedLogs = (filteredLogs || []).slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const [correctRow, setCorrectRow] = useState<any>(null);
+  const [correctStatus, setCorrectStatus] = useState("HADIR");
+  const [correctNotes, setCorrectNotes] = useState("");
+  const [correctReason, setCorrectReason] = useState("");
+  const saveCorrection = async () => {
+    if (!correctRow || correctReason.trim().length < 3) return;
+    setBusy(true);
+    try {
+      await correctAttendance({ id: correctRow.id, status: correctStatus as any, notes: correctNotes || null, reason: correctReason });
+      setCorrectRow(null); await logsQ.refetch();
+    } catch(e:any){ alert(e?.message || "Koreksi belum tersimpan."); }
+    finally{ setBusy(false); }
+  };
 
-  return (
-    <SchoolLayout user={user}>
-      <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>E-PKL</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">Presensi GPS</span>
-        </div>
+  const [scheduleOpen,setScheduleOpen]=useState(false);
+  const [schedulePeriod,setSchedulePeriod]=useState("");
+  const [scheduleCompany,setScheduleCompany]=useState("");
+  const [workingDays,setWorkingDays]=useState("1,2,3,4,5");
+  const [checkInStart,setCheckInStart]=useState("07:00");
+  const [lateAfter,setLateAfter]=useState("07:15");
+  const [checkOutStart,setCheckOutStart]=useState("15:00");
+  const [checkOutEnd,setCheckOutEnd]=useState("17:00");
+  const openSchedule=(row?:any)=>{
+    setSchedulePeriod(row?.periodId || periods.find((p:any)=>p.isActive)?.id || periods[0]?.id || "");
+    setScheduleCompany(row?.companyId || companies[0]?.id || "");
+    setWorkingDays(row?.workingDays || "1,2,3,4,5");
+    setCheckInStart(row?.checkInStart || "07:00");
+    setLateAfter(row?.lateAfter || "07:15");
+    setCheckOutStart(row?.checkOutStart || "15:00");
+    setCheckOutEnd(row?.checkOutEnd || "17:00");
+    setScheduleOpen(true);
+  };
+  const saveSchedule=async()=>{
+    setBusy(true);
+    try{
+      await savePklWorkSchedule({periodId:schedulePeriod,companyId:scheduleCompany,workingDays,checkInStart,lateAfter,checkOutStart,checkOutEnd,isActive:true,notes:null});
+      setScheduleOpen(false); await schedulesQ.refetch();
+    }catch(e:any){alert(e?.message||"Jadwal belum tersimpan.");} finally{setBusy(false);}
+  };
 
-        {/* Header */}
-        <div>
-          <h2 className="text-2xl font-medium text-md-on-surface">
-            Presensi Lokasi Siswa PKL
-          </h2>
-          <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
-            Pencatatan kehadiran siswa sesuai radius lokasi mitra DUDI.
-          </p>
-        </div>
+  return <SchoolLayout user={user}><div className="space-y-6">
+    <header><p className="text-[11px] font-semibold uppercase tracking-[.08em] text-md-primary">PKL Gen2</p><h1 className="mt-1 text-2xl font-semibold tracking-[-.02em]">Presensi PKL</h1><p className="mt-1 text-sm text-md-on-surface-variant">Geofence, jadwal kerja, keterlambatan, izin/sakit, bukti foto, dan koreksi.</p></header>
 
-        {/* PWA Check-In Card */}
-        {activePlacement ? (
-          <M3Card variant="elevated" className="p-6 space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-md-outline-variant/30">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wider text-md-on-surface-variant">
-                  Lokasi Penempatan PKL
-                </p>
-                <div className="flex items-center gap-2">
-                  <M3Icon name="apartment" size={20} className="text-md-primary" />
-                  <h3 className="text-xl font-medium text-md-on-surface">
-                    {company?.name}
-                  </h3>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-md-on-surface-variant">
-                  <M3Icon name="location_on" size={16} className="opacity-70 shrink-0" />
-                  <span>{company?.address}</span>
-                </div>
-              </div>
+    {isStudent && <>{!activePlacement ? <M3Banner variant="warning" headline="Belum ada penempatan aktif" supportingText="Presensi hanya tersedia ketika placement sudah ACTIVE dan berada dalam rentang tanggal PKL."/> :
+      <M3Card variant="outlined" className="p-5 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="font-semibold">{activePlacement.company?.name}</h2><p className="text-xs text-md-on-surface-variant">{activePlacement.pklPeriod?.name || "Periode belum tersedia"} · {activePlacement.student?.name}</p></div><M3Badge variant="success">ACTIVE</M3Badge></div>
+        {success && <M3Banner variant="success" supportingText={success} dismissible onDismiss={()=>setSuccess("")}/>}
+        {geoError && <M3Banner variant="warning" supportingText={geoError} dismissible onDismiss={()=>setGeoError("")}/>}
+        <div className="rounded-[12px] bg-md-surface-container p-3 text-xs"><strong>GPS:</strong> {coords ? `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)} · akurasi ±${coords.accuracy} m` : "belum tersedia"} <M3Button variant="text" size="sm" onClick={fetchLocation} isLoading={locating}>Perbarui lokasi</M3Button></div>
+        <PklEvidenceUploader label="Selfie / bukti presensi" capture="user" value={photoKey} onChange={setPhotoKey}/>
+        <M3TextField label="Catatan (opsional)" value={notes} onChange={(e)=>setNotes(e.target.value)}/>
+        <div className="grid gap-2 sm:grid-cols-3"><M3Button variant="filled" icon="login" isLoading={busy} onClick={()=>record("CHECK_IN")}>Check-in</M3Button><M3Button variant="tonal" icon="logout" isLoading={busy} onClick={()=>record("CHECK_OUT")}>Check-out</M3Button><M3Button variant="outlined" icon="event_busy" onClick={()=>setExceptionOpen(true)}>Izin / Sakit</M3Button></div>
+      </M3Card>}
+    </>}
 
-              {/* GPS Radius Status Badge */}
-              <div className="flex items-center gap-3">
-                <div
-                  className={`p-3 rounded-[16px] border flex items-center gap-3 ${
-                    isInsideRadius
-                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200"
-                      : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200"
-                  }`}
-                >
-                  <M3Icon name="near_me" size={20} className="shrink-0" />
-                  <div>
-                    <p className="text-xs font-bold">
-                      {distanceMeters !== null
-                        ? `Jarak: ${distanceMeters} meter`
-                        : "Mencari GPS..."}
-                    </p>
-                    <p className="text-[11px] opacity-80">
-                      {isInsideRadius
-                        ? `Di dalam radius (${company?.radiusMeters}m)`
-                        : `Di luar radius (${company?.radiusMeters}m)`}
-                    </p>
-                  </div>
-                </div>
+    {isAdmin && <M3Card variant="outlined" className="overflow-hidden">
+      <div className="flex items-start justify-between gap-3 border-b border-md-outline-variant/35 p-4"><div><h2 className="font-semibold">Jadwal Kerja DUDI</h2><p className="text-[11.5px] text-md-on-surface-variant">Dipakai server untuk validasi hari kerja dan status terlambat.</p></div><M3Button size="sm" icon="add" onClick={()=>openSchedule()} disabled={!periods.length||!companies.length}>Atur Jadwal</M3Button></div>
+      {schedules.length===0?<div className="p-5 text-sm text-md-on-surface-variant">Belum ada jadwal kerja.</div>:<div className="divide-y divide-md-outline-variant/25">{schedules.map((row:any)=><div key={row.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center"><div className="flex-1"><p className="font-semibold">{row.company?.name}</p><p className="text-[11px] text-md-on-surface-variant">{row.period?.name} · Hari {row.workingDays} · masuk {row.checkInStart||"-"} · terlambat setelah {row.lateAfter||"-"} · pulang {row.checkOutStart||"-"}–{row.checkOutEnd||"-"}</p></div><div className="flex gap-1"><M3Button variant="text" size="sm" onClick={()=>openSchedule(row)}>Edit</M3Button><M3Button variant="text" size="sm" onClick={async()=>{if(confirm("Hapus jadwal ini?")){await deletePklWorkSchedule({id:row.id});await schedulesQ.refetch();}}}>Hapus</M3Button></div></div>)}</div>}
+    </M3Card>}
 
-                <M3Button
-                  variant="tonal"
-                  size="sm"
-                  icon="refresh"
-                  disabled={loadingLocation}
-                  onClick={fetchLocation}
-                >
-                  {loadingLocation ? "Mencari..." : "Segarkan GPS"}
-                </M3Button>
-              </div>
-            </div>
+    <M3Card variant="outlined" className="overflow-hidden">
+      <div className="p-4 border-b border-md-outline-variant/35"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold">Riwayat Presensi</h2><p className="text-[11.5px] text-md-on-surface-variant">Data otomatis dibatasi sesuai role/penugasan.</p></div><M3TextField size="sm" leadingIcon="search" placeholder="Cari siswa/status/tanggal..." value={search} onChange={(e)=>setSearch(e.target.value)}/></div></div>
+      {logsQ.isLoading?<div className="flex min-h-[220px] items-center justify-center"><M3CircularProgress size={34}/></div>:filtered.length===0?<div className="p-6 text-sm text-md-on-surface-variant">Belum ada presensi.</div>:<div className="divide-y divide-md-outline-variant/25">{filtered.slice(0,100).map((row:any)=><div key={row.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{row.placement?.student?.name}</p><M3Badge variant={statusVariant[row.status]||"outline"} size="sm">{row.status}</M3Badge>{row.geofenceStatus&&<M3Badge variant={row.geofenceStatus==="OUTSIDE"?"warning":"outline"} size="sm">{row.geofenceStatus}</M3Badge>}{row.scheduleStatus==="LATE"&&<M3Badge variant="warning" size="sm">LATE</M3Badge>}</div><p className="mt-1 text-[11px] text-md-on-surface-variant">{row.dateOnly} · {row.type} · {row.placement?.company?.name} · {row.distanceMeters!=null?Math.round(row.distanceMeters)+" m":""}</p>{row.notes&&<p className="mt-1 text-[11px] text-md-on-surface-variant">{row.notes}</p>}</div>{isAdmin&&<M3Button variant="text" size="sm" onClick={()=>{setCorrectRow(row);setCorrectStatus(row.status);setCorrectNotes(row.notes||"");setCorrectReason("");}}>Koreksi</M3Button>}</div>)}</div>}
+    </M3Card>
 
-            {geoError && (
-              <M3Banner
-                variant="error"
-                title="Akses Lokasi GPS Gagal"
-                supportingText={geoError}
-                dismissible
-                onDismiss={() => setGeoError("")}
-              />
-            )}
+    <M3Dialog isOpen={exceptionOpen} onClose={()=>setExceptionOpen(false)} title="Izin / Sakit" actions={<><M3Button variant="text" onClick={()=>setExceptionOpen(false)}>Batal</M3Button><M3Button onClick={submitException} isLoading={busy}>Kirim</M3Button></>}><div className="space-y-3"><M3Select label="Status" value={exceptionStatus} onChange={(e)=>setExceptionStatus(e.target.value as any)} options={[{value:"IZIN",label:"Izin"},{value:"SAKIT",label:"Sakit"}]}/><M3TextField label="Alasan *" value={exceptionNotes} onChange={(e)=>setExceptionNotes(e.target.value)}/><PklEvidenceUploader label="Bukti pendukung (opsional)" value={exceptionEvidence} onChange={setExceptionEvidence}/></div></M3Dialog>
 
-            {successMsg && (
-              <M3Banner
-                variant="success"
-                title="Presensi Berhasil Dicatat"
-                supportingText={successMsg}
-                dismissible
-                onDismiss={() => setSuccessMsg("")}
-              />
-            )}
+    <M3Dialog isOpen={!!correctRow} onClose={()=>setCorrectRow(null)} title="Koreksi Presensi" actions={<><M3Button variant="text" onClick={()=>setCorrectRow(null)}>Batal</M3Button><M3Button onClick={saveCorrection} isLoading={busy}>Simpan Koreksi</M3Button></>}><div className="space-y-3"><M3Select label="Status" value={correctStatus} onChange={(e)=>setCorrectStatus(e.target.value)} options={["HADIR","TERLAMBAT","IZIN","SAKIT","ALPA","LIBUR"].map(v=>({value:v,label:v}))}/><M3TextField label="Catatan" value={correctNotes} onChange={(e)=>setCorrectNotes(e.target.value)}/><M3TextField label="Alasan koreksi *" value={correctReason} onChange={(e)=>setCorrectReason(e.target.value)}/></div></M3Dialog>
 
-            {/* Attendance Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <M3Button
-                variant="filled"
-                size="lg"
-                icon="schedule"
-                disabled={submitting}
-                onClick={() => handleAttendance("CHECK_IN")}
-              >
-                {submitting ? "Memproses..." : "PRESENSI MASUK (Check-In)"}
-              </M3Button>
-
-              <M3Button
-                variant="tonal"
-                size="lg"
-                icon="schedule"
-                disabled={submitting}
-                onClick={() => handleAttendance("CHECK_OUT")}
-              >
-                {submitting ? "Memproses..." : "PRESENSI PULANG (Check-Out)"}
-              </M3Button>
-            </div>
-          </M3Card>
-        ) : (
-          <M3Banner
-            variant="warning"
-            headline="Belum Ada Penempatan PKL Aktif"
-            supportingText="Untuk melakukan presensi GPS, akun Anda harus sudah di-plotting ke perusahaan mitra DUDI oleh koordinator PKL atau admin sekolah."
-            actionLabel="Lihat Plotting Penempatan"
-            actionHref="/school/pkl/placements"
-          />
-        )}
-
-        {/* Attendance History Table */}
-        <div className="space-y-4 pt-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-md-on-surface">
-                Riwayat Log Presensi
-              </h3>
-              <p className="text-xs text-md-on-surface-variant">
-                Catatan riwayat kehadiran terkini siswa di lokasi mitra.
-              </p>
-            </div>
-          </div>
-
-          {/* Search Filter Toolbar */}
-          <M3Card variant="outlined" className="p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1 max-w-md">
-                <M3TextField
-                  placeholder="Cari siswa, tipe presensi, atau status..."
-                  value={searchLog}
-                  onChange={(e) => {
-                    setSearchLog(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  leadingIcon="search"
-                  size="sm"
-                />
-              </div>
-              <M3Badge variant="secondary" size="md">
-                {totalItems} Log
-              </M3Badge>
-            </div>
-          </M3Card>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center min-h-[200px]">
-              <M3CircularProgress size={36} />
-            </div>
-          ) : filteredLogs?.length === 0 ? (
-            <M3Card variant="elevated" className="p-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-md-secondary-container text-md-on-secondary-container flex items-center justify-center mx-auto shadow-xs">
-                <M3Icon name="schedule" size={28} />
-              </div>
-              <h4 className="font-medium text-md-on-surface">
-                Belum Ada Presensi
-              </h4>
-              <p className="text-xs text-md-on-surface-variant">
-                Belum ada data presensi yang tercatat untuk periode ini.
-              </p>
-            </M3Card>
-          ) : (
-            <div className="space-y-4">
-              <M3Table>
-                <M3TableHeader>
-                  <M3TableRow>
-                    <M3TableHead>Waktu (WIB)</M3TableHead>
-                    <M3TableHead>Siswa</M3TableHead>
-                    <M3TableHead>Tipe</M3TableHead>
-                    <M3TableHead>Status Lokasi</M3TableHead>
-                    <M3TableHead>Jarak</M3TableHead>
-                  </M3TableRow>
-                </M3TableHeader>
-                <M3TableBody>
-                  {paginatedLogs.map((log) => {
-                    const dateStr = new Date(log.timestamp).toLocaleString(
-                      "id-ID",
-                      {
-                        timeZone: "Asia/Jakarta",
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }
-                    );
-
-                    return (
-                      <M3TableRow key={log.id}>
-                        <M3TableCell>
-                          <span className="font-mono text-xs text-md-on-surface">
-                            {dateStr}
-                          </span>
-                        </M3TableCell>
-                        <M3TableCell>
-                          <span className="font-semibold text-md-on-surface">
-                            {log.placement?.student?.name}
-                          </span>
-                        </M3TableCell>
-                        <M3TableCell>
-                          <M3Badge
-                            variant={
-                              log.type === "CHECK_IN" ? "primary" : "secondary"
-                            }
-                            size="sm"
-                          >
-                            {log.type === "CHECK_IN" ? "Masuk" : "Pulang"}
-                          </M3Badge>
-                        </M3TableCell>
-                        <M3TableCell>
-                          <M3Badge
-                            variant={
-                              log.status === "HADIR" ? "success" : "warning"
-                            }
-                            size="sm"
-                          >
-                            {log.status === "HADIR"
-                              ? "Hadir Valid"
-                              : log.status}
-                          </M3Badge>
-                        </M3TableCell>
-                        <M3TableCell>
-                          <span className="text-xs font-mono text-md-on-surface-variant">
-                            {log.distanceMeters !== null
-                              ? `${log.distanceMeters}m`
-                              : "-"}
-                          </span>
-                        </M3TableCell>
-                      </M3TableRow>
-                    );
-                  })}
-                </M3TableBody>
-              </M3Table>
-
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-2 pt-2">
-                  <p className="text-xs text-md-on-surface-variant">
-                    Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
-                    {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} log
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <M3Button
-                      variant="tonal"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      icon="chevron_left"
-                    >
-                      Sebelumnya
-                    </M3Button>
-                    <span className="text-xs px-2 text-md-on-surface font-medium">
-                      Hal {currentPage} / {totalPages}
-                    </span>
-                    <M3Button
-                      variant="tonal"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      trailingIcon="chevron_right"
-                    >
-                      Selanjutnya
-                    </M3Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </SchoolLayout>
-  );
+    <M3Dialog isOpen={scheduleOpen} onClose={()=>setScheduleOpen(false)} title="Jadwal Kerja PKL" actions={<><M3Button variant="text" onClick={()=>setScheduleOpen(false)}>Batal</M3Button><M3Button onClick={saveSchedule} isLoading={busy}>Simpan Jadwal</M3Button></>}><div className="space-y-3"><M3Select label="Periode" value={schedulePeriod} onChange={(e)=>setSchedulePeriod(e.target.value)} options={periods.map((p:any)=>({value:p.id,label:p.name}))}/><M3Select label="DUDI" value={scheduleCompany} onChange={(e)=>setScheduleCompany(e.target.value)} options={companies.map((c:any)=>({value:c.id,label:c.name}))}/><M3TextField label="Hari kerja (0=Minggu … 6=Sabtu)" value={workingDays} onChange={(e)=>setWorkingDays(e.target.value)} supportingText="Contoh Senin–Jumat: 1,2,3,4,5"/><div className="grid gap-3 sm:grid-cols-2"><M3TextField label="Mulai check-in" value={checkInStart} onChange={(e)=>setCheckInStart(e.target.value)}/><M3TextField label="Terlambat setelah" value={lateAfter} onChange={(e)=>setLateAfter(e.target.value)}/><M3TextField label="Mulai check-out" value={checkOutStart} onChange={(e)=>setCheckOutStart(e.target.value)}/><M3TextField label="Akhir check-out" value={checkOutEnd} onChange={(e)=>setCheckOutEnd(e.target.value)}/></div></div></M3Dialog>
+  </div></SchoolLayout>;
 }

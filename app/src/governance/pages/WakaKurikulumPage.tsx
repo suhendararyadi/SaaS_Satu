@@ -19,6 +19,7 @@ import {
   M3Banner,
   M3Text,
   M3Icon,
+  M3StatCard,
 } from "../../client/components/m3";
 
 
@@ -50,103 +51,19 @@ export function WakaKurikulumPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <Link to="/school/governance/waka" className="hover:text-md-primary transition-colors">
-            Tata Kelola
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <span className="text-md-on-surface font-medium">Waka Kurikulum</span>
-        </nav>
-
-        {/* Header */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <M3Badge variant="secondary">Waka Kurikulum</M3Badge>
-          </div>
-          <h1 className="text-headline-medium font-bold text-md-on-surface">
-            Supervisi Pembelajaran Guru
-          </h1>
-          <p className="text-body-large text-md-on-surface-variant">
-            Pantau pengisian agenda mengajar dan presensi harian guru.
-          </p>
+        <div>
+          <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">Supervisi pembelajaran</h2>
+          <p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">Pantau pengisian agenda mengajar dan kepatuhan KBM hari ini.</p>
         </div>
 
-        {/* Low Compliance Warning Banner */}
         {complianceRate < 50 && totalCourses > 0 && (
-          <M3Banner
-            variant="warning"
-            headline="Kepatuhan Mengajar Rendah"
-            supportingText={`${todayFilled} dari ${totalCourses} mapel (${complianceRate}%) telah mengisi agenda KBM hari ini.`}
-          />
+          <M3Banner variant="warning" headline="Kepatuhan mengajar rendah" supportingText={`${todayFilled} dari ${totalCourses} mapel (${complianceRate}%) telah mengisi agenda KBM hari ini.`} />
         )}
 
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <M3Card variant="elevated" className="p-5">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                  Kepatuhan KBM Hari Ini
-                </span>
-                <div className="w-9 h-9 rounded-md-md bg-md-primary-container text-md-on-primary-container flex items-center justify-center">
-                  <M3Icon name="grade" size={18} />
-                </div>
-              </div>
-
-              <div className="flex justify-between items-baseline">
-                <span className="text-display-small font-bold text-md-on-surface">
-                  {complianceRate}%
-                </span>
-                <span className="text-body-small text-md-on-surface-variant font-medium">
-                  {todayFilled} / {totalCourses} Mapel
-                </span>
-              </div>
-
-              <M3LinearProgress
-                value={todayFilled}
-                max={totalCourses}
-              />
-            </div>
-          </M3Card>
-
-          <M3Card variant="elevated" className="p-5">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                Total Pengajar Aktif
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-md-secondary-container text-md-on-secondary-container flex items-center justify-center">
-                <M3Icon name="groups" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-md-primary mt-2">
-              {supervision?.teacherCompliance?.length || 0} Guru
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Terdaftar dalam kalender akademik
-            </p>
-          </M3Card>
-
-          <M3Card variant="elevated" className="p-5">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                Total Mapel Terjadwal
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <M3Icon name="menu_book" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-emerald-600 dark:text-emerald-400 mt-2">
-              {totalCourses} Mapel
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Lintas seluruh rombel kelas sekolah
-            </p>
-          </M3Card>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <M3StatCard label="Kepatuhan hari ini" value={`${complianceRate}%`} tone={complianceRate < 50 ? "orange" : "green"} helper={`${todayFilled} / ${totalCourses} mapel`} />
+          <M3StatCard label="Guru aktif" value={supervision?.teacherCompliance?.length || 0} tone="blue" />
+          <M3StatCard label="Mapel terjadwal" value={totalCourses} tone="teal" />
         </div>
 
         {/* Filter Toolbar Card */}

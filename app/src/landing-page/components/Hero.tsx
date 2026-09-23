@@ -1,91 +1,25 @@
-import { Link as WaspRouterLink, routes } from "wasp/client/router";
-import { Button } from "../../client/components/ui/button";
-import openSaasBannerDark from "../../client/static/open-saas-banner-dark.svg";
-import openSaasBannerLight from "../../client/static/open-saas-banner-light.svg";
+import { M3Button, M3Icon } from "../../client/components/m3";
+
+const flow = [
+  { icon: "groups", title: "Data akademik", text: "Siswa, guru, rombel, dan tahun ajaran." },
+  { icon: "menu_book", title: "Pembelajaran", text: "LMS, tugas, presensi, agenda, dan CBT." },
+  { icon: "work", title: "PKL", text: "Penempatan, presensi lokasi, jurnal, dan monitoring." },
+  { icon: "description", title: "Laporan", text: "Rekap dari data yang benar-benar tersedia." },
+] as const;
 
 export function Hero() {
   return (
-    <div className="relative w-full pt-14">
-      <TopGradient />
-      <BottomGradient />
-      <div className="md:p-24">
-        <div className="max-w-8xl mx-auto px-6 lg:px-8">
-          <div className="lg:mb-18 mx-auto max-w-3xl text-center">
-            <h1 className="text-foreground text-5xl font-bold sm:text-6xl">
-              Some <span className="italic">cool</span> words about{" "}
-              <span className="text-gradient-primary">your product</span>
-            </h1>
-            <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-8">
-              With some more exciting words about your product!
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Button size="lg" variant="outline" asChild>
-                <WaspRouterLink to={routes.PricingPageRoute.to}>
-                  Learn More
-                </WaspRouterLink>
-              </Button>
-              <Button size="lg" variant="default" asChild>
-                <WaspRouterLink to={routes.SignupRoute.to}>
-                  Get Started <span aria-hidden="true">→</span>
-                </WaspRouterLink>
-              </Button>
-            </div>
-          </div>
-          <div className="mt-14 flow-root sm:mt-14">
-            <div className="m-2 hidden justify-center rounded-xl md:flex lg:-m-4 lg:rounded-2xl lg:p-4">
-              <img
-                src={openSaasBannerLight}
-                alt="App screenshot"
-                width={1000}
-                height={530}
-                loading="lazy"
-                className="rounded-md shadow-2xl ring-1 ring-gray-900/10 dark:hidden"
-              />
-              <img
-                src={openSaasBannerDark}
-                alt="App screenshot"
-                width={1000}
-                height={530}
-                loading="lazy"
-                className="hidden rounded-md shadow-2xl ring-1 ring-gray-900/10 dark:block"
-              />
-            </div>
-          </div>
-        </div>
+    <section className="mx-auto grid max-w-7xl gap-12 px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-8 lg:pb-24 lg:pt-24">
+      <div>
+        <div className="mb-4 inline-flex min-h-7 items-center gap-1.5 rounded-[8px] bg-md-primary-container px-2.5 text-[11px] font-semibold text-md-primary"><M3Icon name="school" size={15} />Untuk SMP, SMA, dan SMK</div>
+        <h1 className="max-w-3xl text-[40px] font-bold leading-[1.06] tracking-[-0.045em] text-md-on-surface sm:text-[54px]">Sekolah digital yang sederhana dipahami, cepat digunakan.</h1>
+        <p className="mt-5 max-w-2xl text-[16px] leading-7 text-md-on-surface-variant sm:text-[17px]">SaaS Satu menyatukan data akademik, pembelajaran, PKL, tata kelola, dan laporan dalam pengalaman yang mengikuti peran pengguna.</p>
+        <div className="mt-7 flex flex-wrap gap-2.5"><M3Button size="lg" href="/login" icon="login">Masuk ke portal</M3Button><M3Button size="lg" variant="outlined" href="#features">Lihat modul</M3Button></div>
       </div>
-    </div>
-  );
-}
-
-function TopGradient() {
-  return (
-    <div
-      className="absolute right-0 top-0 -z-10 w-full transform-gpu overflow-hidden blur-3xl sm:top-0"
-      aria-hidden="true"
-    >
-      <div
-        className="aspect-1020/880 w-280 bg-linear-to-tr flex-none from-amber-400 to-purple-300 opacity-10 sm:right-1/4 sm:translate-x-1/2 dark:hidden"
-        style={{
-          clipPath:
-            "polygon(80% 20%, 90% 55%, 50% 100%, 70% 30%, 20% 50%, 50% 0)",
-        }}
-      />
-    </div>
-  );
-}
-
-function BottomGradient() {
-  return (
-    <div
-      className="absolute inset-x-0 top-[calc(100%-40rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-65rem)]"
-      aria-hidden="true"
-    >
-      <div
-        className="aspect-1020/880 w-360 bg-linear-to-br relative from-amber-400 to-purple-300 opacity-10 sm:-left-3/4 sm:translate-x-1/4 dark:hidden"
-        style={{
-          clipPath: "ellipse(80% 30% at 80% 50%)",
-        }}
-      />
-    </div>
+      <div className="rounded-[18px] border border-md-outline-variant bg-md-surface p-3 shadow-[0_1px_2px_rgba(0,0,0,.05)]" aria-label="Alur layanan SaaS Satu">
+        <div className="px-2 pb-3 pt-1"><p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-md-on-surface-variant">SATU ALUR SEKOLAH</p><h2 className="mt-1 text-[18px] font-semibold text-md-on-surface">Dari administrasi ke pembelajaran</h2></div>
+        <div className="hig-list">{flow.map((item) => <div key={item.title} className="hig-list-row"><span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-md-primary-container text-md-primary"><M3Icon name={item.icon} size={17} /></span><div><h3 className="text-[13px] font-semibold text-md-on-surface">{item.title}</h3><p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">{item.text}</p></div></div>)}</div>
+      </div>
+    </section>
   );
 }

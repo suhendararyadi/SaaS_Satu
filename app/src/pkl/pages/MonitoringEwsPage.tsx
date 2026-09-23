@@ -1,292 +1,279 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpenText, MapPinOff, ShieldAlert, TriangleAlert } from "lucide-react";
 import { type AuthUser } from "wasp/auth";
-import { useQuery, getPklEwsAlerts } from "wasp/client/operations";
-import { Link } from "wasp/client/router";
+import { useQuery, getPklEwsAlerts, ensurePklEwsFollowUp } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  M3Card,
-  M3Button,
   M3Badge,
-  M3TextField,
-  M3Select,
+  M3Button,
   M3CircularProgress,
-  M3Banner,
-  M3Text,
-  M3Icon,
+  M3EmptyState,
+  M3Select,
+  M3StatCard,
+  M3TextField,
 } from "../../client/components/m3";
 
+const PAGE_SIZE = 6;
+
+function AlertTile({ code, severity }: { code: string; severity: string }) {
+  const Icon = code === "OUT_OF_RADIUS" ? MapPinOff : code.includes("JOURNAL") ? BookOpenText : TriangleAlert;
+  const tile = severity === "HIGH"
+    ? "bg-[#FF3B30] dark:bg-[#FF453A]"
+    : "bg-[#FF9500] dark:bg-[#FF9F0A]";
+
+  return (
+    <span className={`flex size-9 shrink-0 items-center justify-center rounded-[9px] shadow-[0_1px_2px_rgba(0,0,0,.14)] ${tile}`} aria-hidden="true">
+      <Icon size={18} strokeWidth={2.1} className="text-white" />
+    </span>
+  );
+}
 
 export function MonitoringEwsPage({ user }: { user: AuthUser }) {
-  const { data: alerts, isLoading } = useQuery(getPklEwsAlerts);
-
-  // Search, Filter & Pagination
+  const query = useQuery(getPklEwsAlerts);
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
+  const [followUpBusyId, setFollowUpBusyId] = useState<string | null>(null);
 
-  const highAlerts = alerts?.filter((a) => a.severity === "HIGH") || [];
-  const mediumAlerts = alerts?.filter((a) => a.severity === "MEDIUM") || [];
+  const alerts = query.data ?? [];
+  const highAlerts = alerts.filter((alert) => alert.severity === "HIGH");
+  const mediumAlerts = alerts.filter((alert) => alert.severity === "MEDIUM");
 
-  const filteredAlerts = alerts?.filter((a) => {
-    if (severityFilter !== "ALL" && a.severity !== severityFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchStudent = a.studentName.toLowerCase().includes(q);
-      const matchCompany = a.companyName.toLowerCase().includes(q);
-      const matchClass = a.className.toLowerCase().includes(q);
-      const matchIssue = a.issue.toLowerCase().includes(q);
-      return matchStudent || matchCompany || matchClass || matchIssue;
+  const filteredAlerts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase("id");
+    return alerts.filter((alert) => {
+      if (severityFilter !== "ALL" && alert.severity !== severityFilter) return false;
+      if (!normalizedQuery) return true;
+      return [alert.studentName, alert.companyName, alert.className, alert.issue, alert.details]
+        .some((value) => value.toLocaleLowerCase("id").includes(normalizedQuery));
+    });
+  }, [alerts, searchQuery, severityFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAlerts.length / PAGE_SIZE));
+  const paginatedAlerts = filteredAlerts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const createFollowUp = async (alertId: string) => {
+    setFollowUpBusyId(alertId);
+    try {
+      const result = await ensurePklEwsFollowUp({ alertId });
+      window.location.href = `/school/follow-up?case=${result.id}`;
+    } finally {
+      setFollowUpBusyId(null);
     }
-    return true;
-  });
-
-  const paginatedAlerts = (filteredAlerts || []).slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const totalPages = Math.ceil((filteredAlerts?.length || 0) / pageSize);
+  };
 
   const severityOptions = [
-    { value: "ALL", label: "Semua Prioritas" },
-    { value: "HIGH", label: "Prioritas Tinggi (Kritis)" },
-    { value: "MEDIUM", label: "Perhatian Sedang" },
+    { value: "ALL", label: "Semua prioritas" },
+    { value: "HIGH", label: "Prioritas tinggi" },
+    { value: "MEDIUM", label: "Perhatian sedang" },
   ];
 
   return (
     <SchoolLayout user={user}>
-      <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <Link to="/school/pkl/placements" className="hover:text-md-primary transition-colors">
-            E-PKL
-          </Link>
-          <M3Icon name="chevron_right" size={16} />
-          <span className="text-md-on-surface font-medium">Early Warning System (EWS)</span>
-        </nav>
-
-        {/* Header */}
-        <div>
-          <h1 className="text-headline-medium font-bold text-md-on-surface">
-            Monitoring &amp; Deteksi Dini PKL
-          </h1>
-          <p className="text-body-large text-md-on-surface-variant mt-1">
-            Pantau kendala presensi, ketidakhadiran, dan jurnal harian siswa PKL.
-          </p>
+      <div className="space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">Monitoring PKL</h2>
+            <p className="mt-0.5 max-w-2xl text-[12.5px] leading-5 text-md-on-surface-variant">
+              Detail sinyal Early Warning berdasarkan presensi geofence dan jurnal siswa pada penempatan PKL aktif.
+            </p>
+          </div>
+          <M3Button variant="text" size="sm" href="/school/ews" icon="shield">
+            EWS Terpadu
+          </M3Button>
         </div>
 
-        {/* Critical High Alert Banner */}
         {highAlerts.length > 0 && (
-          <M3Banner
-            variant="error"
-            headline={`${highAlerts.length} Kasus Siswa Memerlukan Perhatian Cepat`}
-            supportingText="Terdeteksi indikasi anomali kehadiran atau jurnal tertunda lebih dari 3 hari. Segera koordinasikan dengan pembimbing atau hubungi siswa bersangkutan."
-            actionLabel="Tinjau Kasus Kritis"
-            onAction={() => setSeverityFilter("HIGH")}
-          />
+          <section className="hig-grouped-surface overflow-hidden" aria-label="Peringatan prioritas tinggi">
+            <div className="flex min-h-[68px] items-center gap-3 px-4 py-3 sm:px-5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-[#FF3B30] shadow-[0_1px_2px_rgba(0,0,0,.14)] dark:bg-[#FF453A]" aria-hidden="true">
+                <ShieldAlert size={18} strokeWidth={2.1} className="text-white" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold text-md-on-surface">{highAlerts.length} sinyal membutuhkan perhatian lebih dulu</p>
+                <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Tinjau bukti presensi dan jurnal sebelum menentukan tindak lanjut.</p>
+              </div>
+              <M3Button
+                variant="text"
+                size="sm"
+                onClick={() => {
+                  setSeverityFilter("HIGH");
+                  setCurrentPage(1);
+                }}
+              >
+                Tampilkan
+              </M3Button>
+            </div>
+          </section>
         )}
 
-        {/* Summary KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <M3Card variant="elevated" className="p-5">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-md-on-surface-variant">
-                Total Peringatan
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-md-primary-container text-md-on-primary-container flex items-center justify-center">
-                <M3Icon name="notifications" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-md-on-surface mt-2">
-              {alerts?.length || 0}
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Siswa membutuhkan perhatian
-            </p>
-          </M3Card>
-
-          <M3Card variant="filled" className="p-5 bg-red-500/10 border border-red-500/20">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-red-600 dark:text-red-400">
-                Prioritas Tinggi (Kritis)
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
-                <M3Icon name="warning" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-red-600 dark:text-red-400 mt-2">
-              {highAlerts.length}
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Jurnal tertunda &gt; 3 hari / tanpa presensi
-            </p>
-          </M3Card>
-
-          <M3Card variant="filled" className="p-5 bg-amber-500/10 border border-amber-500/20">
-            <div className="flex justify-between items-center">
-              <span className="text-label-large uppercase font-semibold tracking-wider text-amber-600 dark:text-amber-400">
-                Perhatian Sedang
-              </span>
-              <div className="w-9 h-9 rounded-md-md bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <M3Icon name="info" size={18} />
-              </div>
-            </div>
-            <div className="text-display-small font-bold text-amber-600 dark:text-amber-400 mt-2">
-              {mediumAlerts.length}
-            </div>
-            <p className="text-body-small text-md-on-surface-variant mt-1">
-              Presensi di luar radius geofence DUDI
-            </p>
-          </M3Card>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <M3StatCard label="Total sinyal" value={alerts.length} tone="blue" />
+          <M3StatCard label="Prioritas tinggi" value={highAlerts.length} tone="orange" />
+          <M3StatCard label="Perhatian sedang" value={mediumAlerts.length} tone="amber" />
         </div>
 
-        {/* Search & Severity Filter Toolbar */}
-        <M3Card variant="outlined" className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-            <div className="flex-1">
+        <section className="hig-grouped-surface p-2.5 sm:p-3" aria-label="Filter monitoring PKL">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+            <div className="w-full flex-1">
               <M3TextField
-                placeholder="Cari nama siswa, kelas, mitra, atau isu..."
+                placeholder="Cari siswa, rombel, mitra, atau isu"
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
                   setCurrentPage(1);
                 }}
                 leadingIcon="search"
+                size="sm"
               />
             </div>
-
-            <div className="w-full sm:w-64">
+            <div className="w-full sm:w-52">
               <M3Select
                 options={severityOptions}
                 value={severityFilter}
-                onChange={(e) => {
-                  setSeverityFilter(e.target.value);
+                onChange={(event) => {
+                  setSeverityFilter(event.target.value);
                   setCurrentPage(1);
                 }}
+                size="sm"
               />
             </div>
-
-            <div className="flex items-center">
-              <M3Badge variant="outline">
-                {filteredAlerts?.length || 0} Peringatan
-              </M3Badge>
-            </div>
+            <span className="shrink-0 px-1 text-[11.5px] font-medium tabular-nums text-md-on-surface-variant">
+              {filteredAlerts.length} sinyal
+            </span>
           </div>
-        </M3Card>
+        </section>
 
-        {/* Alerts Content */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center min-h-64 gap-3">
-            <M3CircularProgress indeterminate />
-            <p className="text-body-medium text-md-on-surface-variant">
-              Memeriksa sistem monitoring EWS...
-            </p>
+        {query.isLoading ? (
+          <div className="flex min-h-[300px] flex-col items-center justify-center gap-3" aria-live="polite" aria-busy="true">
+            <M3CircularProgress size={30} />
+            <p className="text-[12.5px] text-md-on-surface-variant">Memeriksa sinyal monitoring PKL...</p>
           </div>
-        ) : filteredAlerts?.length === 0 ? (
-          <M3Banner
-            variant="success"
-            headline="Semua Aktivitas PKL Berjalan Lancar"
-            supportingText="Tidak ada anomali atau peringatan yang sesuai dengan filter pencarian saat ini. Seluruh siswa aktif presensi dan mengisi jurnal harian."
-            className="p-6"
-          />
+        ) : query.error ? (
+          <section className="hig-grouped-surface px-4 sm:px-5">
+            <M3EmptyState
+              icon="cloud_off"
+              title="Monitoring belum dapat dimuat"
+              description="Data tidak diubah. Coba muat ulang halaman monitoring."
+              actionLabel="Coba lagi"
+              onAction={() => query.refetch()}
+            />
+          </section>
         ) : (
-          <div className="space-y-4">
-            {paginatedAlerts.map((item, idx) => {
-              const isHigh = item.severity === "HIGH";
+          <section className="hig-grouped-surface overflow-hidden" aria-labelledby="pkl-alerts-title">
+            <div className="flex items-center justify-between border-b border-md-outline-variant px-4 py-3 sm:px-5">
+              <div>
+                <h3 id="pkl-alerts-title" className="hig-section-title">Sinyal yang perlu ditinjau</h3>
+                <p className="hig-section-note mt-0.5">Urutan menempatkan prioritas tinggi terlebih dahulu.</p>
+              </div>
+              {filteredAlerts.length > 0 && <M3Badge variant="outline">{filteredAlerts.length}</M3Badge>}
+            </div>
 
-              return (
-                <M3Card
-                  key={idx}
-                  variant="outlined"
-                  className={`p-5 transition-all border-l-4 ${
-                    isHigh ? "border-l-red-500" : "border-l-amber-500"
-                  }`}
-                >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-2 flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <M3Badge variant={isHigh ? "error" : "warning"}>
-                          {item.issue}
-                        </M3Badge>
-                        <span className="text-body-small text-md-on-surface-variant">
-                          • {item.className}
-                        </span>
-                      </div>
-
-                      <h2 className="text-title-medium font-bold text-md-on-surface">
-                        {item.studentName}
-                      </h2>
-
-                      <p className="text-body-medium text-md-on-surface-variant">
-                        {item.details}
-                      </p>
-
-                      <div className="flex items-center gap-4 flex-wrap pt-1 text-body-small text-md-on-surface-variant">
-                        <div className="flex items-center gap-1.5">
-                          <M3Icon name="apartment" size={14} className="text-md-on-surface-variant/70 shrink-0" />
-                          <span>{item.companyName}</span>
+            {paginatedAlerts.length === 0 ? (
+              <div className="px-4 sm:px-5">
+                <M3EmptyState
+                  compact
+                  icon="verified"
+                  title={alerts.length === 0 ? "Tidak ada sinyal risiko aktif" : "Tidak ada hasil pada filter ini"}
+                  description={alerts.length === 0
+                    ? "Data presensi dan jurnal PKL saat ini tidak menghasilkan peringatan EWS."
+                    : "Ubah kata pencarian atau prioritas untuk melihat sinyal lainnya."}
+                />
+              </div>
+            ) : (
+              <div className="divide-y divide-md-outline-variant">
+                {paginatedAlerts.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.destination}
+                    className="group flex flex-col gap-2.5 px-4 py-3.5 transition-colors hover:bg-black/[.025] dark:hover:bg-white/[.04] sm:px-5 md:flex-row md:items-center"
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <AlertTile code={item.code} severity={item.severity} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="truncate text-[13px] font-semibold text-md-on-surface">{item.studentName}</p>
+                          <span className="text-[10.5px] font-medium text-md-on-surface-variant">{item.className}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <M3Icon name="person" size={14} className="text-md-on-surface-variant/70 shrink-0" />
-                          <span>
-                            Pembimbing: <strong className="font-semibold text-md-on-surface">{item.teacherName}</strong>
-                          </span>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <M3Badge variant={item.severity === "HIGH" ? "error" : "warning"}>
+                            {item.severity === "HIGH" ? "Tinggi" : "Sedang"}
+                          </M3Badge>
+                          <span className="text-[12px] font-medium text-md-on-surface">{item.issue}</span>
                         </div>
+                        <p className="mt-1 text-[11.5px] leading-5 text-md-on-surface-variant">{item.details}</p>
+                        <p className="mt-1 truncate text-[11px] text-md-on-surface-variant/80">
+                          {item.companyName} · Pembimbing {item.teacherName}
+                        </p>
                       </div>
                     </div>
-
-                    <div className="shrink-0">
-                      <a
-                        href={`https://wa.me/?text=Halo%20${encodeURIComponent(
-                          item.studentName
-                        )},%20mohon%20segera%20lengkapi%20presensi/jurnal%20PKL%20Anda.`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-block"
+                    <div className="flex items-center justify-end gap-2 pl-12 md:pl-0">
+                      <M3Button
+                        variant="tonal"
+                        size="sm"
+                        icon="assignment_turned_in"
+                        loading={followUpBusyId === item.id}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void createFollowUp(item.id);
+                        }}
                       >
-                        <M3Button
-                          variant="tonal"
-                          icon="call"
-                        >
-                          Hubungi Siswa
-                        </M3Button>
-                      </a>
+                        Tindak lanjuti
+                      </M3Button>
+                      <span className="text-[11.5px] font-medium text-md-primary opacity-80 group-hover:opacity-100">
+                        {item.category === "JOURNAL" || item.category === "REVIEW" ? "Buka jurnal" : item.category === "READINESS" ? "Buka penempatan" : item.category === "PLACEMENT" ? "Buka monitoring" : "Buka presensi"}
+                      </span>
+                      <span className="text-[20px] font-light text-md-on-surface-variant/40" aria-hidden="true">›</span>
                     </div>
-                  </div>
-                </M3Card>
-              );
-            })}
-
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 pt-4">
-                <M3Button
-                  variant="outlined"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                >
-                  Sebelumnya
-                </M3Button>
-                <span className="text-body-medium text-md-on-surface-variant px-2">
-                  Halaman {currentPage} dari {totalPages}
-                </span>
-                <M3Button
-                  variant="outlined"
-                  size="sm"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Berikutnya
-                </M3Button>
+                  </a>
+                ))}
               </div>
             )}
+          </section>
+        )}
+
+        {!query.isLoading && !query.error && totalPages > 1 && (
+          <div className="flex items-center justify-between gap-3 px-1">
+            <p className="text-[11.5px] text-md-on-surface-variant">Hal {currentPage} dari {totalPages}</p>
+            <div className="flex items-center gap-1">
+              <M3Button variant="text" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} icon="chevron_left">
+                Sebelumnya
+              </M3Button>
+              <M3Button variant="text" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} trailingIcon="chevron_right">
+                Berikutnya
+              </M3Button>
+            </div>
           </div>
         )}
+
+        <section className="hig-grouped-surface overflow-hidden" aria-labelledby="pkl-ews-rules-title">
+          <div className="border-b border-md-outline-variant px-4 py-2.5 sm:px-5">
+            <h3 id="pkl-ews-rules-title" className="text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">Aturan deteksi saat ini</h3>
+          </div>
+          <div className="grid divide-y divide-md-outline-variant sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-y-0">
+            <div className="px-4 py-3 sm:px-5">
+              <p className="text-[12px] font-semibold text-md-on-surface">Readiness</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Placement PLANNED dicek untuk periode, tanggal, DUDI, konsentrasi, kuota, Guru dan Pembimbing DUDI.</p>
+            </div>
+            <div className="px-4 py-3 sm:px-5">
+              <p className="text-[12px] font-semibold text-md-on-surface">Presensi</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Belum pernah presensi, ALPA berulang, dan check-in di luar radius menjadi sinyal risiko.</p>
+            </div>
+            <div className="px-4 py-3 sm:px-5">
+              <p className="text-[12px] font-semibold text-md-on-surface">Jurnal & Review</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">Jurnal kosong/tertunda dan review yang mandek ≥2 hari ikut dipantau.</p>
+            </div>
+            <div className="px-4 py-3 sm:px-5">
+              <p className="text-[12px] font-semibold text-md-on-surface">Penyelesaian</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-md-on-surface-variant">PKL mendekati selesai tanpa jurnal APPROVED dinaikkan sebagai perhatian administrasi.</p>
+            </div>
+          </div>
+        </section>
       </div>
     </SchoolLayout>
   );

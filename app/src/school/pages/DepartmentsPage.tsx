@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
 import {
   useQuery,
   getDepartments,
+  getSchoolInfo,
   createDepartment,
   updateDepartment,
   deleteDepartment,
@@ -26,10 +27,16 @@ import {
   M3Text,
   M3Icon,
 } from "../../client/components/m3";
-
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 export function DepartmentsPage({ user }: { user: AuthUser }) {
-  const { data: departments, isLoading, refetch } = useQuery(getDepartments);
+  const { data: school, isLoading: schoolLoading } = useQuery(getSchoolInfo);
+  const usesDepartments = school ? getSchoolCapabilities(school.level).usesDepartments : false;
+  const { data: departments, isLoading, refetch } = useQuery(
+    getDepartments,
+    undefined,
+    { enabled: !!school && usesDepartments },
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -108,22 +115,21 @@ export function DepartmentsPage({ user }: { user: AuthUser }) {
     }
   };
 
+  if (schoolLoading) {
+    return (
+      <SchoolLayout user={user}>
+        <div className="flex min-h-[320px] items-center justify-center"><M3CircularProgress size={40} /></div>
+      </SchoolLayout>
+    );
+  }
+
+  if (school && !usesDepartments) {
+    return <Navigate to="/school/classes" replace />;
+  }
+
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Data Akademik</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Konsentrasi Keahlian
-          </span>
-        </div>
-
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

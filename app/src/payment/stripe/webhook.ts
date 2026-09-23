@@ -9,7 +9,8 @@ import { UnhandledWebhookEventError } from "../errors";
 import { getPaymentPlanIdByPaymentProcessorPlanId } from "../paymentProcessorPlans";
 import { PaymentPlanId, paymentPlans, SubscriptionStatus } from "../plans";
 import { updateUserCredits, updateUserSubscription } from "../user";
-import { stripeClient } from "./stripeClient";
+import { getStripeClient } from "./stripeClient";
+import { isPaymentsConfigured } from "../config";
 
 /**
  * Stripe requires a raw request to construct events successfully.
@@ -30,6 +31,9 @@ export const stripeWebhook: PaymentsWebhook = async (
   response,
   context,
 ) => {
+  if (!isPaymentsConfigured()) {
+    return response.status(503).json({ error: "Payments are not configured." });
+  }
   const prismaUserDelegate = context.entities.User;
   try {
     const event = constructStripeEvent(request);
@@ -79,12 +83,13 @@ export const stripeWebhook: PaymentsWebhook = async (
 
 function constructStripeEvent(request: express.Request): Stripe.Event {
   const stripeWebhookSecret = env.STRIPE_WEBHOOK_SECRET;
+  if (!stripeWebhookSecret) throw new Error("Stripe webhook is not configured");
   const stripeSignature = request.headers["stripe-signature"];
   if (!stripeSignature) {
     throw new Error("Stripe webhook signature not provided");
   }
 
-  return stripeClient.webhooks.constructEvent(
+  return getStripeClient().webhooks.constructEvent(
     request.body,
     stripeSignature,
     stripeWebhookSecret,

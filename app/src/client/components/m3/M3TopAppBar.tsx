@@ -1,45 +1,10 @@
 import React, { type ReactNode } from "react";
 
-export interface M3TopAppBarProps {
-  title?: ReactNode;
-  subtitle?: ReactNode;
-  leading?: ReactNode;
-  actions?: ReactNode;
-  className?: string;
-}
+export interface M3TopAppBarProps { title?: ReactNode; subtitle?: ReactNode; leading?: ReactNode; actions?: ReactNode; className?: string; }
 
-export function M3TopAppBar({
-  title,
-  subtitle,
-  leading,
-  actions,
-  className = "",
-}: M3TopAppBarProps) {
-  return (
-    <header
-      className={`sticky top-0 z-20 w-full h-16 px-4 sm:px-6 bg-md-surface/85 backdrop-blur-md border-b border-md-outline-variant/30 flex items-center justify-between gap-4 transition-colors ${className}`}
-    >
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        {leading && <div className="shrink-0 flex items-center">{leading}</div>}
-        <div className="flex flex-col min-w-0">
-          {typeof title === "string" ? (
-            <h1 className="text-[18px] sm:text-[20px] font-medium text-md-on-surface truncate leading-tight">
-              {title}
-            </h1>
-          ) : (
-            title
-          )}
-          {subtitle && (
-            <p className="text-xs text-md-on-surface-variant truncate">
-              {subtitle}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {actions && (
-        <div className="flex items-center gap-2 shrink-0">{actions}</div>
-      )}
-    </header>
-  );
+export function M3TopAppBar({ title, subtitle, leading, actions, className = "" }: M3TopAppBarProps) {
+  return <header className={`hig-toolbar-material sticky top-0 z-20 flex min-h-[58px] w-full items-center justify-between gap-3 border-b border-md-outline-variant px-3 sm:px-5 lg:px-[26px] ${className}`}>
+    <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">{leading && <div className="flex shrink-0 items-center">{leading}</div>}<div className="flex min-w-0 flex-col">{typeof title === "string" ? <h1 className="truncate text-[17px] font-semibold leading-5 tracking-[-0.01em] text-md-on-surface lg:text-[17px]">{title}</h1> : title}{subtitle && <p className="truncate text-[12px] text-md-on-surface-variant">{subtitle}</p>}</div></div>
+    {actions && <div className="flex shrink-0 items-center gap-1.5">{actions}</div>}
+  </header>;
 }

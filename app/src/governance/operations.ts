@@ -2,7 +2,10 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { requireTeacher } from "../school/authGuards";
+import { ensureSchoolUser, requireTeacher } from "../school/authGuards";
+import { isDutyAssignmentForDay, jakartaDutyDayCode } from "../school/staffAssignments";
+import { canReadDutyTeacherReports } from "./dutyTeacherAccess";
+import { canUseHomeroomWorkspace } from "./homeroomAccess";
 
 // ==========================================
 // 1. Waka Kurikulum Supervision Operations
@@ -11,12 +14,18 @@ import { requireTeacher } from "../school/authGuards";
 export const getWakaSupervisionData = async (_args: unknown, context: { user?: User }) => {
   const user = requireTeacher(context);
   if (!user.isAdmin && user.role === "TEACHER") {
-    const profile = await prisma.teacherProfile.findUnique({
-      where: { userId: user.id },
-      select: { isWaka: true },
-    });
-    if (!profile?.isWaka) {
-      throw new HttpError(403, "Dashboard supervisi hanya dapat diakses oleh Wakil Kepala Sekolah.");
+    const [profile, assignment] = await Promise.all([
+      prisma.teacherProfile.findUnique({
+        where: { userId: user.id },
+        select: { isWaka: true },
+      }),
+      prisma.wakasekAssignment.findFirst({
+        where: { schoolId: user.schoolId, teacherId: user.id, role: "KURIKULUM" },
+        select: { id: true },
+      }),
+    ]);
+    if (!profile?.isWaka && !assignment) {
+      throw new HttpError(403, "Dashboard supervisi Kurikulum hanya dapat diakses oleh Waka Kurikulum.");
     }
   }
 
@@ -88,6 +97,44 @@ export const getWakaSupervisionData = async (_args: unknown, context: { user?: U
 
 export const getDutyTeacherReports = async (_args: unknown, context: { user?: User }) => {
   const user = requireTeacher(context);
+  const isAdmin = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
+  const now = new Date();
+  const activeWindow = {
+    isActive: true,
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+      { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+    ],
+  };
+
+  const [configuredAssignmentCount, myAssignmentCount] = isAdmin
+    ? [0, 0]
+    : await Promise.all([
+        prisma.schoolStaffAssignment.count({
+          where: {
+            schoolId: user.schoolId,
+            role: "DUTY_TEACHER",
+            ...activeWindow,
+          },
+        }),
+        prisma.schoolStaffAssignment.count({
+          where: {
+            schoolId: user.schoolId,
+            teacherId: user.id,
+            role: "DUTY_TEACHER",
+            ...activeWindow,
+          },
+        }),
+      ]);
+
+  if (!canReadDutyTeacherReports({
+    isAdmin,
+    configuredAssignmentCount,
+    hasActiveAssignment: myAssignmentCount > 0,
+  })) {
+    throw new HttpError(403, "Riwayat Guru Piket hanya tersedia untuk guru yang memiliki penugasan piket aktif.");
+  }
 
   return prisma.dutyTeacherReport.findMany({
     where: { schoolId: user.schoolId },
@@ -109,6 +156,48 @@ export const createDutyTeacherReport = async (rawArgs: unknown, context: { user?
   const teacher = requireTeacher(context);
   const args = ensureArgsSchemaOrThrowHttpError(createDutyReportSchema, rawArgs);
 
+  const isAdmin = !!teacher.isAdmin || teacher.role === "SUPERADMIN" || teacher.role === "SCHOOL_ADMIN";
+  if (!isAdmin) {
+    const now = new Date();
+    const activeAssignments = await prisma.schoolStaffAssignment.findMany({
+      where: {
+        schoolId: teacher.schoolId,
+        teacherId: teacher.id,
+        role: "DUTY_TEACHER",
+        isActive: true,
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+          { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+        ],
+      },
+      select: { dutyDays: true },
+    });
+    const configuredDutyCount = await prisma.schoolStaffAssignment.count({
+      where: {
+        schoolId: teacher.schoolId,
+        role: "DUTY_TEACHER",
+        isActive: true,
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+          { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+        ],
+      },
+    });
+
+    const today = jakartaDutyDayCode();
+    const scheduledToday = activeAssignments.some((assignment) =>
+      isDutyAssignmentForDay(assignment.dutyDays, today),
+    );
+
+    // Backward-compatible fallback only while the school has not configured
+    // any duty-teacher assignments at all.
+    if (configuredDutyCount > 0 && !scheduledToday) {
+      throw new HttpError(403, "Anda tidak terjadwal sebagai Guru Piket hari ini.");
+    }
+  }
+
   return prisma.dutyTeacherReport.create({
     data: {
       schoolId: teacher.schoolId,
@@ -126,22 +215,35 @@ export const createDutyTeacherReport = async (rawArgs: unknown, context: { user?
 // ==========================================
 
 export const getHomeroomDashboardData = async (_args: unknown, context: { user?: User }) => {
-  const user = requireTeacher(context);
+  const user = ensureSchoolUser(context);
 
-  // Find class where user is homeroom teacher
+  // This is a personal workspace for the teacher assigned as homeroom teacher.
+  // School admins manage assignments and inspect attendance through their dedicated views.
+  if (!canUseHomeroomWorkspace(user)) return null;
+
   const homeroomClass = await prisma.classRoom.findFirst({
     where: {
       schoolId: user.schoolId,
-      ...(user.isAdmin ? {} : { homeroomTeacherId: user.id }),
+      academicYear: { isActive: true },
+      homeroomTeacherId: user.id,
     },
     include: {
       department: true,
       academicYear: true,
       students: {
+        where: { schoolId: user.schoolId, role: "STUDENT" },
         select: {
           id: true,
           name: true,
           studentProfile: true,
+          _count: {
+            select: {
+              studentViolations: { where: { status: { in: ["RECORDED", "IN_REVIEW"] } } },
+              studentAchievements: true,
+              studentCoachings: { where: { status: { in: ["OPEN", "IN_PROGRESS"] } } },
+              studentPermits: { where: { status: { in: ["REQUESTED", "APPROVED"] } } },
+            },
+          },
           studentPlacements: {
             where: { status: "ACTIVE" },
             include: {

@@ -92,26 +92,17 @@ export const getConfig = () => {
     },
 
     language: {
-      default: "en",
+      default: "id",
       translations: {
-        en: {
+        id: {
           consentModal: {
-            title: "We use cookies",
+            title: "Penggunaan cookie analitik",
             description:
-              "We use cookies primarily for analytics to enhance your experience. By accepting, you agree to our use of these cookies. You can manage your preferences or learn more about our cookie policy.",
-            acceptAllBtn: "Accept all",
-            acceptNecessaryBtn: "Reject all",
-            // showPreferencesBtn: 'Manage Individual preferences', // (OPTIONAL) Activates the preferences modal
-            // TODO: Add your own privacy policy and terms and conditions links below.
-            footer: `
-            <a href="<your-url-here>" target="_blank">Privacy Policy</a>
-            <a href="<your-url-here>" target="_blank">Terms and Conditions</a>
-                    `,
+              "Cookie analitik hanya digunakan jika Anda menyetujuinya. Cookie yang diperlukan untuk fungsi aplikasi tetap aktif.",
+            acceptAllBtn: "Izinkan analitik",
+            acceptNecessaryBtn: "Hanya yang diperlukan",
           },
-          // The showPreferencesBtn activates this modal to manage individual preferences https://cookieconsent.orestbida.com/reference/configuration-reference.html#translation-preferencesmodal
-          preferencesModal: {
-            sections: [],
-          },
+          preferencesModal: { sections: [] },
         },
       },
     },

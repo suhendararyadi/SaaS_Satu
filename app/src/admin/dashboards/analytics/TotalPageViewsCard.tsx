@@ -7,8 +7,8 @@ import {
 import { cn } from "../../../client/utils";
 
 type PageViewsStats = {
-  totalPageViews: number | undefined;
-  prevDayViewsChangePercent: string | undefined;
+  totalPageViews: number | null | undefined;
+  prevDayViewsChangePercent: string | null | undefined;
 };
 
 export function TotalPageViewsCard({
@@ -31,10 +31,10 @@ export function TotalPageViewsCard({
       <CardContent className="flex justify-between">
         <div>
           <h4 className="text-title-md text-foreground font-bold">
-            {totalPageViews}
+            {totalPageViews == null ? "Belum tersedia" : totalPageViews}
           </h4>
           <span className="text-muted-foreground text-sm font-medium">
-            Total page views
+            Tayangan halaman
           </span>
         </div>
 

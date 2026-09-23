@@ -1,21 +1,31 @@
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { env } from "wasp/server";
+import { isGoogleAnalyticsServerConfigured } from "../config";
 
-const PRIVATE_KEY = Buffer.from(
-  env.GOOGLE_ANALYTICS_PRIVATE_KEY,
-  "base64",
-).toString("utf-8");
-
-const analyticsDataClient = new BetaAnalyticsDataClient({
-  credentials: {
-    client_email: env.GOOGLE_ANALYTICS_CLIENT_EMAIL,
-    private_key: PRIVATE_KEY,
-  },
-});
+function getAnalyticsClient() {
+  if (
+    !isGoogleAnalyticsServerConfigured() ||
+    !env.GOOGLE_ANALYTICS_PRIVATE_KEY ||
+    !env.GOOGLE_ANALYTICS_CLIENT_EMAIL ||
+    !env.GOOGLE_ANALYTICS_PROPERTY_ID
+  ) {
+    throw new Error("Google Analytics belum dikonfigurasi");
+  }
+  return {
+    client: new BetaAnalyticsDataClient({
+      credentials: {
+        client_email: env.GOOGLE_ANALYTICS_CLIENT_EMAIL,
+        private_key: Buffer.from(env.GOOGLE_ANALYTICS_PRIVATE_KEY, "base64").toString("utf-8"),
+      },
+    }),
+    propertyId: env.GOOGLE_ANALYTICS_PROPERTY_ID,
+  };
+}
 
 export async function getSources() {
-  const [response] = await analyticsDataClient.runReport({
-    property: `properties/${env.GOOGLE_ANALYTICS_PROPERTY_ID}`,
+  const { client, propertyId } = getAnalyticsClient();
+  const [response] = await client.runReport({
+    property: `properties/${propertyId}`,
     dateRanges: [
       {
         startDate: "2020-01-01",
@@ -63,8 +73,9 @@ export async function getDailyPageViews() {
 }
 
 async function getTotalPageViews() {
-  const [response] = await analyticsDataClient.runReport({
-    property: `properties/${env.GOOGLE_ANALYTICS_PROPERTY_ID}`,
+  const { client, propertyId } = getAnalyticsClient();
+  const [response] = await client.runReport({
+    property: `properties/${propertyId}`,
     dateRanges: [
       {
         startDate: "2020-01-01", // go back to earliest date of your app
@@ -86,8 +97,9 @@ async function getTotalPageViews() {
 }
 
 async function getPrevDayViewsChangePercent() {
-  const [response] = await analyticsDataClient.runReport({
-    property: `properties/${env.GOOGLE_ANALYTICS_PROPERTY_ID}`,
+  const { client, propertyId } = getAnalyticsClient();
+  const [response] = await client.runReport({
+    property: `properties/${propertyId}`,
 
     dateRanges: [
       {

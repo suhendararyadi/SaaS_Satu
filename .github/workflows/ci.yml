@@ -1,0 +1,145 @@
+name: SaaS Satu CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24.14.1"
+  WASP_VERSION: "0.25.0"
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/saas_satu_ci
+  WASP_WEB_CLIENT_URL: http://localhost:3000
+  WASP_SERVER_URL: http://localhost:3001
+  JWT_SECRET: ci-test-jwt-secret-0123456789abcdef0123456789
+  ADMIN_EMAILS: ""
+  ANALYTICS_ENABLED: "false"
+  FILE_UPLOADS_ENABLED: "false"
+  PAYMENTS_ENABLED: "false"
+  SKIP_EMAIL_VERIFICATION_IN_DEV: "true"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: saas_satu_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d saas_satu_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Wasp
+        run: npm install --global "@wasp.sh/wasp-cli@${WASP_VERSION}"
+
+      - name: Install app dependencies
+        working-directory: app
+        run: wasp install
+
+      - name: Validate Prisma schema
+        working-directory: app
+        run: npx prisma validate --schema=schema.prisma
+
+      - name: Typecheck
+        working-directory: app
+        run: npx tsc --noEmit
+
+      - name: Production build
+        working-directory: app
+        env:
+          SMTP_HOST: 127.0.0.1
+          SMTP_PORT: "1025"
+          SMTP_USERNAME: ci
+          SMTP_PASSWORD: ci
+        run: wasp build
+
+      - name: Migration deploy check
+        working-directory: app
+        run: npx prisma migrate deploy --schema=.wasp/out/db/schema.prisma
+
+      - name: Unit tests
+        working-directory: app
+        run: wasp test client --run
+
+      - name: Runtime dependency audit
+        working-directory: app
+        run: npm audit --omit=dev --audit-level=high --workspaces=false
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: saas_satu_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d saas_satu_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            app/package-lock.json
+            e2e-tests/package-lock.json
+
+      - name: Install Wasp
+        run: npm install --global "@wasp.sh/wasp-cli@${WASP_VERSION}"
+
+      - name: Install app dependencies
+        working-directory: app
+        run: wasp install
+
+      - name: Generate development app and run unit tests
+        working-directory: app
+        run: wasp test client --run
+
+      - name: Bundle E2E backend
+        working-directory: app/.wasp/out/server
+        run: npm run bundle
+
+      - name: Install E2E dependencies
+        working-directory: e2e-tests
+        run: npm ci --include=dev
+
+      - name: Install Chromium
+        working-directory: e2e-tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run school E2E tests
+        working-directory: e2e-tests
+        run: npm run e2e

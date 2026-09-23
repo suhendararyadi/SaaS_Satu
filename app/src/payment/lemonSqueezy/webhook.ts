@@ -74,6 +74,9 @@ function parseRequestBody(request: express.Request): string {
   }
 
   const secret = env.LEMONSQUEEZY_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new HttpError(503, "Lemon Squeezy webhook belum dikonfigurasi.");
+  }
   const hmac = crypto.createHmac("sha256", secret);
   const digest = Buffer.from(hmac.update(requestBody).digest("hex"), "utf8");
 

@@ -5,10 +5,11 @@ import {
   useQuery,
   getSchoolTeachers,
   createTeacher,
-  updateTeacher,
   deleteTeacher,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
+import { WAKASEK_ROLES, WAKASEK_ROLE_META, type WakasekRoleCode } from "../wakasek";
+import { STAFF_ASSIGNMENT_META, staffAssignmentDisplayTitle, type StaffAssignmentRoleCode } from "../staffAssignments";
 import {
   M3Card,
   M3Button,
@@ -31,20 +32,20 @@ import {
 
 export function TeachersPage({ user }: { user: AuthUser }) {
   const { data: teachers, isLoading, refetch } = useQuery(getSchoolTeachers);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("spotlight") ?? "" : "");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   // CRUD Modal States
-  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [nip, setNip] = useState("");
   const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<"TEACHER" | "SCHOOL_ADMIN">("TEACHER");
-  const [isWaka, setIsWaka] = useState(false);
+  const [wakasekRoles, setWakasekRoles] = useState<WakasekRoleCode[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -55,34 +56,19 @@ export function TeachersPage({ user }: { user: AuthUser }) {
   const [deleteErrorMsg, setDeleteErrorMsg] = useState("");
 
   const handleOpenAddModal = () => {
-    setModalMode("create");
-    setSelectedTeacherId(null);
+    setIsCreateOpen(true);
     setName("");
     setNip("");
     setTitle("");
     setEmail("");
     setPhone("");
     setRole("TEACHER");
-    setIsWaka(false);
-    setErrorMsg("");
-  };
-
-  const handleOpenEditModal = (t: any) => {
-    setModalMode("edit");
-    setSelectedTeacherId(t.id);
-    setName(t.name || "");
-    setNip(t.teacherProfile?.nip || "");
-    setTitle(t.teacherProfile?.title || "");
-    setEmail(t.email || "");
-    setPhone(t.teacherProfile?.phone || "");
-    setRole(t.role === "SCHOOL_ADMIN" ? "SCHOOL_ADMIN" : "TEACHER");
-    setIsWaka(t.teacherProfile?.isWaka || false);
+    setWakasekRoles([]);
     setErrorMsg("");
   };
 
   const handleCloseModal = () => {
-    setModalMode(null);
-    setSelectedTeacherId(null);
+    setIsCreateOpen(false);
     setErrorMsg("");
   };
 
@@ -96,30 +82,16 @@ export function TeachersPage({ user }: { user: AuthUser }) {
     setSubmitting(true);
 
     try {
-      if (modalMode === "create") {
-        await createTeacher({
-          name: name.trim(),
-          nip: nip.trim() || undefined,
-          title: title.trim() || undefined,
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-          role,
-          isWaka,
-        });
-        setSuccessMsg(`Guru "${name.trim()}" berhasil ditambahkan.`);
-      } else if (modalMode === "edit" && selectedTeacherId) {
-        await updateTeacher({
-          id: selectedTeacherId,
-          name: name.trim(),
-          nip: nip.trim() || undefined,
-          title: title.trim() || undefined,
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-          role,
-          isWaka,
-        });
-        setSuccessMsg(`Data guru "${name.trim()}" berhasil diperbarui.`);
-      }
+      await createTeacher({
+        name: name.trim(),
+        nip: nip.trim() || undefined,
+        title: title.trim() || undefined,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        role,
+        wakasekRoles,
+      });
+      setSuccessMsg(`Guru "${name.trim()}" berhasil ditambahkan.`);
       handleCloseModal();
       await refetch();
     } catch (err: any) {
@@ -170,18 +142,6 @@ export function TeachersPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Kepegawaian</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Tenaga Pendidik &amp; Guru
-          </span>
-        </div>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -193,7 +153,16 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               Daftar guru pengajar dan staf kependidikan sekolah.
             </p>
           </div>
+          {canManage && (
           <div className="flex items-center gap-2">
+            <M3Button
+              variant="tonal"
+              size="md"
+              href="/school/governance/organization"
+              icon="account_tree"
+            >
+              Struktur & Penugasan
+            </M3Button>
             <M3Button
               variant="tonal"
               size="md"
@@ -211,6 +180,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               Tambah Guru
             </M3Button>
           </div>
+          )}
         </div>
 
         {/* Success Feedback Banner */}
@@ -239,7 +209,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               />
             </div>
             <M3Badge variant="secondary" size="md">
-              {totalItems} Guru
+              {totalItems} PTK
             </M3Badge>
           </div>
         </M3Card>
@@ -255,8 +225,8 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               variant="standard"
               headline="Belum Ada Data Guru & Tendik"
               supportingText="Tambahkan data guru secara manual atau upload file CSV dari Dapodik untuk memulai pengelolaan KBM."
-              actionLabel="Tambah Guru Baru"
-              onAction={handleOpenAddModal}
+              actionLabel={canManage ? "Tambah Guru Baru" : undefined}
+              onAction={canManage ? handleOpenAddModal : undefined}
               icon="school"
               className="p-6"
             />
@@ -270,7 +240,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                   <M3TableHead>Kontak</M3TableHead>
                   <M3TableHead>Penugasan Khusus</M3TableHead>
                   <M3TableHead>Peran Akun</M3TableHead>
-                  <M3TableHead className="text-right">Aksi</M3TableHead>
+                  {canManage && <M3TableHead className="text-right">Aksi</M3TableHead>}
                 </M3TableRow>
               </M3TableHeader>
               <M3TableBody>
@@ -278,14 +248,17 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                   <M3TableRow key={t.id}>
                     <M3TableCell>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-md-on-surface">
+                        <Link
+                          to={"/school/teachers/" + t.id}
+                          className="font-semibold text-md-on-surface hover:text-md-primary hover:underline"
+                        >
                           {t.name || t.email}{" "}
                           {t.teacherProfile?.title && (
                             <span className="font-normal text-md-on-surface-variant">
                               {t.teacherProfile.title}
                             </span>
                           )}
-                        </span>
+                        </Link>
                         <span className="text-xs text-md-on-surface-variant font-mono">
                           NIP: {t.teacherProfile?.nip || "-"}
                         </span>
@@ -309,21 +282,45 @@ export function TeachersPage({ user }: { user: AuthUser }) {
 
                     <M3TableCell>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {t.teacherProfile?.isWaka && (
+                        {((t.wakasekAssignments?.length
+                          ? t.wakasekAssignments.map((assignment: any) => assignment.role)
+                          : t.teacherProfile?.isWaka
+                            ? ["KURIKULUM"]
+                            : []) as WakasekRoleCode[]).map((wakaRole) => (
                           <M3Badge
+                            key={wakaRole}
                             variant="tertiary"
                             size="sm"
-                            icon={<M3Icon name="verified_user" size={12} className="mr-1" />}
+                            icon={<M3Icon name={WAKASEK_ROLE_META[wakaRole].icon} size={12} className="mr-1" />}
                           >
-                            Waka Kurikulum
+                            {WAKASEK_ROLE_META[wakaRole].shortLabel}
                           </M3Badge>
-                        )}
+                        ))}
                         {t.homeroomClasses?.map((hc) => (
                           <M3Badge key={hc.id} variant="primary" size="sm">
                             Wali {hc.name}
                           </M3Badge>
                         ))}
-                        {!t.teacherProfile?.isWaka &&
+                        {((t.staffAssignments || []) as Array<any>).map((assignment) => {
+                          const role = assignment.role as StaffAssignmentRoleCode;
+                          return (
+                            <M3Badge
+                              key={assignment.id}
+                              variant="secondary"
+                              size="sm"
+                              icon={<M3Icon name={STAFF_ASSIGNMENT_META[role].icon} size={12} className="mr-1" />}
+                            >
+                              {staffAssignmentDisplayTitle({
+                                role,
+                                unitName: assignment.unitName,
+                                customTitle: assignment.customTitle,
+                                department: assignment.department,
+                              })}
+                            </M3Badge>
+                          );
+                        })}
+                        {!(t.wakasekAssignments?.length || t.teacherProfile?.isWaka) &&
+                          !(t.staffAssignments?.length) &&
                           (!t.homeroomClasses || t.homeroomClasses.length === 0) && (
                             <M3Badge variant="outline" size="sm">
                               Guru Mapel
@@ -338,16 +335,24 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                       </M3Badge>
                     </M3TableCell>
 
+                    {canManage && (
                     <M3TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <M3Button
                           variant="tonal"
                           size="sm"
-                          icon="edit"
-                          onClick={() => handleOpenEditModal(t)}
+                          icon="visibility"
+                          href={"/school/teachers/" + t.id}
                         >
-                          Edit
+                          Detail
                         </M3Button>
+                        <M3Button
+                          variant="icon"
+                          size="icon-sm"
+                          icon="edit"
+                          aria-label={"Edit " + (t.name || t.email)}
+                          href={"/school/teachers/" + t.id + "/edit"}
+                        />
                         <M3Button
                           variant="text"
                           size="sm"
@@ -362,6 +367,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                         </M3Button>
                       </div>
                     </M3TableCell>
+                    )}
                   </M3TableRow>
                 ))}
               </M3TableBody>
@@ -401,16 +407,12 @@ export function TeachersPage({ user }: { user: AuthUser }) {
           </div>
         )}
 
-        {/* Dialog Modal Tambah / Edit Guru */}
+        {/* Dialog Modal Tambah Guru */}
         <M3Dialog
-          isOpen={modalMode !== null}
+          isOpen={isCreateOpen}
           onClose={handleCloseModal}
-          title={modalMode === "create" ? "Tambah Guru Baru" : "Edit Data Guru"}
-          subtitle={
-            modalMode === "create"
-              ? "Lengkapi identitas guru, peran akun, dan penugasan."
-              : "Perbarui data profil dan hak akses guru di sekolah."
-          }
+          title="Tambah Guru Baru"
+          subtitle="Lengkapi identitas guru, peran akun, dan penugasan."
           icon={<M3Icon name="school" size={24} className="text-md-primary" />}
           actions={
             <>
@@ -428,7 +430,7 @@ export function TeachersPage({ user }: { user: AuthUser }) {
                 onClick={handleSubmit}
                 isLoading={submitting}
               >
-                {modalMode === "create" ? "Simpan Guru" : "Simpan Perubahan"}
+                Simpan Guru
               </M3Button>
             </>
           }
@@ -489,15 +491,39 @@ export function TeachersPage({ user }: { user: AuthUser }) {
               onChange={(e) => setRole(e.target.value as any)}
             />
 
-            <div className="pt-2 border-t border-md-outline-variant/40">
-              <M3Switch
-                checked={isWaka}
-                onChange={setIsWaka}
-                label="Tugaskan sebagai Waka Kurikulum"
-              />
-              <p className="text-xs text-md-on-surface-variant mt-1 ml-11">
-                Waka Kurikulum memiliki akses memantau agenda mengajar seluruh guru.
-              </p>
+            <div className="space-y-3 border-t border-md-outline-variant/40 pt-3">
+              <div>
+                <p className="text-sm font-semibold text-md-on-surface">Penugasan Wakasek</p>
+                <p className="mt-0.5 text-xs leading-5 text-md-on-surface-variant">
+                  Satu guru dapat memegang lebih dari satu bidang. Panel dan menu akan muncul otomatis sesuai penugasan.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {WAKASEK_ROLES.map((wakaRole) => {
+                  const meta = WAKASEK_ROLE_META[wakaRole];
+                  const checked = wakasekRoles.includes(wakaRole);
+                  return (
+                    <div key={wakaRole} className="rounded-[14px] border border-md-outline-variant/40 bg-md-surface-container-low/35 p-3">
+                      <M3Switch
+                        checked={checked}
+                        onChange={(nextChecked) =>
+                          setWakasekRoles((current) =>
+                            nextChecked
+                              ? current.includes(wakaRole)
+                                ? current
+                                : [...current, wakaRole]
+                              : current.filter((roleCode) => roleCode !== wakaRole)
+                          )
+                        }
+                        label={meta.label}
+                      />
+                      <p className="mt-1 pl-11 text-[11.5px] leading-5 text-md-on-surface-variant">
+                        {meta.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </form>
         </M3Dialog>

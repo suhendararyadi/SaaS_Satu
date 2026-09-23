@@ -29,20 +29,23 @@ import {
   KURIKULUM_MERDEKA_PRESETS,
   type CurriculumSubjectPreset,
 } from "../lmsCurriculumPresets";
+import { getSchoolCapabilities } from "../../school/schoolCapabilities";
 
 export function LmsCoursesPage({ user }: { user: AuthUser }) {
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("spotlight") ?? "" : "");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 6;
+  const canManage = !!user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
 
   const { data: courses, isLoading, refetch } = useQuery(getLmsCourses, {
     classRoomId: selectedClass || undefined,
   });
-  const { data: classes } = useQuery(getClassRooms);
-  const { data: teachers } = useQuery(getSchoolTeachers);
-  const { data: academicYears } = useQuery(getAcademicYears);
-  const { data: schoolInfo } = useQuery(getSchoolInfo);
+  const { data: classes } = useQuery(getClassRooms, undefined, { enabled: canManage });
+  const { data: teachers } = useQuery(getSchoolTeachers, undefined, { enabled: canManage });
+  const { data: academicYears } = useQuery(getAcademicYears, undefined, { enabled: canManage });
+  const { data: schoolInfo } = useQuery(getSchoolInfo, undefined, { enabled: canManage });
+  const usesDepartments = schoolInfo ? getSchoolCapabilities(schoolInfo.level).usesDepartments : false;
 
   // Single Course Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -220,7 +223,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
     { value: "", label: "Semua Rombel Kelas" },
     ...(classes?.map((c) => ({
       value: c.id,
-      label: `${c.name}${c.department ? ` (${c.department.code})` : ""}`,
+      label: `${c.name}${usesDepartments && c.department ? ` (${c.department.code})` : ""}`,
     })) || []),
   ];
 
@@ -228,7 +231,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
     { value: "", label: "Pilih Rombel Kelas" },
     ...(classes?.map((c) => ({
       value: c.id,
-      label: `${c.name}${c.department ? ` (${c.department.code})` : ""}`,
+      label: `${c.name}${usesDepartments && c.department ? ` (${c.department.code})` : ""}`,
     })) || []),
   ];
 
@@ -261,18 +264,6 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* M3 Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-label-large text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <span className="mx-1 text-md-on-surface-variant">/</span>
-          <Link to="/school/lms/courses" className="hover:text-md-primary transition-colors">
-            LMS E-Learning
-          </Link>
-          <span className="mx-1 text-md-on-surface-variant">/</span>
-          <span className="text-md-on-surface font-medium">Ruang Kelas &amp; Mapel</span>
-        </nav>
 
         {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -284,6 +275,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
               Kelola materi pembelajaran, tugas, agenda KBM, dan ujian CBT.
             </p>
           </div>
+          {canManage && (
           <div className="flex items-center gap-3 flex-wrap">
             <M3Button
               variant="tonal"
@@ -300,6 +292,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
               Buka Ruang Mapel Baru
             </M3Button>
           </div>
+          )}
         </div>
 
         {/* Feedback Banner */}
@@ -327,6 +320,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
               />
             </div>
 
+            {canManage && (
             <div className="w-full sm:w-64">
               <M3Select
                 options={classFilterOptions}
@@ -337,6 +331,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
                 }}
               />
             </div>
+            )}
 
             <div className="flex items-center">
               <M3Badge variant="outline">
@@ -359,13 +354,13 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
             variant="standard"
             headline="Belum Ada Ruang Mata Pelajaran"
             supportingText="Buka ruang mapel pertama untuk memulai pembelajaran daring dan pencatatan agenda KBM."
-            actionLabel="Buat Mapel Baru"
-            onAction={openAddModal}
+            actionLabel={canManage ? "Buat Mapel Baru" : undefined}
+            onAction={canManage ? openAddModal : undefined}
             icon="book"
             className="p-6"
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedCourses.map((c) => (
               <Link
                 key={c.id}
@@ -374,8 +369,8 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
                 className="block group h-full"
               >
                 <M3Card
-                  variant="elevated"
-                  className="p-5 h-full flex flex-col justify-between group-hover:border-md-primary/40 transition-all shadow-elevation-1 hover:shadow-elevation-2"
+                  variant="outlined"
+                  className="p-5 h-full flex flex-col justify-between group-hover:border-md-primary/35 transition-colors"
                 >
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
@@ -466,7 +461,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
 
         {/* Dialog Add Course */}
         <M3Dialog
-          isOpen={modalOpen}
+          isOpen={canManage && modalOpen}
           onClose={() => setModalOpen(false)}
           title="Buka Ruang Mata Pelajaran Baru"
           description="Atur mapel, kelas tujuan, dan guru pengampu pembelajaran daring."
@@ -537,7 +532,7 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
 
         {/* Modal Terapkan Paket Mapel Kurikulum Merdeka */}
         <M3Dialog
-          isOpen={merdekaModalOpen}
+          isOpen={canManage && merdekaModalOpen}
           onClose={() => setMerdekaModalOpen(false)}
           title="Paket Mapel Kurikulum Merdeka"
           maxWidth="xl"
@@ -634,12 +629,12 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
                           <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                               subject.category === "KEJURUAN"
-                                ? "bg-amber-100 text-amber-800"
+                                ? "bg-md-tertiary-container/55 text-md-on-tertiary-container"
                                 : subject.category === "MUATAN_LOKAL"
-                                ? "bg-purple-100 text-purple-800"
+                                ? "bg-md-primary-container/55 text-md-on-primary-container"
                                 : subject.category === "PILIHAN"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-emerald-100 text-emerald-800"
+                                ? "bg-md-primary-container/55 text-md-on-primary-container"
+                                : "bg-md-secondary-container/55 text-md-on-secondary-container"
                             }`}
                           >
                             {subject.category.replace("_", " ")}

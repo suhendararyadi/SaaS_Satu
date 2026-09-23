@@ -7,6 +7,8 @@ import {
 // import { getDailyPageViews, getSources } from './providers/googleAnalyticsUtils';
 import { paymentProcessor } from "../payment/paymentProcessor";
 import { SubscriptionStatus } from "../payment/plans";
+import { isPaymentsConfigured } from "../payment/config";
+import { isPlausibleConfigured } from "./config";
 
 export type DailyStatsProps = {
   dailyStats?: DailyStats;
@@ -49,25 +51,27 @@ export const calculateDailyStatsJob: CalculateDailyStatsJob<
       paidUserDelta -= yesterdaysStats.paidUserCount;
     }
 
-    let totalRevenue = 0;
+    let totalRevenue: number | null = null;
     try {
-      totalRevenue = await paymentProcessor.fetchTotalRevenue();
+      if (isPaymentsConfigured()) totalRevenue = await paymentProcessor.fetchTotalRevenue();
     } catch (e) {
       console.warn(
-        "Could not fetch total revenue from payment processor (using 0):",
+        "Could not fetch total revenue from payment processor; metric remains unavailable:",
         e instanceof Error ? e.message : e,
       );
     }
 
-    let totalViews = 0;
-    let prevDayViewsChangePercent = "0";
+    let totalViews: number | null = null;
+    let prevDayViewsChangePercent: string | null = null;
     try {
-      const pageViewsResult = await getDailyPageViews();
-      totalViews = pageViewsResult.totalViews;
-      prevDayViewsChangePercent = pageViewsResult.prevDayViewsChangePercent;
+      if (isPlausibleConfigured()) {
+        const pageViewsResult = await getDailyPageViews();
+        totalViews = pageViewsResult.totalViews;
+        prevDayViewsChangePercent = pageViewsResult.prevDayViewsChangePercent;
+      }
     } catch (e) {
       console.warn(
-        "Could not fetch page views from analytics provider (using 0):",
+        "Could not fetch page views from analytics provider; metric remains unavailable:",
         e instanceof Error ? e.message : e,
       );
     }
@@ -111,7 +115,7 @@ export const calculateDailyStatsJob: CalculateDailyStatsJob<
     }
     let sources: { source: string; visitors: number | string }[] = [];
     try {
-      sources = await getSources();
+      if (isPlausibleConfigured()) sources = await getSources();
     } catch (e) {
       console.warn(
         "Could not fetch sources from analytics provider (using empty):",

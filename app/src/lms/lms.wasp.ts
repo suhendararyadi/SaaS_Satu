@@ -64,7 +64,7 @@ export const lmsSpec: Spec = [
     entities: ["LmsAgenda", "LmsAgendaPhoto", "LmsCourse"],
   }),
   action(recordCourseAttendance, {
-    entities: ["LmsAttendanceSession", "LmsAttendanceRecord", "LmsCourse"],
+    entities: ["LmsAttendanceSession", "LmsAttendanceRecord", "LmsCourse", "StudentAttendanceEvent", "SchoolDailyAttendance", "User", "ClassRoom", "AcademicYear"],
   }),
   action(createCourseMaterial, { entities: ["LmsMaterial"] }),
   action(createCourseAssignment, { entities: ["LmsAssignment"] }),

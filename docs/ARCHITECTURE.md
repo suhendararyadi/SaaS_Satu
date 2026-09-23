@@ -11,10 +11,10 @@ Aplikasi ini dibangun menggunakan arsitektur full-stack terintegrasi:
 | Lapisan | Teknologi | Penjelasan |
 | :--- | :--- | :--- |
 | **Framework Full-Stack** | [Wasp](https://wasp.sh) (`v0.25.0`) | Framework terkompilasi deklaratif yang menyatukan React, Node.js, routing, otentikasi, RPC queries/actions, dan Prisma ke dalam satu sistem terpadu. |
-| **Frontend UI** | React 18 + TypeScript | Komponen antarmuka modern berbasis Google Material 3 (Material You) dan Tailwind CSS. |
+| **Frontend UI** | React + TypeScript | School OS Apple HIG-inspired di atas Tailwind CSS; API komponen `M3*` dipertahankan sebagai compatibility layer. |
 | **Backend Server** | Node.js + Express (Wasp Server) | Server API type-safe dengan enkapsulasi operasi RPC (Queries & Actions). |
 | **Database & ORM** | PostgreSQL + Prisma ORM | Manajemen skema database relasional, migrasi otomatis, dan *type-safe database client*. |
-| **Desain Sistem** | Google Material 3 (M3) | Skema warna dinamis, hierarki tipografi standar Roboto, serta bentuk Expressive. |
+| **Desain Sistem** | School OS HIG | Kontrak lintas-agent di [`../DESIGN.md`](../DESIGN.md): system typography, semantic colors, grouped surfaces, compact macOS-like desktop shell, dan touch-friendly mobile behavior. |
 | **Validasi Data** | Zod (`zod`) | Validasi skema input runtime ketat pada setiap RPC action & query. |
 | **Font & Ikon** | Google Material Symbols Rounded | 100% ikonografi standar Material Symbols tanpa dependensi ikon heterogen. |
 

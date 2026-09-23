@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
-import { Link } from "react-router";
 import {
   useQuery,
   getAllSchools,
@@ -10,19 +9,17 @@ import {
 } from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
 import {
-  M3Card,
   M3Button,
   M3TextField,
   M3Select,
   M3Switch,
   M3Dialog,
-  M3Badge,
   M3CircularProgress,
   M3Banner,
-  M3Text,
   M3Icon,
+  M3EmptyState,
 } from "../../client/components/m3";
-
+import { getSchoolCapabilities } from "../schoolCapabilities";
 
 export function AllSchoolsPage({ user }: { user: AuthUser }) {
   const { data: schools, isLoading, refetch } = useQuery(getAllSchools);
@@ -42,6 +39,7 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [tier, setTier] = useState<string>("PRO");
+  const [schoolLevel, setSchoolLevel] = useState<"SD_MI" | "SMP_MTS" | "SMA_SMK">("SMA_SMK");
   const [studentQuota, setStudentQuota] = useState("500");
   const [switchImmediately, setSwitchImmediately] = useState(true);
 
@@ -70,17 +68,9 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
   if (!user.isAdmin) {
     return (
       <SchoolLayout user={user}>
-        <M3Card variant="outlined" className="p-8 text-center space-y-4 max-w-md mx-auto">
-          <div className="w-14 h-14 rounded-full bg-md-error-container text-md-on-error-container flex items-center justify-center mx-auto shadow-xs">
-            <M3Icon name="gpp_bad" size={28} />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-md-on-surface">Akses Terbatas</h3>
-            <p className="text-xs text-md-on-surface-variant mt-1">
-              Hanya Platform Super Administrator yang memiliki hak akses untuk mengelola seluruh organisasi unit sekolah.
-            </p>
-          </div>
-        </M3Card>
+        <section className="hig-grouped-surface px-4 sm:px-5">
+          <M3EmptyState icon="lock" title="Akses terbatas" description="Hanya Platform Super Administrator yang dapat mengelola seluruh organisasi unit sekolah." />
+        </section>
       </SchoolLayout>
     );
   }
@@ -118,6 +108,7 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         tier: tier as "FREE_TRIAL" | "STARTER" | "PRO" | "ENTERPRISE",
+        level: schoolLevel,
         studentQuota: Number(studentQuota) || 500,
         switchImmediately,
       });
@@ -129,6 +120,7 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
       setAddress("");
       setPhone("");
       setEmail("");
+      setSchoolLevel("SMA_SMK");
 
       await refetch();
       if (switchImmediately) {
@@ -142,6 +134,12 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
     }
   };
 
+  const schoolLevelOptions = [
+    { value: "SD_MI", label: "SD / MI" },
+    { value: "SMP_MTS", label: "SMP / MTs" },
+    { value: "SMA_SMK", label: "SMA / SMK / MA" },
+  ];
+
   const tierOptions = [
     { value: "FREE_TRIAL", label: "Free Trial (100 Siswa)" },
     { value: "STARTER", label: "Starter (300 Siswa)" },
@@ -151,270 +149,99 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
 
   return (
     <SchoolLayout user={user}>
-      <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Manajemen Organisasi (Tenant)
-          </span>
-        </div>
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <M3Badge variant="tertiary" size="sm">
-                <M3Icon name="admin_panel_settings" size={14} className="mr-1" />
-                Super Admin
-              </M3Badge>
-            </div>
-            <h2 className="text-2xl font-medium text-md-on-surface">
-              Organisasi Sekolah
-            </h2>
-            <p className="text-xs sm:text-sm text-md-on-surface-variant">
-              Kelola data sekolah terdaftar, kuota siswa, dan unit sekolah aktif.
-            </p>
+      <div className="space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">Organisasi Sekolah</h2>
+            <p className="mt-0.5 text-[12.5px] leading-5 text-md-on-surface-variant">Kelola unit sekolah dan tentukan tenant yang sedang aktif.</p>
           </div>
-
-          <M3Button
-            variant="filled"
-            size="md"
-            icon="add"
-            onClick={() => setIsModalOpen(true)}
-          >
-            Tambah Unit Sekolah
-          </M3Button>
+          <M3Button variant="filled" size="sm" icon="add" onClick={() => setIsModalOpen(true)}>Tambah Unit Sekolah</M3Button>
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <M3Card variant="outlined" className="p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 max-w-md">
+        <section className="hig-grouped-surface p-2.5 sm:p-3">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:max-w-md">
               <M3TextField
-                placeholder="Cari nama sekolah, NPSN, atau kota..."
+                placeholder="Cari nama sekolah, NPSN, atau kota"
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                leadingIcon={<M3Icon name="search" size={18} />}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                leadingIcon={<M3Icon name="search" size={17} />}
                 size="sm"
               />
             </div>
-            <M3Badge variant="secondary" size="md">
-              {totalItems} Unit Terdaftar
-            </M3Badge>
+            <span className="px-1 text-[11.5px] font-medium text-md-on-surface-variant">{totalItems} unit</span>
           </div>
-        </M3Card>
+        </section>
 
-        {/* Current Active School Notice */}
         {currentSchool && (
-          <M3Card
-            variant="tonal"
-            className="p-5 border-l-4 border-l-md-primary bg-md-primary-container/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-[12px] bg-md-primary text-md-on-primary font-bold flex items-center justify-center text-lg shadow-xs">
-                {currentSchool.name.charAt(0)}
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-md-on-surface-variant">
-                  Unit Sekolah Aktif Saat Ini
-                </p>
-                <h3 className="text-lg font-semibold text-md-on-surface">
-                  {currentSchool.name}
-                </h3>
-              </div>
+          <section className="hig-grouped-surface overflow-hidden" aria-labelledby="active-unit-title">
+            <div className="border-b border-md-outline-variant px-4 py-2.5">
+              <h3 id="active-unit-title" className="text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">Unit aktif</h3>
             </div>
-
-            <M3Badge variant="primary" size="md">
-              <M3Icon name="check_circle" size={14} className="mr-1" />
-              Sedang Terhubung
-            </M3Badge>
-          </M3Card>
+            <div className="flex min-h-16 items-center gap-3 px-4 py-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-md-primary/9 text-[12px] font-semibold text-md-primary" aria-hidden="true">{currentSchool.name.charAt(0).toUpperCase()}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold text-md-on-surface">{currentSchool.name}</p>
+                <p className="mt-0.5 truncate text-[11.5px] text-md-on-surface-variant">{[currentSchool.npsn ? `NPSN ${currentSchool.npsn}` : null, currentSchool.city || null].filter(Boolean).join(" · ") || "Unit sekolah aktif"}</p>
+              </div>
+              <span className="flex shrink-0 items-center gap-1.5 text-[11.5px] font-medium text-md-secondary"><M3Icon name="check_circle" size={15} /> Aktif</span>
+            </div>
+          </section>
         )}
 
-        {/* Schools Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[300px]">
-            <M3CircularProgress size={40} />
+        <section className="hig-grouped-surface overflow-hidden" aria-labelledby="all-units-title">
+          <div className="flex items-center justify-between border-b border-md-outline-variant px-4 py-2.5">
+            <h3 id="all-units-title" className="text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">Semua unit sekolah</h3>
+            {totalPages > 1 && <span className="text-[10.5px] text-md-on-surface-variant">Hal {currentPage} dari {totalPages}</span>}
           </div>
-        ) : filteredSchools.length === 0 ? (
-          <M3Card variant="elevated" className="p-8 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-md-secondary-container text-md-on-secondary-container flex items-center justify-center mx-auto shadow-xs">
-              <M3Icon name="corporate_fare" size={28} />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-md-on-surface">
-                Tidak Ditemukan Sekolah
-              </h3>
-              <p className="text-xs text-md-on-surface-variant max-w-sm mx-auto mt-1">
-                Tidak ada unit sekolah yang sesuai dengan kata kunci pencarian Anda.
-              </p>
-            </div>
-            <M3Button
-              variant="tonal"
-              size="md"
-              onClick={() => setSearchQuery("")}
-            >
-              Reset Pencarian
-            </M3Button>
-          </M3Card>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {paginatedSchools.map((s: any) => {
-                const isCurrent = currentSchool?.id === s.id;
 
+          {isLoading ? (
+            <div className="flex min-h-40 items-center justify-center"><M3CircularProgress size={28} /></div>
+          ) : filteredSchools.length === 0 ? (
+            <div className="px-4 sm:px-5">
+              <M3EmptyState icon="search_off" title="Unit sekolah tidak ditemukan" description="Tidak ada unit sekolah yang sesuai dengan pencarian saat ini." actionLabel="Reset Pencarian" onAction={() => setSearchQuery("")} />
+            </div>
+          ) : (
+            <div className="divide-y divide-md-outline-variant">
+              {paginatedSchools.map((schoolItem: any) => {
+                const isCurrent = currentSchool?.id === schoolItem.id;
+                const capabilities = getSchoolCapabilities(schoolItem.level);
+                const stats = [
+                  `${schoolItem._count?.users || 0} pengguna`,
+                  ...(capabilities.usesDepartments ? [`${schoolItem._count?.departments || 0} jurusan`] : []),
+                  ...(capabilities.usesPkl ? [`${schoolItem._count?.companies || 0} DUDI`] : []),
+                ].join(" · ");
                 return (
-                  <M3Card
-                    key={s.id}
-                    variant={isCurrent ? "elevated" : "outlined"}
-                    className={`p-5 flex flex-col justify-between gap-4 ${
-                      isCurrent ? "ring-2 ring-md-primary" : ""
-                    }`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <M3Badge
-                            variant={
-                              s.tier === "ENTERPRISE"
-                                ? "tertiary"
-                                : s.tier === "PRO"
-                                ? "primary"
-                                : "secondary"
-                            }
-                            size="sm"
-                          >
-                            Paket {s.tier}
-                          </M3Badge>
-                          <h3 className="text-lg font-semibold text-md-on-surface leading-tight">
-                            {s.name}
-                          </h3>
-                          {s.npsn && (
-                            <p className="text-xs font-mono text-md-on-surface-variant">
-                              NPSN: {s.npsn}
-                            </p>
-                          )}
-                        </div>
-
-                        {isCurrent && (
-                          <M3Badge variant="success" size="sm">
-                            Aktif
-                          </M3Badge>
-                        )}
+                  <div key={schoolItem.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+                    <span className={`flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[12px] font-semibold ${isCurrent ? "bg-md-primary/10 text-md-primary" : "bg-md-surface-container-high text-md-on-surface-variant"}`} aria-hidden="true">{schoolItem.name.charAt(0).toUpperCase()}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="truncate text-[13px] font-semibold text-md-on-surface">{schoolItem.name}</p>
+                        <span className="text-[10.5px] font-medium text-md-on-surface-variant">{schoolItem.tier.replaceAll("_", " ")}</span>
                       </div>
-
-                      <div className="space-y-1 text-xs text-md-on-surface-variant">
-                        {s.city && (
-                          <div className="flex items-center gap-1.5">
-                            <M3Icon name="location_on" size={14} className="opacity-70" />
-                            <span>
-                              {s.city}, {s.province || "Indonesia"}
-                            </span>
-                          </div>
-                        )}
-                        {s.phone && (
-                          <div className="flex items-center gap-1.5">
-                            <M3Icon name="call" size={14} className="opacity-70" />
-                            <span>{s.phone}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Stats pills */}
-                      <div className="grid grid-cols-3 gap-2 py-3 border-y border-md-outline-variant/30 text-center">
-                        <div>
-                          <p className="font-bold text-sm text-md-on-surface">
-                            {s._count?.users || 0}
-                          </p>
-                          <p className="text-[11px] text-md-on-surface-variant">
-                            User
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-md-primary">
-                            {s._count?.departments || 0}
-                          </p>
-                          <p className="text-[11px] text-md-on-surface-variant">
-                            Jurusan
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                            {s._count?.companies || 0}
-                          </p>
-                          <p className="text-[11px] text-md-on-surface-variant">
-                            DUDI
-                          </p>
-                        </div>
-                      </div>
+                      <p className="mt-0.5 truncate text-[11.5px] text-md-on-surface-variant">{[schoolItem.npsn ? `NPSN ${schoolItem.npsn}` : null, schoolItem.city || null, stats].filter(Boolean).join(" · ")}</p>
                     </div>
-
-                    <div>
+                    <div className="flex shrink-0 items-center justify-end pl-11 sm:pl-0">
                       {isCurrent ? (
-                        <M3Button
-                          variant="tonal"
-                          size="sm"
-                          fullWidth
-                          disabled
-                        >
-                          Sedang Aktif
-                        </M3Button>
+                        <span className="flex items-center gap-1.5 px-2 text-[11.5px] font-medium text-md-secondary"><M3Icon name="check" size={15} /> Sedang aktif</span>
                       ) : (
-                        <M3Button
-                          variant="outlined"
-                          size="sm"
-                          fullWidth
-                          icon="swap_horiz"
-                          isLoading={isSwitching === s.id}
-                          onClick={() => handleSwitchSchool(s.id)}
-                        >
-                          Kelola / Beralih ke Unit Ini
-                        </M3Button>
+                        <M3Button variant="text" size="sm" icon="swap_horiz" isLoading={isSwitching === schoolItem.id} onClick={() => handleSwitchSchool(schoolItem.id)}>Beralih</M3Button>
                       )}
                     </div>
-                  </M3Card>
+                  </div>
                 );
               })}
             </div>
+          )}
+        </section>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-2 pt-2">
-                <p className="text-xs text-md-on-surface-variant">
-                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
-                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} unit sekolah
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <M3Button
-                    variant="tonal"
-                    size="sm"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    icon="chevron_left"
-                  >
-                    Sebelumnya
-                  </M3Button>
-                  <span className="text-xs px-2 text-md-on-surface font-medium">
-                    Hal {currentPage} / {totalPages}
-                  </span>
-                  <M3Button
-                    variant="tonal"
-                    size="sm"
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    trailingIcon="chevron_right"
-                  >
-                    Selanjutnya
-                  </M3Button>
-                </div>
-              </div>
-            )}
+        {totalPages > 1 && (
+          <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11.5px] text-md-on-surface-variant">Menampilkan {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalItems)} dari {totalItems} unit</p>
+            <div className="flex items-center gap-1">
+              <M3Button variant="text" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} icon="chevron_left">Sebelumnya</M3Button>
+              <M3Button variant="text" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} trailingIcon="chevron_right">Selanjutnya</M3Button>
+            </div>
           </div>
         )}
 
@@ -457,11 +284,18 @@ export function AllSchoolsPage({ user }: { user: AuthUser }) {
             )}
 
             <M3TextField
-              label="Nama Sekolah (SMK / SMA / MA) *"
-              placeholder="Contoh: SMK Negeri 1 Garut"
+              label="Nama Sekolah *"
+              placeholder="Contoh: SMP Negeri 1 Rongga"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+            />
+
+            <M3Select
+              label="Jenjang Sekolah *"
+              options={schoolLevelOptions}
+              value={schoolLevel}
+              onChange={(e) => setSchoolLevel(e.target.value as typeof schoolLevel)}
             />
 
             <div className="grid grid-cols-2 gap-3">

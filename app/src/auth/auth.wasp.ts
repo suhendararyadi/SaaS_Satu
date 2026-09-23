@@ -27,8 +27,8 @@ import {
 
 const emailAuthMethod: NonNullable<AuthMethods["email"]> = {
   fromField: {
-    name: "Open SaaS App",
-    email: "me@example.com",
+    name: "SaaS Satu Smart School",
+    email: "noreply@sekolah.suhendararyadi.com",
   },
   emailVerification: {
     clientRoute: "EmailVerificationRoute",

@@ -1,0 +1,585 @@
+import { HttpError, prisma } from "wasp/server";
+import { type User } from "wasp/entities";
+import { ensureSchoolUser } from "./authGuards";
+import { buildStudentRiskOverview } from "./studentRiskService";
+import { getSchoolCapabilities } from "./schoolCapabilities";
+import { isDutyAssignmentForDay, jakartaDutyDayCode, staffAssignmentDisplayTitle } from "./staffAssignments";
+import { getPklEwsAlertsForScope } from "../pkl/ews";
+
+function displayName(user: Pick<User, "name" | "email" | "username">) {
+  return user.name || user.username || user.email || "Pengguna";
+}
+
+function localDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value || "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function jakartaDayBounds(date = new Date()) {
+  const key = localDateKey(date);
+  return {
+    start: new Date(`${key}T00:00:00+07:00`),
+    end: new Date(`${key}T23:59:59.999+07:00`),
+  };
+}
+
+export const getStudentDashboardData = async (_args: unknown, context: { user?: User }) => {
+  const user = ensureSchoolUser(context);
+  if (user.role !== "STUDENT") throw new HttpError(403, "Dashboard ini hanya tersedia untuk peserta didik.");
+
+  const student = await prisma.user.findFirst({
+    where: { id: user.id, schoolId: user.schoolId, role: "STUDENT" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      username: true,
+      classRoomId: true,
+      classRoom: { select: { id: true, name: true } },
+    },
+  });
+  if (!student) throw new HttpError(404, "Profil peserta didik tidak ditemukan.");
+
+  const now = new Date();
+  const { start, end } = jakartaDayBounds(now);
+  const assignmentWindowStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const courses = student.classRoomId
+    ? await prisma.lmsCourse.findMany({
+        where: {
+          schoolId: user.schoolId,
+          classRoomId: student.classRoomId,
+          academicYear: { isActive: true },
+        },
+        orderBy: { subjectName: "asc" },
+        select: {
+          id: true,
+          subjectName: true,
+          teacher: { select: { name: true, email: true, username: true } },
+          assignments: {
+            where: { deadline: { gte: assignmentWindowStart } },
+            orderBy: { deadline: "asc" },
+            select: {
+              id: true,
+              title: true,
+              deadline: true,
+              submissions: { where: { studentId: user.id }, select: { id: true, submittedAt: true, grade: true } },
+            },
+          },
+          assessments: {
+            where: { endTime: { gte: now } },
+            orderBy: { startTime: "asc" },
+            select: {
+              id: true,
+              title: true,
+              startTime: true,
+              endTime: true,
+              results: { where: { studentId: user.id }, select: { id: true, finishedAt: true } },
+            },
+          },
+        },
+      })
+    : [];
+
+  const pendingAssignments = courses
+    .flatMap((course) =>
+      course.assignments
+        .filter((assignment) => assignment.submissions.length === 0)
+        .map((assignment) => ({
+          assignmentId: assignment.id,
+          courseId: course.id,
+          courseName: course.subjectName,
+          title: assignment.title,
+          deadline: assignment.deadline,
+          isOverdue: assignment.deadline < now,
+          submissionStatus: assignment.deadline < now ? ("OVERDUE" as const) : ("PENDING" as const),
+        }))
+    )
+    .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
+
+  const upcomingAssessments = courses.flatMap((course) =>
+    course.assessments.map((assessment) => ({
+      assessmentId: assessment.id,
+      courseId: course.id,
+      courseName: course.subjectName,
+      title: assessment.title,
+      startsAt: assessment.startTime,
+      endsAt: assessment.endTime,
+      attemptStatus: assessment.results[0]?.finishedAt ? ("COMPLETED" as const) : assessment.results.length ? ("IN_PROGRESS" as const) : ("NOT_STARTED" as const),
+    }))
+  );
+
+  const placement = await prisma.placement.findFirst({
+    where: { schoolId: user.schoolId, studentId: user.id, status: "ACTIVE" },
+    orderBy: { startDate: "desc" },
+    select: {
+      id: true,
+      company: { select: { name: true } },
+      attendances: {
+        where: { dateOnly: localDateKey(now) },
+        orderBy: { timestamp: "desc" },
+        select: { type: true, status: true },
+      },
+      journals: {
+        where: { date: { gte: start, lte: end } },
+        orderBy: { date: "desc" },
+        take: 1,
+        select: { status: true },
+      },
+    },
+  });
+
+  return {
+    role: "STUDENT" as const,
+    student: {
+      id: student.id,
+      displayName: displayName(student),
+      classRoom: student.classRoom,
+    },
+    courses: courses.map((course) => ({
+      id: course.id,
+      subjectName: course.subjectName,
+      teacherDisplayName: displayName(course.teacher),
+    })),
+    pendingAssignments,
+    upcomingAssessments,
+    pkl: placement
+      ? {
+          placementId: placement.id,
+          companyName: placement.company.name,
+          attendanceTodayStatus: placement.attendances[0]?.status ?? null,
+          journalTodayStatus: placement.journals[0]?.status ?? null,
+        }
+      : null,
+  };
+};
+
+export const getTeacherDashboardData = async (_args: unknown, context: { user?: User }) => {
+  const user = ensureSchoolUser(context);
+  if (user.role !== "TEACHER") throw new HttpError(403, "Dashboard ini hanya tersedia untuk guru.");
+
+  const [teacher, courses, profile, wakasekAssignments, staffAssignments, homeroomClass, activePlacements, followUpAssignedCount] = await Promise.all([
+    prisma.user.findFirst({
+      where: { id: user.id, schoolId: user.schoolId, role: "TEACHER" },
+      select: { id: true, name: true, email: true, username: true },
+    }),
+    prisma.lmsCourse.findMany({
+      where: { schoolId: user.schoolId, teacherId: user.id, academicYear: { isActive: true } },
+      orderBy: [{ academicYear: { isActive: "desc" } }, { subjectName: "asc" }],
+      select: {
+        id: true,
+        subjectName: true,
+        classRoom: { select: { id: true, name: true } },
+        academicYear: { select: { yearName: true, semester: true, isActive: true } },
+        assignments: {
+          select: {
+            submissions: { where: { grade: null }, select: { id: true } },
+          },
+        },
+      },
+    }),
+    prisma.teacherProfile.findUnique({ where: { userId: user.id }, select: { isWaka: true } }),
+    prisma.wakasekAssignment.findMany({
+      where: { schoolId: user.schoolId, teacherId: user.id },
+      select: { role: true },
+      orderBy: { role: "asc" },
+    }),
+    prisma.schoolStaffAssignment.findMany({
+      where: {
+        schoolId: user.schoolId,
+        teacherId: user.id,
+        isActive: true,
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: new Date() } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
+          { OR: [{ academicYearId: null }, { academicYear: { isActive: true } }] },
+        ],
+      },
+      select: {
+        id: true,
+        role: true,
+        unitName: true,
+        customTitle: true,
+        dutyDays: true,
+        department: { select: { id: true, code: true, name: true } },
+      },
+      orderBy: [{ role: "asc" }, { updatedAt: "desc" }],
+    }),
+    prisma.classRoom.findFirst({
+      where: { schoolId: user.schoolId, homeroomTeacherId: user.id, academicYear: { isActive: true } },
+      select: { id: true, name: true },
+    }),
+    prisma.placement.findMany({
+      where: { schoolId: user.schoolId, teacherSupervisorId: user.id, status: "ACTIVE" },
+      select: {
+        id: true,
+        student: { select: { id: true, name: true, email: true, username: true } },
+        company: { select: { name: true } },
+        journals: {
+          where: { status: "SUBMITTED" },
+          orderBy: { date: "asc" },
+          take: 3,
+          select: { id: true, date: true, activityDescription: true },
+        },
+        _count: { select: { journals: { where: { status: "SUBMITTED" } } } },
+      },
+    }),
+    prisma.schoolFollowUpCase.count({
+      where: {
+        schoolId: user.schoolId,
+        assignedToId: user.id,
+        status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] },
+      },
+    })
+  ]);
+  if (!teacher) throw new HttpError(404, "Profil guru tidak ditemukan.");
+
+  const pendingJournalReviews = activePlacements.flatMap((placement) =>
+    placement.journals.map((journal) => ({
+      journalId: journal.id,
+      placementId: placement.id,
+      studentId: placement.student.id,
+      studentDisplayName: displayName(placement.student),
+      companyName: placement.company.name,
+      date: journal.date,
+      activityDescription: journal.activityDescription,
+    }))
+  );
+
+  const ungradedSubmissionCount = courses.reduce(
+    (total, course) => total + course.assignments.reduce((sum, assignment) => sum + assignment.submissions.length, 0),
+    0
+  );
+
+  return {
+    role: "TEACHER" as const,
+    teacher: { id: teacher.id, displayName: displayName(teacher) },
+    courses: courses.map((course) => ({
+      id: course.id,
+      subjectName: course.subjectName,
+      classRoom: course.classRoom,
+      academicYear: `${course.academicYear.yearName} ${course.academicYear.semester}`,
+      isActive: course.academicYear.isActive,
+    })),
+    attention: {
+      ungradedSubmissionCount,
+      incompleteAgendaCount: null,
+      pendingPklJournalReviewCount: activePlacements.reduce((total, placement) => total + placement._count.journals, 0),
+      followUpAssignedCount,
+    },
+    pkl: activePlacements.length
+      ? {
+          activePlacementCount: activePlacements.length,
+          pendingJournalReviews,
+          alerts: [],
+        }
+      : null,
+    assignments: {
+      homeroomClass,
+      wakasekRoles: wakasekAssignments.length
+        ? wakasekAssignments.map((assignment) => assignment.role)
+        : profile?.isWaka
+          ? ["KURIKULUM" as const]
+          : [],
+      isWaka: wakasekAssignments.some((assignment) => assignment.role === "KURIKULUM") || (profile?.isWaka ?? false),
+      staffAssignments: staffAssignments.map((assignment) => ({
+        ...assignment,
+        displayTitle: staffAssignmentDisplayTitle({
+          role: assignment.role,
+          unitName: assignment.unitName,
+          customTitle: assignment.customTitle,
+          department: assignment.department,
+        }),
+      })),
+      dutyTeacherContext: (() => {
+        const dutyAssignments = staffAssignments.filter((assignment) => assignment.role === "DUTY_TEACHER");
+        if (!dutyAssignments.length) return null;
+        const today = jakartaDutyDayCode();
+        return {
+          scheduledToday: dutyAssignments.some((assignment) =>
+            isDutyAssignmentForDay(assignment.dutyDays, today),
+          ),
+          today,
+          dutyDays: [...new Set(dutyAssignments.flatMap((assignment) => assignment.dutyDays))],
+        };
+      })(),
+    },
+  };
+};
+
+export const getSchoolAdminDashboardData = async (_args: unknown, context: { user?: User }) => {
+  const user = ensureSchoolUser(context);
+  const isAdmin = user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
+  if (!isAdmin) throw new HttpError(403, "Dashboard ini hanya tersedia untuk administrator sekolah.");
+
+  const todayDateOnly = localDateKey();
+  const [school, academicYear, counts, studentsWithoutClass, teachersWithoutCourse, attendanceRecords, classAttendanceSources, riskOverview, followUpActiveCount, followUpOverdueCount, openStudentViolations, openStudentCoachings, overdueStudentPermits] = await Promise.all([
+    prisma.school.findUnique({
+      where: { id: user.schoolId },
+      select: { id: true, name: true, level: true, tier: true, studentQuota: true },
+    }),
+    prisma.academicYear.findFirst({
+      where: { schoolId: user.schoolId, isActive: true },
+      select: { id: true, yearName: true, semester: true },
+    }),
+    Promise.all([
+      prisma.user.count({ where: { schoolId: user.schoolId, role: "STUDENT" } }),
+      prisma.user.count({ where: { schoolId: user.schoolId, role: "TEACHER" } }),
+      prisma.classRoom.count({ where: { schoolId: user.schoolId } }),
+      prisma.lmsCourse.count({ where: { schoolId: user.schoolId } }),
+      prisma.company.count({ where: { schoolId: user.schoolId } }),
+      prisma.placement.count({ where: { schoolId: user.schoolId, status: "ACTIVE" } }),
+    ]),
+    prisma.user.count({ where: { schoolId: user.schoolId, role: "STUDENT", classRoomId: null } }),
+    prisma.user.count({
+      where: { schoolId: user.schoolId, role: "TEACHER", teacherCourses: { none: {} } },
+    }),
+    prisma.schoolDailyAttendance.findMany({
+      where: {
+        schoolId: user.schoolId,
+        dateOnly: todayDateOnly,
+      },
+      select: { status: true, classRoomId: true },
+    }),
+    prisma.classRoom.findMany({
+      where: {
+        schoolId: user.schoolId,
+        academicYear: { isActive: true },
+      },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        department: { select: { code: true } },
+      },
+    }),
+    buildStudentRiskOverview(user, { cacheMs: 60_000 }),
+    prisma.schoolFollowUpCase.count({
+      where: { schoolId: user.schoolId, status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] } },
+    }),
+    prisma.schoolFollowUpCase.count({
+      where: {
+        schoolId: user.schoolId,
+        status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] },
+        dueAt: { lt: new Date() },
+      },
+    }),
+    prisma.studentViolation.count({
+      where: { schoolId: user.schoolId, status: { in: ["RECORDED", "IN_REVIEW"] } },
+    }),
+    prisma.studentCoaching.count({
+      where: { schoolId: user.schoolId, status: { in: ["OPEN", "IN_PROGRESS"] } },
+    }),
+    prisma.studentPermit.count({
+      where: {
+        schoolId: user.schoolId,
+        status: "APPROVED",
+        endAt: { lt: new Date() },
+        returnedAt: null,
+      },
+    }),
+  ]);
+  if (!school) throw new HttpError(404, "Data sekolah tidak ditemukan.");
+
+  const [students, teachers, classRooms, lmsCourses, companies, placements] = counts;
+  const capabilities = getSchoolCapabilities(school.level);
+  const ews = {
+    totalStudents: riskOverview.summary.totalStudents,
+    atRisk: riskOverview.summary.atRisk,
+    highOrCritical: riskOverview.summary.highOrCritical,
+    critical: riskOverview.summary.levelCounts.CRITICAL,
+    high: riskOverview.summary.levelCounts.HIGH,
+    medium: riskOverview.summary.levelCounts.MEDIUM,
+    worsening: riskOverview.summary.worsening,
+  };
+  const studentAffairsAttentionCount =
+    openStudentViolations + openStudentCoachings + overdueStudentPermits;
+
+  const attention = [
+    ...(studentAffairsAttentionCount > 0
+      ? [{
+          code: "STUDENT_AFFAIRS",
+          severity: (openStudentViolations > 0 || overdueStudentPermits > 0) ? ("warning" as const) : ("info" as const),
+          label: overdueStudentPermits > 0
+            ? `Kesiswaan: ${overdueStudentPermits} izin melewati batas waktu`
+            : "Kesiswaan perlu ditinjau",
+          count: studentAffairsAttentionCount,
+          destination: "/school/student-affairs",
+        }]
+      : []),
+    ...(followUpActiveCount > 0
+      ? [{
+          code: "FOLLOW_UP_CASES",
+          severity: followUpOverdueCount > 0 ? ("warning" as const) : ("info" as const),
+          label: followUpOverdueCount > 0
+            ? `Tindak lanjut: ${followUpOverdueCount} melewati tenggat`
+            : "Kasus tindak lanjut aktif",
+          count: followUpActiveCount,
+          destination: "/school/follow-up",
+        }]
+      : []),
+    ...(!academicYear
+      ? [{ code: "NO_ACTIVE_YEAR", severity: "warning" as const, label: "Belum ada tahun ajaran aktif", count: null, destination: "/school/academic-years" }]
+      : []),
+    ...(studentsWithoutClass > 0
+      ? [{ code: "STUDENTS_WITHOUT_CLASS", severity: "warning" as const, label: "Siswa belum memiliki rombel", count: studentsWithoutClass, destination: "/school/students" }]
+      : []),
+    ...(teachersWithoutCourse > 0
+      ? [{ code: "TEACHERS_WITHOUT_COURSE", severity: "info" as const, label: "Guru belum memiliki ruang mapel", count: teachersWithoutCourse, destination: "/school/lms/courses" }]
+      : []),
+    ...(ews.atRisk > 0
+      ? [{
+          code: "UNIFIED_EWS_RISK",
+          severity: ews.highOrCritical > 0 ? ("warning" as const) : ("info" as const),
+          label: ews.critical > 0
+            ? "EWS Terpadu: " + ews.critical + " siswa risiko kritis"
+            : ews.high > 0
+              ? "EWS Terpadu: " + ews.high + " siswa risiko tinggi"
+              : "EWS Terpadu perlu ditinjau",
+          count: ews.atRisk,
+          destination: "/school/ews",
+        }]
+      : []),
+  ];
+
+  const attendanceCounts = attendanceRecords.reduce(
+    (result, record) => {
+      if (record.status === "HADIR") result.hadir += 1;
+      else if (record.status === "SAKIT") result.sakit += 1;
+      else if (record.status === "IZIN") result.izin += 1;
+      else if (record.status === "ALPA") result.alpa += 1;
+      else if (record.status === "TERLAMBAT") result.terlambat += 1;
+      return result;
+    },
+    { hadir: 0, sakit: 0, izin: 0, alpa: 0, terlambat: 0 }
+  );
+  const attendanceTotal = attendanceRecords.length;
+  const attendancePresent = attendanceCounts.hadir + attendanceCounts.terlambat;
+  const attendanceRate = attendanceTotal > 0 ? Math.round((attendancePresent / attendanceTotal) * 100) : null;
+  const attendanceClassCount = new Set(attendanceRecords.map((record) => record.classRoomId)).size;
+
+  const classAttendance = classAttendanceSources.map((classRoom) => {
+    const statuses = attendanceRecords
+      .filter((record) => record.classRoomId === classRoom.id)
+      .map((record) => record.status);
+    const hadir = statuses.filter((status) => status === "HADIR" || status === "TERLAMBAT").length;
+    const alpa = statuses.filter((status) => status === "ALPA").length;
+    const totalRecords = statuses.length;
+    const absentCount = totalRecords - hadir;
+    const rate = totalRecords > 0 ? Math.round((hadir / totalRecords) * 1000) / 10 : null;
+
+    return {
+      classRoomId: classRoom.id,
+      className: classRoom.name,
+      departmentCode: capabilities.usesDepartments ? (classRoom.department?.code ?? null) : null,
+      totalRecords,
+      absentCount,
+      alpa,
+      rate,
+    };
+  });
+
+  const measuredClassAttendance = classAttendance
+    .filter((item) => item.rate !== null)
+    .sort((a, b) =>
+      (a.rate! - b.rate!) ||
+      (b.absentCount - a.absentCount) ||
+      a.className.localeCompare(b.className, "id")
+    );
+  const unmeasuredClassAttendance = classAttendance
+    .filter((item) => item.rate === null)
+    .sort((a, b) => a.className.localeCompare(b.className, "id"));
+  const attendanceByClass = [...measuredClassAttendance, ...unmeasuredClassAttendance].slice(0, 5);
+
+  return {
+    role: user.role === "SUPERADMIN" || user.isAdmin ? ("SUPERADMIN" as const) : ("SCHOOL_ADMIN" as const),
+    school,
+    academicYear,
+    counts: { students, teachers, classRooms, lmsCourses, companies, placements },
+    attention,
+    ews,
+    followUp: { active: followUpActiveCount, overdue: followUpOverdueCount },
+    studentAffairs: {
+      openViolations: openStudentViolations,
+      openCoachings: openStudentCoachings,
+      overduePermits: overdueStudentPermits,
+      attention: studentAffairsAttentionCount,
+    },
+    attendance: {
+      dateKey: localDateKey(),
+      classCount: attendanceClassCount,
+      totalRecords: attendanceTotal,
+      rate: attendanceRate,
+      byClass: attendanceByClass,
+      ...attendanceCounts,
+    },
+  };
+};
+
+export const getMentorDashboardData = async (_args: unknown, context: { user?: User }) => {
+  const user = ensureSchoolUser(context);
+  if (user.role !== "DUDI_MENTOR") throw new HttpError(403, "Dashboard ini hanya tersedia untuk pembimbing DUDI.");
+
+  const [placements, ewsAlerts, followUpActiveCount] = await Promise.all([
+    prisma.placement.findMany({
+      where: { schoolId: user.schoolId, dudiMentorId: user.id, status: "ACTIVE" },
+      orderBy: { startDate: "asc" },
+      select: {
+        id: true,
+        student: { select: { id: true, name: true, email: true, username: true } },
+        company: { select: { name: true } },
+        journals: {
+          where: { status: "SUBMITTED" },
+          orderBy: { date: "asc" },
+          take: 5,
+          select: { id: true, date: true, activityDescription: true },
+        },
+        _count: { select: { journals: { where: { status: "SUBMITTED" } } } },
+      },
+    }),
+    getPklEwsAlertsForScope(user.schoolId, { dudiMentorId: user.id }),
+    prisma.schoolFollowUpCase.count({
+      where: {
+        schoolId: user.schoolId,
+        status: { in: ["FINDING", "ASSIGNED", "IN_PROGRESS"] },
+        OR: [
+          { assignedToId: user.id },
+          { createdById: user.id },
+          {
+            subjectStudent: {
+              studentPlacements: {
+                some: { dudiMentorId: user.id, status: "ACTIVE" },
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ]);
+
+  return {
+    role: "DUDI_MENTOR" as const,
+    mentor: { id: user.id, displayName: displayName(user) },
+    activePlacementCount: placements.length,
+    ews: {
+      total: ewsAlerts.length,
+      high: ewsAlerts.filter((item) => item.severity === "HIGH").length,
+    },
+    followUpActiveCount,
+    placements: placements.map((placement) => ({
+      id: placement.id,
+      studentId: placement.student.id,
+      studentDisplayName: displayName(placement.student),
+      companyName: placement.company.name,
+      pendingJournalCount: placement._count.journals,
+      pendingJournals: placement.journals,
+    })),
+  };
+};

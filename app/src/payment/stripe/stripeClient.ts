@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { env } from "wasp/server";
+import { ensurePaymentsConfigured } from "../config";
 
 /**
  * The Stripe client API version.
@@ -25,6 +26,14 @@ import { env } from "wasp/server";
  */
 const STRIPE_API_VERSION = "2025-04-30.basil";
 
-export const stripeClient = new Stripe(env.STRIPE_API_KEY, {
-  apiVersion: STRIPE_API_VERSION,
-});
+let stripeClient: Stripe | undefined;
+
+export function getStripeClient(): Stripe {
+  ensurePaymentsConfigured();
+  const apiKey = env.STRIPE_API_KEY;
+  if (!apiKey) {
+    throw new Error("Stripe belum dikonfigurasi pada deployment ini.");
+  }
+  stripeClient ??= new Stripe(apiKey, { apiVersion: STRIPE_API_VERSION });
+  return stripeClient;
+}

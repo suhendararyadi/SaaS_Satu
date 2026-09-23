@@ -1,498 +1,403 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { type AuthUser } from "wasp/auth";
-import { Link } from "react-router";
 import {
+  activatePlacement,
+  createPlacementsBulk,
+  finalizePlacement,
+  getPlacementHistory,
+  getPlacementReadiness,
+  getPlacementWorkspace,
+  transferPlacement,
+  updatePlacementGen2,
   useQuery,
-  getPlacements,
-  getCompanies,
-  getSchoolTeachers,
-  getSchoolStudents,
-  createPlacement,
-  updatePlacement,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  M3Card,
-  M3Button,
-  M3TextField,
-  M3Select,
-  M3Dialog,
   M3Badge,
-  M3Table,
-  M3TableHeader,
-  M3TableBody,
-  M3TableRow,
-  M3TableHead,
-  M3TableCell,
-  M3CircularProgress,
   M3Banner,
-  M3Text,
+  M3Button,
+  M3Card,
+  M3CircularProgress,
+  M3Dialog,
   M3Icon,
+  M3Select,
+  M3TextField,
 } from "../../client/components/m3";
 
+function isoDate(value: unknown) {
+  if (!value) return "";
+  const date = new Date(String(value));
+  return Number.isNaN(date.valueOf()) ? String(value).slice(0, 10) : date.toISOString().slice(0, 10);
+}
+
+const statusMeta: Record<string, { label: string; variant: any }> = {
+  PLANNED: { label: "Rencana", variant: "secondary" },
+  ACTIVE: { label: "Aktif", variant: "success" },
+  COMPLETED: { label: "Selesai", variant: "primary" },
+  CANCELED: { label: "Batal", variant: "error" },
+};
 
 export function PlacementsPage({ user }: { user: AuthUser }) {
-  const { data: placements, isLoading, refetch } = useQuery(getPlacements);
-  const { data: companies } = useQuery(getCompanies);
-  const { data: teachers } = useQuery(getSchoolTeachers);
-  const { data: students } = useQuery(getSchoolStudents);
+  const [periodId, setPeriodId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const workspace = useQuery(getPlacementWorkspace, {
+    ...(periodId ? { periodId } : {}),
+    ...(departmentId ? { departmentId } : {}),
+  });
+  const data: any = workspace.data || {};
+  const periods = data.periods || [];
+  const departments = data.departments || [];
+  const companies = data.companies || [];
+  const students = data.students || [];
+  const teachers = data.teachers || [];
+  const mentors = data.mentors || [];
+  const placements = data.placements || [];
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [studentId, setStudentId] = useState("");
+  useEffect(() => {
+    if (!periodId && periods.length) setPeriodId(periods.find((p: any) => p.isActive)?.id || periods[0].id);
+  }, [periods, periodId]);
+  useEffect(() => {
+    if (!departmentId && departments.length) setDepartmentId(departments[0].id);
+  }, [departments, departmentId]);
+
+  const selectedPeriod = periods.find((p: any) => p.id === periodId);
   const [companyId, setCompanyId] = useState("");
-  const [teacherSupervisorId, setTeacherSupervisorId] = useState("");
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
-  const [endDate, setEndDate] = useState(
-    new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
-  );
-  const [errorMsg, setErrorMsg] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [teacherId, setTeacherId] = useState("");
+  const [mentorId, setMentorId] = useState("");
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [notes, setNotes] = useState("");
+  const [bulkError, setBulkError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  // Filters & Pagination
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const eligibleCompanies = useMemo(() => companies.filter((company: any) => {
+    const accepts = company.departmentLinks?.some((link: any) => link.departmentId === departmentId);
+    const capacity = company.pklCapacities?.find((row: any) => row.periodId === periodId && row.departmentId === departmentId);
+    return accepts && capacity;
+  }), [companies, departmentId, periodId]);
 
-  // Filter students who don't have active placement yet
-  const unplacedStudents = students?.filter(
-    (s) => !s.studentPlacements || s.studentPlacements.length === 0
-  );
+  useEffect(() => {
+    if (!eligibleCompanies.some((company: any) => company.id === companyId)) {
+      setCompanyId(eligibleCompanies[0]?.id || "");
+      setMentorId("");
+    }
+  }, [eligibleCompanies, companyId]);
 
-  const openAddModal = () => {
-    setStudentId(unplacedStudents?.[0]?.id || "");
-    setCompanyId(companies?.[0]?.id || "");
-    setTeacherSupervisorId(teachers?.[0]?.id || "");
-    setErrorMsg("");
-    setModalOpen(true);
+  const selectedCompany = eligibleCompanies.find((company: any) => company.id === companyId);
+  const selectedCapacity = selectedCompany?.pklCapacities?.find((row: any) => row.periodId === periodId && row.departmentId === departmentId);
+  const eligibleMentors = mentors.filter((mentor: any) => mentor.companyId === companyId && mentor.isActive);
+  const unplacedStudents = students.filter((student: any) => (student.studentPlacements || []).length === 0);
+  const remaining = selectedCapacity?.remaining ?? 0;
+
+  const toggleStudent = (id: string) => {
+    setSelectedStudents((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  };
+  const toggleAll = () => {
+    const canSelect = unplacedStudents.slice(0, Math.max(0, remaining)).map((student: any) => student.id);
+    setSelectedStudents(selectedStudents.length === canSelect.length ? [] : canSelect);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!studentId || !companyId) {
-      setErrorMsg("Siswa dan Perusahaan DUDI wajib dipilih.");
+  const createBulk = async () => {
+    if (!periodId || !departmentId || !companyId || !selectedStudents.length) {
+      setBulkError("Pilih periode, konsentrasi, DUDI, dan minimal satu siswa.");
       return;
     }
-    setErrorMsg("");
-    setSubmitting(true);
+    if (selectedStudents.length > remaining) {
+      setBulkError(`Siswa terpilih ${selectedStudents.length}, sedangkan sisa kuota ${remaining}.`);
+      return;
+    }
+    setBusy(true);
+    setBulkError("");
     try {
-      await createPlacement({
-        studentId,
+      await createPlacementsBulk({
+        studentIds: selectedStudents,
+        periodId,
         companyId,
-        teacherSupervisorId: teacherSupervisorId || null,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        teacherSupervisorId: teacherId || null,
+        dudiMentorId: mentorId || null,
+        startDate: selectedPeriod ? isoDate(selectedPeriod.startDate) : null,
+        endDate: selectedPeriod ? isoDate(selectedPeriod.endDate) : null,
+        notes: notes || null,
       });
-      setModalOpen(false);
-      await refetch();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Gagal melakukan plotting penempatan.");
+      setSelectedStudents([]);
+      setNotes("");
+      await workspace.refetch();
+    } catch (error: any) {
+      setBulkError(error?.message || "Penempatan belum berhasil dibuat.");
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   };
 
-  const handleStatusChange = async (
-    id: string,
-    newStatus: "ACTIVE" | "COMPLETED" | "CANCELED"
-  ) => {
+  const [readiness, setReadiness] = useState<any>(null);
+  const [readinessOpen, setReadinessOpen] = useState(false);
+  const [rowBusy, setRowBusy] = useState("");
+  const checkReadiness = async (id: string) => {
+    setRowBusy(id);
     try {
-      await updatePlacement({ id, status: newStatus });
-      await refetch();
-    } catch (err: any) {
-      alert(err.message || "Gagal memperbarui status penempatan.");
+      const result = await getPlacementReadiness({ id });
+      setReadiness(result);
+      setReadinessOpen(true);
+    } catch (error: any) {
+      alert(error?.message || "Readiness belum dapat diperiksa.");
+    } finally {
+      setRowBusy("");
+    }
+  };
+  const activate = async (id: string) => {
+    setRowBusy(id);
+    try {
+      await activatePlacement({ id });
+      await workspace.refetch();
+      const result = await getPlacementReadiness({ id });
+      setReadiness(result);
+      setReadinessOpen(true);
+    } catch (error: any) {
+      alert(error?.message || "Penempatan belum dapat diaktifkan.");
+    } finally {
+      setRowBusy("");
     }
   };
 
-  const studentOptions = [
-    { value: "", label: "Pilih Siswa yang Belum Plotting" },
-    ...(unplacedStudents?.map((s) => ({
-      value: s.id,
-      label: `${s.name} (${s.classRoom?.name || "Tanpa Kelas"}) - NIS: ${
-        s.studentProfile?.nis || "-"
-      }`,
-    })) || []),
-  ];
-
-  const companyOptions = [
-    { value: "", label: "Pilih Perusahaan Mitra" },
-    ...(companies?.map((c) => ({
-      value: c.id,
-      label: `${c.name} (Sisa Kuota: ${
-        c.maxQuota - (c.placements?.length || 0)
-      } siswa)`,
-    })) || []),
-  ];
-
-  const teacherOptions = [
-    { value: "", label: "Tanpa Pembimbing (Pilih Nanti)" },
-    ...(teachers?.map((t) => ({
-      value: t.id,
-      label: `${t.name || t.email}${
-        t.teacherProfile?.title ? ` (${t.teacherProfile.title})` : ""
-      }`,
-    })) || []),
-  ];
-
-  const filteredPlacements = placements?.filter((p) => {
-    if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchStudent =
-        p.student?.name?.toLowerCase().includes(q) ||
-        p.student?.studentProfile?.nis?.toLowerCase().includes(q);
-      const matchCompany = p.company?.name?.toLowerCase().includes(q);
-      const matchTeacher = p.teacherSupervisor?.name
-        ?.toLowerCase()
-        .includes(q);
-      return matchStudent || matchCompany || matchTeacher;
+  const [editRow, setEditRow] = useState<any>(null);
+  const [editTeacher, setEditTeacher] = useState("");
+  const [editMentor, setEditMentor] = useState("");
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const openEdit = (row: any) => {
+    setEditRow(row);
+    setEditTeacher(row.teacherSupervisorId || "");
+    setEditMentor(row.dudiMentorId || "");
+    setEditStart(isoDate(row.startDate));
+    setEditEnd(isoDate(row.endDate));
+    setEditNotes(row.notes || "");
+  };
+  const saveEdit = async () => {
+    if (!editRow) return;
+    setBusy(true);
+    try {
+      await updatePlacementGen2({
+        id: editRow.id,
+        teacherSupervisorId: editTeacher || null,
+        dudiMentorId: editMentor || null,
+        startDate: editStart,
+        endDate: editEnd,
+        notes: editNotes || null,
+      });
+      setEditRow(null);
+      await workspace.refetch();
+    } catch (error: any) {
+      alert(error?.message || "Penempatan belum dapat diperbarui.");
+    } finally {
+      setBusy(false);
     }
-    return true;
-  });
+  };
 
-  const totalItems = filteredPlacements?.length || 0;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const [transferRow, setTransferRow] = useState<any>(null);
+  const [targetCompanyId, setTargetCompanyId] = useState("");
+  const [targetMentorId, setTargetMentorId] = useState("");
+  const [transferReason, setTransferReason] = useState("");
+  const transferCompanies = useMemo(() => companies.filter((company: any) => {
+    const accepts = company.departmentLinks?.some((link: any) => link.departmentId === transferRow?.departmentId);
+    const cap = company.pklCapacities?.find((row: any) => row.periodId === transferRow?.pklPeriodId && row.departmentId === transferRow?.departmentId);
+    return accepts && cap && cap.remaining > 0;
+  }), [companies, transferRow]);
+  const transferMentors = mentors.filter((mentor: any) => mentor.companyId === targetCompanyId && mentor.isActive);
+  const openTransfer = (row: any) => {
+    setTransferRow(row);
+    const first = transferCompanies.find((company: any) => company.id !== row.companyId) || transferCompanies[0];
+    setTargetCompanyId(first?.id || "");
+    setTargetMentorId("");
+    setTransferReason("");
+  };
+  const submitTransfer = async () => {
+    if (!transferRow || !targetCompanyId || transferReason.trim().length < 5) return;
+    setBusy(true);
+    try {
+      await transferPlacement({
+        id: transferRow.id,
+        targetCompanyId,
+        targetMentorId: targetMentorId || null,
+        reason: transferReason,
+      });
+      setTransferRow(null);
+      await workspace.refetch();
+    } catch (error: any) {
+      alert(error?.message || "Perpindahan DUDI belum berhasil.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  const paginatedPlacements = (filteredPlacements || []).slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyRow, setHistoryRow] = useState<any>(null);
+  const openHistory = async (row: any) => {
+    setRowBusy(row.id);
+    try {
+      setHistory(await getPlacementHistory({ id: row.id }));
+      setHistoryRow(row);
+    } finally {
+      setRowBusy("");
+    }
+  };
 
-  const statusOptions = [
-    { value: "ALL", label: "Semua Status" },
-    { value: "ACTIVE", label: "Aktif" },
-    { value: "COMPLETED", label: "Selesai" },
-    { value: "CANCELED", label: "Batal" },
-  ];
+  const finalize = async (row: any, status: "COMPLETED" | "CANCELED") => {
+    const reason = window.prompt(status === "CANCELED" ? "Alasan pembatalan:" : "Catatan penyelesaian (opsional):") || "";
+    if (status === "CANCELED" && reason.trim().length < 3) return;
+    setRowBusy(row.id);
+    try {
+      await finalizePlacement({ id: row.id, status, reason: reason || null });
+      await workspace.refetch();
+    } catch (error: any) {
+      alert(error?.message || "Status belum dapat diperbarui.");
+    } finally {
+      setRowBusy("");
+    }
+  };
 
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>E-PKL</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Plotting &amp; Penempatan
-          </span>
-        </div>
+        <header>
+          <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-md-primary">PKL Gen2</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-[-.02em] text-md-on-surface">Workspace Penempatan PKL</h1>
+          <p className="mt-1 text-sm text-md-on-surface-variant">Plotting berbasis periode, konsentrasi, kuota DUDI, Guru Pembimbing, dan Pembimbing DUDI.</p>
+        </header>
 
-        {/* Header Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-medium text-md-on-surface">
-              Penempatan Siswa PKL
-            </h2>
-            <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
-              Penugasan siswa ke perusahaan mitra dan guru pembimbing.
-            </p>
-          </div>
-          <M3Button
-            variant="filled"
-            size="md"
-            icon="add"
-            onClick={openAddModal}
-          >
-            Plotting Siswa Baru
-          </M3Button>
-        </div>
-
-        {/* Search & Status Filter Toolbar */}
-        <M3Card variant="outlined" className="p-3">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="flex-1 w-full">
-              <M3TextField
-                placeholder="Cari nama siswa, NIS, mitra, atau pembimbing..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                leadingIcon={<M3Icon name="search" size={18} />}
-                size="sm"
-              />
+        <M3Card variant="outlined" className="p-4">
+          <div className="grid gap-3 lg:grid-cols-4">
+            <M3Select label="Periode PKL" value={periodId} onChange={(e) => { setPeriodId(e.target.value); setSelectedStudents([]); }} options={[{ value: "", label: "Pilih periode" }, ...periods.map((p: any) => ({ value: p.id, label: p.name }))]} />
+            <M3Select label="Konsentrasi" value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setSelectedStudents([]); }} options={[{ value: "", label: "Pilih konsentrasi" }, ...departments.map((d: any) => ({ value: d.id, label: d.code + " · " + d.name }))]} />
+            <M3Select label="Mitra DUDI" value={companyId} onChange={(e) => { setCompanyId(e.target.value); setMentorId(""); }} options={[{ value: "", label: "Pilih DUDI" }, ...eligibleCompanies.map((c: any) => {
+              const cap = c.pklCapacities.find((row: any) => row.periodId === periodId && row.departmentId === departmentId);
+              return { value: c.id, label: `${c.name} · sisa ${cap?.remaining ?? 0}/${cap?.quota ?? 0}` };
+            })]} />
+            <div className="rounded-[12px] bg-md-surface-container px-3 py-2">
+              <p className="text-[10.5px] uppercase text-md-on-surface-variant">Sisa kuota terpilih</p>
+              <p className="mt-1 text-xl font-semibold">{remaining}</p>
             </div>
-
-            <div className="w-full sm:w-48">
-              <M3Select
-                options={statusOptions}
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                size="sm"
-              />
-            </div>
-
-            <M3Badge variant="secondary" size="md">
-              {totalItems} Penempatan
-            </M3Badge>
           </div>
         </M3Card>
 
-        {/* Content Section */}
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[300px]">
-            <M3CircularProgress size={40} />
-          </div>
-        ) : filteredPlacements?.length === 0 ? (
-          <M3Banner
-            variant="standard"
-            headline="Belum Ada Data Penempatan Siswa"
-            supportingText="Lakukan penempatan siswa ke perusahaan mitra untuk memulai pemantauan presensi dan jurnal."
-            actionLabel="Plotting Siswa Pertama"
-            onAction={openAddModal}
-            icon="work"
-            className="p-6"
-          />
-        ) : (
-          <div className="space-y-4">
-            <M3Table>
-              <M3TableHeader>
-                <M3TableRow>
-                  <M3TableHead>Siswa &amp; Kelas</M3TableHead>
-                  <M3TableHead>Mitra DUDI</M3TableHead>
-                  <M3TableHead>Guru Pembimbing</M3TableHead>
-                  <M3TableHead>Periode PKL</M3TableHead>
-                  <M3TableHead>Status</M3TableHead>
-                  <M3TableHead className="text-right">Aksi</M3TableHead>
-                </M3TableRow>
-              </M3TableHeader>
-              <M3TableBody>
-                {paginatedPlacements.map((p) => {
-                  const sDate = new Date(p.startDate).toLocaleDateString(
-                    "id-ID",
-                    {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }
-                  );
-                  const eDate = new Date(p.endDate).toLocaleDateString(
-                    "id-ID",
-                    {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }
-                  );
+        {bulkError && <M3Banner variant="error" supportingText={bulkError} dismissible onDismiss={() => setBulkError("")} />}
 
-                  return (
-                    <M3TableRow key={p.id}>
-                      <M3TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-md-on-surface">
-                            {p.student?.name}
-                          </span>
-                          <span className="text-xs text-md-on-surface-variant font-mono">
-                            {p.student?.classRoom?.name || "Kelas -"} • NIS:{" "}
-                            {p.student?.studentProfile?.nis || "-"}
-                          </span>
-                        </div>
-                      </M3TableCell>
-
-                      <M3TableCell>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1">
-                            <M3Icon name="apartment" size={14} className="text-md-primary shrink-0" />
-                            <span className="font-semibold text-md-primary">
-                              {p.company?.name}
-                            </span>
-                          </div>
-                          <span className="text-xs text-md-on-surface-variant line-clamp-1 max-w-[200px]">
-                            {p.company?.address}
-                          </span>
-                        </div>
-                      </M3TableCell>
-
-                      <M3TableCell>
-                        {p.teacherSupervisor?.name ? (
-                          <div className="flex items-center gap-1 text-sm text-md-on-surface">
-                            <M3Icon name="person" size={14} className="opacity-70 shrink-0" />
-                            <span>{p.teacherSupervisor.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-md-on-surface-variant italic">
-                            Belum Ditugaskan
-                          </span>
-                        )}
-                      </M3TableCell>
-
-                      <M3TableCell>
-                        <div className="flex items-center gap-1.5 text-xs text-md-on-surface-variant font-mono">
-                          <M3Icon name="calendar_today" size={14} className="opacity-70 shrink-0" />
-                          <span>
-                            {sDate} s.d. {eDate}
-                          </span>
-                        </div>
-                      </M3TableCell>
-
-                      <M3TableCell>
-                        {p.status === "ACTIVE" && (
-                          <M3Badge variant="success" size="sm">
-                            Aktif
-                          </M3Badge>
-                        )}
-                        {p.status === "COMPLETED" && (
-                          <M3Badge variant="primary" size="sm">
-                            Selesai
-                          </M3Badge>
-                        )}
-                        {p.status === "CANCELED" && (
-                          <M3Badge variant="error" size="sm">
-                            Batal
-                          </M3Badge>
-                        )}
-                      </M3TableCell>
-
-                      <M3TableCell className="text-right">
-                        {p.status === "ACTIVE" && (
-                          <div className="flex items-center justify-end gap-1">
-                            <M3Button
-                              variant="tonal"
-                              size="sm"
-                              icon="check_circle"
-                              onClick={() =>
-                                handleStatusChange(p.id, "COMPLETED")
-                              }
-                            >
-                              Selesai
-                            </M3Button>
-                            <M3Button
-                              variant="outlined"
-                              size="sm"
-                              icon="cancel"
-                              onClick={() =>
-                                handleStatusChange(p.id, "CANCELED")
-                              }
-                            >
-                              Batal
-                            </M3Button>
-                          </div>
-                        )}
-                      </M3TableCell>
-                    </M3TableRow>
-                  );
-                })}
-              </M3TableBody>
-            </M3Table>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-2 pt-2">
-                <p className="text-xs text-md-on-surface-variant">
-                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
-                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} penempatan
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <M3Button
-                    variant="tonal"
-                    size="sm"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    icon="chevron_left"
-                  >
-                    Sebelumnya
-                  </M3Button>
-                  <span className="text-xs px-2 text-md-on-surface font-medium">
-                    Hal {currentPage} / {totalPages}
-                  </span>
-                  <M3Button
-                    variant="tonal"
-                    size="sm"
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    trailingIcon="chevron_right"
-                  >
-                    Selanjutnya
-                  </M3Button>
-                </div>
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+          <M3Card variant="outlined" className="overflow-hidden">
+            <div className="flex items-center justify-between border-b border-md-outline-variant/35 p-4">
+              <div>
+                <h2 className="text-[15px] font-semibold">Siswa belum ditempatkan</h2>
+                <p className="text-[11.5px] text-md-on-surface-variant">{unplacedStudents.length} siswa · pilih maksimal sesuai sisa kuota.</p>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Dialog Add Placement */}
-        <M3Dialog
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          title="Plotting Penempatan PKL Siswa"
-          subtitle="Pilih siswa, tempat DUDI mitra, dan periode tanggal pelaksanaan PKL."
-          icon={<M3Icon name="work" size={24} className="text-md-primary" />}
-          actions={
-            <>
-              <M3Button
-                variant="text"
-                size="sm"
-                onClick={() => setModalOpen(false)}
-              >
-                Batal
-              </M3Button>
-              <M3Button
-                variant="filled"
-                size="sm"
-                onClick={handleSubmit}
-                isLoading={submitting}
-              >
-                Simpan Penempatan
-              </M3Button>
-            </>
-          }
-        >
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {errorMsg && (
-              <M3Banner
-                variant="error"
-                supportingText={errorMsg}
-                dismissible
-                onDismiss={() => setErrorMsg("")}
-              />
-            )}
-
-            <M3Select
-              label="Pilih Siswa *"
-              options={studentOptions}
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-            />
-
-            <M3Select
-              label="Pilih Mitra DUDI / Tempat PKL *"
-              options={companyOptions}
-              value={companyId}
-              onChange={(e) => setCompanyId(e.target.value)}
-            />
-
-            <M3Select
-              label="Guru Pembimbing Sekolah (Opsional)"
-              options={teacherOptions}
-              value={teacherSupervisorId}
-              onChange={(e) => setTeacherSupervisorId(e.target.value)}
-            />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <M3TextField
-                label="Tanggal Mulai *"
-                placeholder="YYYY-MM-DD"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-              />
-              <M3TextField
-                label="Tanggal Selesai *"
-                placeholder="YYYY-MM-DD"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-              />
+              <M3Button variant="text" size="sm" onClick={toggleAll} disabled={!unplacedStudents.length || remaining < 1}>{selectedStudents.length ? "Bersihkan" : "Pilih sesuai kuota"}</M3Button>
             </div>
-          </form>
+            <div className="max-h-[430px] divide-y divide-md-outline-variant/25 overflow-y-auto">
+              {unplacedStudents.length === 0 ? (
+                <div className="p-5 text-sm text-md-on-surface-variant">Tidak ada siswa tersedia pada filter ini.</div>
+              ) : unplacedStudents.map((student: any) => (
+                <label key={student.id} className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-black/[.025] dark:hover:bg-white/[.04]">
+                  <input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudent(student.id)} disabled={!selectedStudents.includes(student.id) && selectedStudents.length >= remaining} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold">{student.name}</p>
+                    <p className="text-[11px] text-md-on-surface-variant">{student.classRoom?.name || "Tanpa rombel"} · NIS {student.studentProfile?.nis || "-"}</p>
+                  </div>
+                  <M3Badge variant="outline" size="sm">{student.classRoom?.department?.code || "-"}</M3Badge>
+                </label>
+              ))}
+            </div>
+          </M3Card>
+
+          <M3Card variant="outlined" className="p-4">
+            <h2 className="text-[15px] font-semibold">Konfigurasi plotting</h2>
+            <div className="mt-4 space-y-3">
+              <M3Select label="Guru Pembimbing" value={teacherId} onChange={(e) => setTeacherId(e.target.value)} options={[{ value: "", label: "Tetapkan nanti" }, ...teachers.map((t: any) => ({ value: t.id, label: t.name || "Guru" }))]} />
+              <M3Select label="Pembimbing DUDI" value={mentorId} onChange={(e) => setMentorId(e.target.value)} options={[{ value: "", label: "Tetapkan nanti" }, ...eligibleMentors.map((m: any) => ({ value: m.userId, label: m.user.name || "Pembimbing DUDI" }))]} />
+              <M3TextField label="Mulai" type="date" value={selectedPeriod ? isoDate(selectedPeriod.startDate) : ""} disabled />
+              <M3TextField label="Selesai" type="date" value={selectedPeriod ? isoDate(selectedPeriod.endDate) : ""} disabled />
+              <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Catatan plotting (opsional)" className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm" />
+              <M3Button fullWidth variant="filled" icon="group_add" onClick={createBulk} isLoading={busy} disabled={!selectedStudents.length || !companyId}>
+                Buat {selectedStudents.length || 0} Penempatan PLANNED
+              </M3Button>
+              <p className="text-[10.5px] leading-5 text-md-on-surface-variant">Penempatan baru berstatus <strong>PLANNED</strong>. Aktivasi baru dapat dilakukan setelah semua blocker readiness selesai.</p>
+            </div>
+          </M3Card>
+        </div>
+
+        <M3Card variant="outlined" className="overflow-hidden">
+          <div className="border-b border-md-outline-variant/35 p-4">
+            <h2 className="text-[15px] font-semibold">Penempatan pada filter</h2>
+            <p className="text-[11.5px] text-md-on-surface-variant">{placements.length} record</p>
+          </div>
+          {workspace.isLoading ? <div className="flex min-h-[220px] items-center justify-center"><M3CircularProgress size={34} /></div> : placements.length === 0 ? (
+            <div className="p-6 text-sm text-md-on-surface-variant">Belum ada penempatan PKL pada periode/konsentrasi ini.</div>
+          ) : (
+            <div className="divide-y divide-md-outline-variant/25">
+              {placements.map((row: any) => {
+                const meta = statusMeta[row.status] || { label: row.status, variant: "outline" };
+                return (
+                  <div key={row.id} className="p-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">{row.student?.name}</p>
+                          <M3Badge variant={meta.variant} size="sm">{meta.label}</M3Badge>
+                          <M3Badge variant="outline" size="sm">{row.department?.code || row.student?.classRoom?.department?.code || "-"}</M3Badge>
+                        </div>
+                        <p className="mt-1 text-[11.5px] text-md-on-surface-variant">{row.company?.name} · {row.pklPeriod?.name || "Tanpa periode"} · {row.student?.classRoom?.name || "-"}</p>
+                        <p className="mt-1 text-[11px] text-md-on-surface-variant">Guru: {row.teacherSupervisor?.name || "belum"} · DUDI: {row.dudiMentor?.name || "belum"} · {isoDate(row.startDate)}–{isoDate(row.endDate)}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <M3Button variant="tonal" size="sm" icon="fact_check" loading={rowBusy === row.id} onClick={() => checkReadiness(row.id)}>Readiness</M3Button>
+                        {row.status === "PLANNED" && <M3Button variant="filled" size="sm" icon="play_arrow" loading={rowBusy === row.id} onClick={() => activate(row.id)}>Aktifkan</M3Button>}
+                        {["PLANNED","ACTIVE"].includes(row.status) && <M3Button variant="text" size="sm" icon="edit" onClick={() => openEdit(row)}>Edit</M3Button>}
+                        {["PLANNED","ACTIVE"].includes(row.status) && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => openTransfer(row)}>Pindah</M3Button>}
+                        <M3Button variant="icon" size="icon-sm" icon="history" aria-label="Histori" onClick={() => openHistory(row)} />
+                        {row.status === "ACTIVE" && <M3Button variant="text" size="sm" onClick={() => finalize(row, "COMPLETED")}>Selesai</M3Button>}
+                        {["PLANNED","ACTIVE"].includes(row.status) && <M3Button variant="text" size="sm" onClick={() => finalize(row, "CANCELED")}>Batal</M3Button>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </M3Card>
+
+        <M3Dialog isOpen={readinessOpen} onClose={() => setReadinessOpen(false)} title="PKL Readiness Check" subtitle={readiness?.placement?.student?.name || ""} maxWidth="lg">
+          {readiness && <div className="space-y-3">
+            <M3Banner variant={readiness.ready ? "success" : "warning"} headline={readiness.ready ? "Siap diaktifkan" : "Belum siap diaktifkan"} supportingText={readiness.ready ? "Semua blocker readiness terpenuhi." : `${readiness.blockers.length} blocker harus diselesaikan.`} />
+            <div className="divide-y divide-md-outline-variant/30 rounded-[12px] border border-md-outline-variant/50">
+              {readiness.items.map((item: any) => <div key={item.code} className="flex items-start gap-3 p-3">
+                <M3Icon name={item.ok ? "check_circle" : item.severity === "BLOCKER" ? "error" : "warning"} size={19} className={item.ok ? "text-green-600" : item.severity === "BLOCKER" ? "text-md-error" : "text-amber-600"} />
+                <div><p className="text-sm font-semibold">{item.label}</p><p className="text-[11.5px] text-md-on-surface-variant">{item.detail}</p></div>
+              </div>)}
+            </div>
+          </div>}
+        </M3Dialog>
+
+        <M3Dialog isOpen={!!editRow} onClose={() => setEditRow(null)} title="Edit Penempatan" actions={<><M3Button variant="text" size="sm" onClick={() => setEditRow(null)}>Batal</M3Button><M3Button variant="filled" size="sm" onClick={saveEdit} isLoading={busy}>Simpan</M3Button></>}>
+          <div className="space-y-3">
+            <M3Select label="Guru Pembimbing" value={editTeacher} onChange={(e) => setEditTeacher(e.target.value)} options={[{ value: "", label: "Belum ditetapkan" }, ...teachers.map((t: any) => ({ value: t.id, label: t.name || "Guru" }))]} />
+            <M3Select label="Pembimbing DUDI" value={editMentor} onChange={(e) => setEditMentor(e.target.value)} options={[{ value: "", label: "Belum ditetapkan" }, ...mentors.filter((m: any) => m.companyId === editRow?.companyId).map((m: any) => ({ value: m.userId, label: m.user.name || "Pembimbing" }))]} />
+            <div className="grid gap-3 sm:grid-cols-2"><M3TextField label="Mulai" type="date" value={editStart} onChange={(e) => setEditStart(e.target.value)} /><M3TextField label="Selesai" type="date" value={editEnd} onChange={(e) => setEditEnd(e.target.value)} /></div>
+            <textarea rows={3} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Catatan" className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm" />
+          </div>
+        </M3Dialog>
+
+        <M3Dialog isOpen={!!transferRow} onClose={() => setTransferRow(null)} title="Pindah Mitra DUDI" subtitle="Riwayat perpindahan disimpan permanen." actions={<><M3Button variant="text" size="sm" onClick={() => setTransferRow(null)}>Batal</M3Button><M3Button variant="filled" size="sm" onClick={submitTransfer} isLoading={busy}>Pindahkan</M3Button></>}>
+          <div className="space-y-3">
+            <M3Select label="DUDI Tujuan" value={targetCompanyId} onChange={(e) => { setTargetCompanyId(e.target.value); setTargetMentorId(""); }} options={[{ value: "", label: "Pilih DUDI" }, ...transferCompanies.map((c: any) => ({ value: c.id, label: c.name }))]} />
+            <M3Select label="Pembimbing DUDI Baru" value={targetMentorId} onChange={(e) => setTargetMentorId(e.target.value)} options={[{ value: "", label: "Tetapkan nanti" }, ...transferMentors.map((m: any) => ({ value: m.userId, label: m.user.name || "Pembimbing" }))]} />
+            <textarea rows={3} value={transferReason} onChange={(e) => setTransferReason(e.target.value)} placeholder="Alasan perpindahan wajib diisi..." className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm" />
+          </div>
+        </M3Dialog>
+
+        <M3Dialog isOpen={!!historyRow} onClose={() => setHistoryRow(null)} title="Histori Penempatan" subtitle={historyRow?.student?.name || ""} maxWidth="lg">
+          <div className="space-y-2">
+            {history.length === 0 ? <p className="text-sm text-md-on-surface-variant">Belum ada event histori.</p> : history.map((event: any) => <div key={event.id} className="rounded-[10px] border border-md-outline-variant/50 p-3">
+              <div className="flex justify-between gap-3"><strong className="text-sm">{event.eventType}</strong><span className="text-[10.5px] text-md-on-surface-variant">{new Date(event.createdAt).toLocaleString("id-ID")}</span></div>
+              {event.reason && <p className="mt-1 text-[11.5px] text-md-on-surface-variant">{event.reason}</p>}
+            </div>)}
+          </div>
         </M3Dialog>
       </div>
     </SchoolLayout>

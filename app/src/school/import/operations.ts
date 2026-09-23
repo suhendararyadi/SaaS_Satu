@@ -2,6 +2,7 @@ import { HttpError, prisma } from "wasp/server";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../../server/validation";
+import { parseWakasekRolesText } from "../wakasek";
 import { requireSchoolAdmin } from "../authGuards";
 import { parseCsv, extractValue } from "./csvParser";
 
@@ -52,6 +53,12 @@ export const importStudentsFromCsv = async (
   for (const c of classes) {
     classMap.set(c.name.toLowerCase().trim(), c.id);
   }
+  if (
+    args.defaultClassRoomId &&
+    !classes.some((classRoom) => classRoom.id === args.defaultClassRoomId)
+  ) {
+    throw new HttpError(400, "Rombel default tidak terdaftar pada sekolah aktif.");
+  }
 
   let successCount = 0;
   let failedCount = 0;
@@ -70,10 +77,14 @@ export const importStudentsFromCsv = async (
 
     const nis = extractValue(row, ["nis", "noinduk", "nomorinduk"]) || null;
     const nisn = extractValue(row, ["nisn", "nomorinduksiswanasional"]) || null;
-    let gender = extractValue(row, ["gender", "jk", "jeniskelamin", "lp"]).toUpperCase();
-    if (gender.startsWith("L")) gender = "L";
-    else if (gender.startsWith("P")) gender = "P";
-    else gender = "L";
+    const rawGender = extractValue(row, ["gender", "jk", "jeniskelamin", "lp"])
+      .trim()
+      .toUpperCase();
+    const gender = rawGender.startsWith("L")
+      ? "L"
+      : rawGender.startsWith("P")
+        ? "P"
+        : null;
 
     // Class matching
     const className = extractValue(row, ["kelas", "rombel", "rombelsaatini"]);
@@ -104,53 +115,37 @@ export const importStudentsFromCsv = async (
           );
         }
 
-        // Update user
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            name,
-            role: "STUDENT",
-            schoolId: admin.schoolId,
-            classRoomId: matchedClassId,
-          },
-        });
-
-        await prisma.studentProfile.upsert({
-          where: { userId: existingUser.id },
-          create: {
-            userId: existingUser.id,
-            nis,
-            nisn,
-            gender,
-            status: "ACTIVE",
-          },
-          update: {
-            nis: nis ?? undefined,
-            nisn: nisn ?? undefined,
-            gender,
-          },
+        await prisma.$transaction(async (tx) => {
+          await tx.user.update({
+            where: { id: existingUser.id },
+            data: {
+              name,
+              role: "STUDENT",
+              schoolId: admin.schoolId,
+              classRoomId: matchedClassId,
+            },
+          });
+          await tx.studentProfile.upsert({
+            where: { userId: existingUser.id },
+            create: { userId: existingUser.id, nis, nisn, gender, status: "ACTIVE" },
+            update: { nis: nis ?? undefined, nisn: nisn ?? undefined, gender },
+          });
         });
       } else {
-        // Create new student
-        const newUser = await prisma.user.create({
-          data: {
-            name,
-            email,
-            username,
-            role: "STUDENT",
-            schoolId: admin.schoolId,
-            classRoomId: matchedClassId,
-          },
-        });
-
-        await prisma.studentProfile.create({
-          data: {
-            userId: newUser.id,
-            nis,
-            nisn,
-            gender,
-            status: "ACTIVE",
-          },
+        await prisma.$transaction(async (tx) => {
+          const newUser = await tx.user.create({
+            data: {
+              name,
+              email,
+              username,
+              role: "STUDENT",
+              schoolId: admin.schoolId,
+              classRoomId: matchedClassId,
+            },
+          });
+          await tx.studentProfile.create({
+            data: { userId: newUser.id, nis, nisn, gender, status: "ACTIVE" },
+          });
         });
       }
 
@@ -207,8 +202,9 @@ export const importTeachersFromCsv = async (
     const nip = extractValue(row, ["nip", "nonip"]) || null;
     const title = extractValue(row, ["gelar", "title"]) || null;
     const phone = extractValue(row, ["hp", "telepon", "phone", "nohp"]) || null;
-    const rawWaka = extractValue(row, ["iswaka", "waka"]).toLowerCase();
-    const isWaka = rawWaka === "ya" || rawWaka === "true" || rawWaka === "1";
+    const rawWaka = extractValue(row, ["wakasekroles", "bidangwakasek", "waka", "iswaka"]);
+    const wakasekRoles = parseWakasekRolesText(rawWaka);
+    const isWaka = wakasekRoles.includes("KURIKULUM");
 
     const email =
       extractValue(row, ["email"]) ||
@@ -230,50 +226,48 @@ export const importTeachersFromCsv = async (
           );
         }
 
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            name,
-            role: "TEACHER",
-            schoolId: admin.schoolId,
-          },
-        });
-
-        await prisma.teacherProfile.upsert({
-          where: { userId: existingUser.id },
-          create: {
-            userId: existingUser.id,
-            nip,
-            title,
-            phone,
-            isWaka,
-          },
-          update: {
-            nip: nip ?? undefined,
-            title: title ?? undefined,
-            phone: phone ?? undefined,
-            isWaka,
-          },
+        await prisma.$transaction(async (tx) => {
+          await tx.user.update({
+            where: { id: existingUser.id },
+            data: { name, role: "TEACHER", schoolId: admin.schoolId },
+          });
+          await tx.teacherProfile.upsert({
+            where: { userId: existingUser.id },
+            create: { userId: existingUser.id, nip, title, phone, isWaka },
+            update: { nip: nip ?? undefined, title: title ?? undefined, phone: phone ?? undefined, isWaka },
+          });
+          await tx.wakasekAssignment.deleteMany({
+            where: { schoolId: admin.schoolId, teacherId: existingUser.id },
+          });
+          if (wakasekRoles.length) {
+            await tx.wakasekAssignment.createMany({
+              data: wakasekRoles.map((role) => ({
+                schoolId: admin.schoolId,
+                teacherId: existingUser.id,
+                role,
+              })),
+              skipDuplicates: true,
+            });
+          }
         });
       } else {
-        const newUser = await prisma.user.create({
-          data: {
-            name,
-            email,
-            username,
-            role: "TEACHER",
-            schoolId: admin.schoolId,
-          },
-        });
-
-        await prisma.teacherProfile.create({
-          data: {
-            userId: newUser.id,
-            nip,
-            title,
-            phone,
-            isWaka,
-          },
+        await prisma.$transaction(async (tx) => {
+          const newUser = await tx.user.create({
+            data: { name, email, username, role: "TEACHER", schoolId: admin.schoolId },
+          });
+          await tx.teacherProfile.create({
+            data: { userId: newUser.id, nip, title, phone, isWaka },
+          });
+          if (wakasekRoles.length) {
+            await tx.wakasekAssignment.createMany({
+              data: wakasekRoles.map((role) => ({
+                schoolId: admin.schoolId,
+                teacherId: newUser.id,
+                role,
+              })),
+              skipDuplicates: true,
+            });
+          }
         });
       }
 

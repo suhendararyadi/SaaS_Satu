@@ -10,13 +10,15 @@ export const paymentProcessorPlanIds = {
   [PaymentPlanId.Hobby]: env.PAYMENTS_HOBBY_SUBSCRIPTION_PLAN_ID,
   [PaymentPlanId.Pro]: env.PAYMENTS_PRO_SUBSCRIPTION_PLAN_ID,
   [PaymentPlanId.Credits10]: env.PAYMENTS_CREDITS_10_PLAN_ID,
-} as const satisfies Record<PaymentPlanId, string>;
+} as const satisfies Record<PaymentPlanId, string | undefined>;
 
 /**
  * Returns your payment processor plan ID for a given Open SaaS `PaymentPlan`.
  */
 export function getPaymentProcessorPlanId(paymentPlan: PaymentPlan): string {
-  return paymentProcessorPlanIds[paymentPlan.id];
+  const processorPlanId = paymentProcessorPlanIds[paymentPlan.id];
+  if (!processorPlanId) throw new Error("Payment plan is not configured");
+  return processorPlanId;
 }
 
 /**

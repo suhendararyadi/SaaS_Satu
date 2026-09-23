@@ -1,513 +1,153 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { type AuthUser } from "wasp/auth";
-import { Link } from "react-router";
+import { api } from "wasp/client/api";
 import {
-  useQuery,
   getDailyJournals,
+  getPklEvidenceSignedUrl,
   getPlacements,
-  createDailyJournal,
-  reviewDailyJournal,
+  reviewDailyJournalGen2,
+  saveDailyJournalGen2,
+  useQuery,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
-  M3Card,
-  M3Button,
-  M3TextField,
-  M3Select,
-  M3Dialog,
   M3Badge,
+  M3Button,
+  M3Card,
   M3CircularProgress,
-  M3Banner,
-  M3Text,
-  M3Icon,
+  M3Dialog,
+  M3Select,
+  M3TextField,
 } from "../../client/components/m3";
+import { PklEvidenceUploader } from "../components/PklEvidenceUploader";
 
+function todayJakarta(){
+  return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+}
+const statusVariant:Record<string,any>={DRAFT:"secondary",SUBMITTED:"primary",APPROVED:"success",REVISION:"warning"};
 
 export function JournalsPage({ user }: { user: AuthUser }) {
-  const { data: placements } = useQuery(getPlacements);
-  const { data: journals, isLoading, refetch } = useQuery(getDailyJournals);
+  const placementsQ=useQuery(getPlacements);
+  const journalsQ=useQuery(getDailyJournals);
+  const placements:any[]=placementsQ.data||[];
+  const journals:any[]=journalsQ.data||[];
+  const isStudent=user.role==="STUDENT"&&!user.isAdmin;
+  const canReview=user.role==="TEACHER"||user.role==="DUDI_MENTOR"||user.role==="SCHOOL_ADMIN"||user.isAdmin;
+  const activePlacement=placements.find((p:any)=>p.status==="ACTIVE");
 
-  const activePlacement = placements?.find((p) => p.status === "ACTIVE");
+  const [dateOnly,setDateOnly]=useState(todayJakarta());
+  const [activity,setActivity]=useState("");
+  const [obstacle,setObstacle]=useState("");
+  const [competencies,setCompetencies]=useState("");
+  const [reflection,setReflection]=useState("");
+  const [evidence,setEvidence]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
+  const [evidencePreviewOpen,setEvidencePreviewOpen]=useState(false);
+  const [evidencePreviewUrl,setEvidencePreviewUrl]=useState<string|null>(null);
+  const [evidencePreviewLoading,setEvidencePreviewLoading]=useState(false);
+  const [evidencePreviewRow,setEvidencePreviewRow]=useState<any>(null);
 
-  // Add journal modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [activityDescription, setActivityDescription] = useState("");
-  const [obstacleDescription, setObstacleDescription] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [createErrorMsg, setCreateErrorMsg] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const existingForDate=useMemo(()=>journals.find((j:any)=>j.placementId===activePlacement?.id&&(j.dateOnly||String(j.date).slice(0,10))===dateOnly),[journals,activePlacement,dateOnly]);
 
-  // Review modal state (for teachers)
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [selectedJournal, setSelectedJournal] = useState<any>(null);
-  const [reviewStatus, setReviewStatus] = useState<string>("APPROVED");
-  const [score, setScore] = useState<number>(85);
-  const [feedback, setFeedback] = useState("");
-  const [reviewErrorMsg, setReviewErrorMsg] = useState("");
-  const [reviewing, setReviewing] = useState(false);
+  const loadJournal=(row:any)=>{
+    setEditingId(row.id); setDateOnly(row.dateOnly||String(row.date).slice(0,10)); setActivity(row.activityDescription||""); setObstacle(row.obstacleDescription||""); setCompetencies(row.competencies||""); setReflection(row.reflection||""); setEvidence(row.evidenceUrl||row.photoUrl||"");
+  };
+  const clearForm=()=>{setEditingId(null);setDateOnly(todayJakarta());setActivity("");setObstacle("");setCompetencies("");setReflection("");setEvidence("");};
 
-  // Filters & Pagination
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
-
-  const handleCreateJournal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activePlacement) return;
-    if (!activityDescription.trim()) {
-      setCreateErrorMsg("Deskripsi kegiatan wajib diisi.");
-      return;
-    }
-    setCreateErrorMsg("");
-    setSubmitting(true);
-    try {
-      await createDailyJournal({
-        placementId: activePlacement.id,
-        activityDescription: activityDescription.trim(),
-        obstacleDescription: obstacleDescription.trim() || null,
-        photoUrl: photoUrl.trim() || null,
+  const save=async(submit:boolean)=>{
+    if(!activePlacement||activity.trim().length<5)return;
+    setBusy(true);
+    try{
+      await saveDailyJournalGen2({
+        placementId:activePlacement.id,
+        dateOnly,
+        activityDescription:activity,
+        obstacleDescription:obstacle||null,
+        competencies:competencies||null,
+        reflection:reflection||null,
+        evidenceUrl:evidence||null,
+        submit,
       });
-      setModalOpen(false);
-      setActivityDescription("");
-      setObstacleDescription("");
-      setPhotoUrl("");
-      await refetch();
-    } catch (err: any) {
-      setCreateErrorMsg(err.message || "Gagal mengirim jurnal.");
-    } finally {
-      setSubmitting(false);
+      clearForm(); await journalsQ.refetch();
+    }catch(e:any){alert(e?.message||"Jurnal belum tersimpan.");}
+    finally{setBusy(false);}
+  };
+
+  const [reviewRow,setReviewRow]=useState<any>(null);
+  const [decision,setDecision]=useState<"APPROVED"|"REVISION">("APPROVED");
+  const [feedback,setFeedback]=useState("");
+  const [score,setScore]=useState("90");
+  const saveReview=async()=>{
+    if(!reviewRow)return;
+    setBusy(true);
+    try{
+      await reviewDailyJournalGen2({id:reviewRow.id,decision,feedback:feedback||null,score:score===""?null:Number(score)});
+      setReviewRow(null);setFeedback("");await journalsQ.refetch();
+    }catch(e:any){alert(e?.message||"Review belum tersimpan.");}
+    finally{setBusy(false);}
+  };
+  const closeEvidence=()=>{
+    if(evidencePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(evidencePreviewUrl);
+    setEvidencePreviewUrl(null);
+    setEvidencePreviewOpen(false);
+    setEvidencePreviewLoading(false);
+    setEvidencePreviewRow(null);
+  };
+  const openEvidence=async(row:any)=>{
+    if(evidencePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(evidencePreviewUrl);
+    setEvidencePreviewRow(row);
+    setEvidencePreviewUrl(null);
+    setEvidencePreviewLoading(true);
+    setEvidencePreviewOpen(true);
+    try{
+      const url=await getPklEvidenceSignedUrl({kind:"JOURNAL",id:row.id});
+      if(url.startsWith("/operations/pkl-evidence-file/")){
+        const blob=await api.get(url).blob();
+        setEvidencePreviewUrl(URL.createObjectURL(blob));
+      }else{
+        setEvidencePreviewUrl(url);
+      }
+    }catch(e:any){
+      setEvidencePreviewOpen(false);
+      alert(e?.message||"Bukti tidak tersedia.");
+    }finally{
+      setEvidencePreviewLoading(false);
     }
   };
 
-  const handleReviewJournal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedJournal) return;
-    setReviewErrorMsg("");
-    setReviewing(true);
-    try {
-      await reviewDailyJournal({
-        id: selectedJournal.id,
-        status: reviewStatus as "APPROVED" | "REVISION",
-        score: Number(score),
-        feedback: feedback.trim() || undefined,
-      });
-      setReviewModalOpen(false);
-      await refetch();
-    } catch (err: any) {
-      setReviewErrorMsg(err.message || "Gagal menyimpan penilaian jurnal.");
-    } finally {
-      setReviewing(false);
-    }
-  };
+  const [filter,setFilter]=useState("ALL");
+  const filtered=journals.filter((j:any)=>filter==="ALL"||j.status===filter);
 
-  const reviewStatusOptions = [
-    { value: "APPROVED", label: "Setujui (Approved)" },
-    { value: "REVISION", label: "Perlu Revisi (Revision)" },
-  ];
+  return <SchoolLayout user={user}><div className="space-y-6">
+    <header><p className="text-[11px] font-semibold uppercase tracking-[.08em] text-md-primary">PKL Gen2</p><h1 className="mt-1 text-2xl font-semibold tracking-[-.02em]">Jurnal Kegiatan PKL</h1><p className="mt-1 text-sm text-md-on-surface-variant">Draft, submit, revisi, kompetensi, dokumentasi, dan review terpisah Guru/DUDI.</p></header>
 
-  const filteredJournals = journals?.filter((j) => {
-    if (statusFilter !== "ALL") {
-      if (
-        statusFilter === "PENDING" &&
-        (j.status === "APPROVED" || j.status === "REVISION")
-      )
-        return false;
-      if (statusFilter !== "PENDING" && j.status !== statusFilter) return false;
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchStudent = j.placement?.student?.name
-        ?.toLowerCase()
-        .includes(q);
-      const matchCompany = j.placement?.company?.name
-        ?.toLowerCase()
-        .includes(q);
-      const matchActivity = j.activityDescription?.toLowerCase().includes(q);
-      return matchStudent || matchCompany || matchActivity;
-    }
-    return true;
-  });
+    {isStudent&&<>{!activePlacement?<M3Card variant="outlined" className="p-5 text-sm text-md-on-surface-variant">Belum ada penempatan PKL aktif.</M3Card>:<M3Card variant="outlined" className="p-5 space-y-4">
+      <div><h2 className="font-semibold">Jurnal Saya</h2><p className="text-[11.5px] text-md-on-surface-variant">{activePlacement.company?.name} · {activePlacement.pklPeriod?.name||"Tanpa periode"}</p></div>
+      {existingForDate&&!editingId&&<div className="rounded-[10px] bg-md-surface-container p-3 text-xs">Tanggal ini sudah memiliki jurnal <strong>{existingForDate.status}</strong>. {["DRAFT","REVISION"].includes(existingForDate.status)&&<M3Button variant="text" size="sm" onClick={()=>loadJournal(existingForDate)}>Buka untuk diedit</M3Button>}</div>}
+      <M3TextField label="Tanggal" type="date" value={dateOnly} onChange={(e)=>{setDateOnly(e.target.value);setEditingId(null);}}/>
+      <div><label className="mb-1 block text-xs font-semibold">Aktivitas / pekerjaan *</label><textarea rows={4} value={activity} onChange={(e)=>setActivity(e.target.value)} className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm"/></div>
+      <div><label className="mb-1 block text-xs font-semibold">Kompetensi / keterampilan</label><textarea rows={2} value={competencies} onChange={(e)=>setCompetencies(e.target.value)} className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm"/></div>
+      <div><label className="mb-1 block text-xs font-semibold">Kendala & solusi</label><textarea rows={2} value={obstacle} onChange={(e)=>setObstacle(e.target.value)} className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm"/></div>
+      <div><label className="mb-1 block text-xs font-semibold">Refleksi</label><textarea rows={2} value={reflection} onChange={(e)=>setReflection(e.target.value)} className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm"/></div>
+      <PklEvidenceUploader label="Dokumentasi kegiatan (opsional)" value={evidence} onChange={setEvidence}/>
+      <div className="flex flex-wrap justify-end gap-2"><M3Button variant="tonal" onClick={()=>save(false)} isLoading={busy}>Simpan Draft</M3Button><M3Button onClick={()=>save(true)} isLoading={busy}>Kirim Jurnal</M3Button></div>
+    </M3Card>}</>}
 
-  const totalItems = filteredJournals?.length || 0;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    <M3Card variant="outlined" className="overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-md-outline-variant/35 p-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold">{isStudent?"Riwayat Jurnal":"Jurnal dalam scope bimbingan"}</h2><p className="text-[11.5px] text-md-on-surface-variant">{journals.length} record</p></div><M3Select size="sm" value={filter} onChange={(e)=>setFilter(e.target.value)} options={[{value:"ALL",label:"Semua status"},...["DRAFT","SUBMITTED","APPROVED","REVISION"].map(v=>({value:v,label:v}))]}/></div>
+      {journalsQ.isLoading?<div className="flex min-h-[220px] items-center justify-center"><M3CircularProgress size={34}/></div>:filtered.length===0?<div className="p-6 text-sm text-md-on-surface-variant">Belum ada jurnal.</div>:<div className="divide-y divide-md-outline-variant/25">{filtered.map((row:any)=><div key={row.id} className="p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{row.placement?.student?.name}</p><M3Badge variant={statusVariant[row.status]||"outline"} size="sm">{row.status}</M3Badge><M3Badge variant="outline" size="sm">{row.dateOnly||String(row.date).slice(0,10)}</M3Badge></div><p className="mt-1 text-[11px] text-md-on-surface-variant">{row.placement?.company?.name} · Guru {row.teacherReviewStatus||"-"} · DUDI {row.mentorReviewStatus||"-"} · nilai {row.score??"-"}</p><p className="mt-2 text-sm">{row.activityDescription}</p>{row.competencies&&<p className="mt-1 text-[11.5px] text-md-on-surface-variant"><strong>Kompetensi:</strong> {row.competencies}</p>}{row.teacherFeedback&&<p className="mt-1 text-[11px] text-md-on-surface-variant">Guru: {row.teacherFeedback}</p>}{row.mentorFeedback&&<p className="mt-1 text-[11px] text-md-on-surface-variant">DUDI: {row.mentorFeedback}</p>}</div>
+        <div className="flex flex-wrap gap-1.5">{(row.evidenceUrl||row.photoUrl)&&<M3Button variant="text" size="sm" onClick={()=>openEvidence(row)}>Bukti</M3Button>}{isStudent&&["DRAFT","REVISION"].includes(row.status)&&<M3Button variant="tonal" size="sm" onClick={()=>loadJournal(row)}>Edit</M3Button>}{canReview&&row.status!=="DRAFT"&&<M3Button variant="tonal" size="sm" onClick={()=>{setReviewRow(row);setDecision("APPROVED");setFeedback("");setScore(String(row.score??90));}}>Review</M3Button>}</div></div>
+      </div>)}</div>}
+    </M3Card>
 
-  const paginatedJournals = (filteredJournals || []).slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const statusOptions = [
-    { value: "ALL", label: "Semua Status" },
-    { value: "APPROVED", label: "Disetujui" },
-    { value: "REVISION", label: "Perlu Revisi" },
-    { value: "PENDING", label: "Menunggu Review" },
-  ];
-
-  return (
-    <SchoolLayout user={user}>
-      <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>E-PKL</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Jurnal Harian PKL
-          </span>
-        </div>
-
-        {/* Header Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-medium text-md-on-surface">
-              Jurnal Harian Siswa PKL
-            </h2>
-            <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
-              Catatan aktivitas harian siswa dan verifikasi guru pembimbing.
-            </p>
-          </div>
-          {activePlacement && (
-            <M3Button
-              variant="filled"
-              size="md"
-              icon="add"
-              onClick={() => {
-                setCreateErrorMsg("");
-                setModalOpen(true);
-              }}
-            >
-              Tulis Jurnal Harian
-            </M3Button>
-          )}
-        </div>
-
-        {/* Search & Filter Toolbar */}
-        <M3Card variant="outlined" className="p-3">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="flex-1 w-full">
-              <M3TextField
-                placeholder="Cari siswa, mitra, atau kegiatan..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                leadingIcon="search"
-                size="sm"
-              />
-            </div>
-
-            <div className="w-full sm:w-48">
-              <M3Select
-                options={statusOptions}
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                size="sm"
-              />
-            </div>
-
-            <M3Badge variant="secondary" size="md">
-              {totalItems} Jurnal
-            </M3Badge>
-          </div>
-        </M3Card>
-
-        {/* Content Section */}
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[300px]">
-            <M3CircularProgress size={40} />
-          </div>
-        ) : filteredJournals?.length === 0 ? (
-          <M3Banner
-            variant="standard"
-            headline="Belum Ada Jurnal"
-            supportingText="Siswa dapat mengisi jurnal harian setiap hari setelah menyelesaikan jam kerja PKL."
-            actionLabel={activePlacement ? "Tulis Jurnal Sekarang" : undefined}
-            onAction={activePlacement ? () => setModalOpen(true) : undefined}
-            icon="menu_book"
-            className="p-6"
-          />
-        ) : (
-          <div className="space-y-4">
-            {paginatedJournals.map((j) => {
-              const dateStr = new Date(j.date).toLocaleDateString("id-ID", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              });
-
-              return (
-                <M3Card key={j.id} variant="outlined" className="p-5 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-md-outline-variant/30">
-                    <div>
-                      <h4 className="font-semibold text-base text-md-on-surface">
-                        {j.placement?.student?.name}
-                      </h4>
-                      <div className="flex items-center gap-2 text-xs text-md-on-surface-variant mt-0.5">
-                        <div className="flex items-center gap-1">
-                          <M3Icon name="apartment" size={14} className="opacity-70" />
-                          <span>{j.placement?.company?.name}</span>
-                        </div>
-                        <span>•</span>
-                        <div className="flex items-center gap-1">
-                          <M3Icon name="calendar_month" size={14} className="opacity-70" />
-                          <span>{dateStr}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {j.status === "APPROVED" && (
-                        <M3Badge variant="success" size="sm">
-                          Disetujui
-                        </M3Badge>
-                      )}
-                      {j.status === "REVISION" && (
-                        <M3Badge variant="warning" size="sm">
-                          Perlu Revisi
-                        </M3Badge>
-                      )}
-                      {j.status !== "APPROVED" && j.status !== "REVISION" && (
-                        <M3Badge variant="outline" size="sm">
-                          Menunggu Review
-                        </M3Badge>
-                      )}
-
-                      <M3Button
-                        variant="tonal"
-                        size="sm"
-                        icon="grade"
-                        onClick={() => {
-                          setSelectedJournal(j);
-                          setScore(j.score || 85);
-                          setFeedback(j.feedback || "");
-                          setReviewStatus(
-                            j.status === "REVISION" ? "REVISION" : "APPROVED"
-                          );
-                          setReviewErrorMsg("");
-                          setReviewModalOpen(true);
-                        }}
-                      >
-                        Nilai / Catatan
-                      </M3Button>
-                    </div>
-                  </div>
-
-                  {/* Activity Description */}
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold tracking-wider uppercase text-md-on-surface-variant">
-                      Deskripsi Kegiatan
-                    </p>
-                    <p className="text-sm text-md-on-surface whitespace-pre-line leading-relaxed">
-                      {j.activityDescription}
-                    </p>
-                  </div>
-
-                  {/* Obstacle Description */}
-                  {j.obstacleDescription && (
-                    <M3Banner
-                      variant="warning"
-                      headline="Kendala yang Dihadapi & Solusi"
-                      supportingText={j.obstacleDescription}
-                    />
-                  )}
-
-                  {/* Feedback & Score */}
-                  {(j.feedback || j.score !== null) && (
-                    <div className="p-3.5 rounded-[12px] bg-md-surface-container border border-md-outline-variant/40 flex items-start gap-3">
-                      <M3Icon name="star" size={20} className="text-amber-500 shrink-0 mt-0.5" />
-                      <div className="text-xs space-y-0.5">
-                        <p className="font-bold text-md-on-surface">
-                          Nilai: {j.score ?? "-"} / 100
-                        </p>
-                        {j.feedback && (
-                          <p className="text-md-on-surface-variant">
-                            Catatan Guru: &ldquo;{j.feedback}&rdquo;
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </M3Card>
-              );
-            })}
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-2 pt-2">
-                <p className="text-xs text-md-on-surface-variant">
-                  Menampilkan {(currentPage - 1) * pageSize + 1} -{" "}
-                  {Math.min(currentPage * pageSize, totalItems)} dari {totalItems} jurnal
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <M3Button
-                    variant="tonal"
-                    size="sm"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    icon="chevron_left"
-                  >
-                    Sebelumnya
-                  </M3Button>
-                  <span className="text-xs px-2 text-md-on-surface font-medium">
-                    Hal {currentPage} / {totalPages}
-                  </span>
-                  <M3Button
-                    variant="tonal"
-                    size="sm"
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    trailingIcon="chevron_right"
-                  >
-                    Selanjutnya
-                  </M3Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Modal Add Journal (Student) */}
-        <M3Dialog
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          title="Tulis Jurnal Harian PKL"
-          subtitle="Ceritakan aktivitas kerja praktik dan pencapaian Anda hari ini."
-          icon={<M3Icon name="edit_note" size={24} className="text-md-primary" />}
-          actions={
-            <>
-              <M3Button
-                variant="text"
-                size="sm"
-                onClick={() => setModalOpen(false)}
-              >
-                Batal
-              </M3Button>
-              <M3Button
-                variant="filled"
-                size="sm"
-                onClick={handleCreateJournal}
-                isLoading={submitting}
-              >
-                Kirim Jurnal
-              </M3Button>
-            </>
-          }
-        >
-          <form onSubmit={handleCreateJournal} className="space-y-4">
-            {createErrorMsg && (
-              <M3Banner
-                variant="error"
-                supportingText={createErrorMsg}
-                dismissible
-                onDismiss={() => setCreateErrorMsg("")}
-              />
-            )}
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-md-on-surface-variant">
-                Uraian Kegiatan Hari Ini *
-              </label>
-              <textarea
-                rows={4}
-                value={activityDescription}
-                onChange={(e) => setActivityDescription(e.target.value)}
-                placeholder="Jelaskan pekerjaan, tugas atau proyek yang Anda selesaikan hari ini..."
-                required
-                className="w-full rounded-[8px] border border-md-outline bg-transparent p-2.5 text-sm text-md-on-surface placeholder:text-md-outline focus:outline-none focus:border-md-primary focus:ring-1 focus:ring-md-primary"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-md-on-surface-variant">
-                Kendala &amp; Solusi (Opsional)
-              </label>
-              <textarea
-                rows={2}
-                value={obstacleDescription}
-                onChange={(e) => setObstacleDescription(e.target.value)}
-                placeholder="Ada kendala teknis atau masalah di lapangan? Bagaimana Anda mengatasinya..."
-                className="w-full rounded-[8px] border border-md-outline bg-transparent p-2.5 text-sm text-md-on-surface placeholder:text-md-outline focus:outline-none focus:border-md-primary focus:ring-1 focus:ring-md-primary"
-              />
-            </div>
-          </form>
-        </M3Dialog>
-
-        {/* Modal Review Journal (Teacher) */}
-        <M3Dialog
-          isOpen={reviewModalOpen}
-          onClose={() => setReviewModalOpen(false)}
-          title="Penilaian &amp; Feedback Jurnal"
-          subtitle="Berikan validasi status, skor penilaian, dan catatan bimbingan."
-          icon={<M3Icon name="grade" size={24} className="text-md-primary" />}
-          actions={
-            <>
-              <M3Button
-                variant="text"
-                size="sm"
-                onClick={() => setReviewModalOpen(false)}
-              >
-                Batal
-              </M3Button>
-              <M3Button
-                variant="filled"
-                size="sm"
-                onClick={handleReviewJournal}
-                isLoading={reviewing}
-              >
-                Simpan Penilaian
-              </M3Button>
-            </>
-          }
-        >
-          <form onSubmit={handleReviewJournal} className="space-y-4">
-            {reviewErrorMsg && (
-              <M3Banner
-                variant="error"
-                supportingText={reviewErrorMsg}
-                dismissible
-                onDismiss={() => setReviewErrorMsg("")}
-              />
-            )}
-
-            <M3Select
-              label="Status Verifikasi *"
-              options={reviewStatusOptions}
-              value={reviewStatus}
-              onChange={(e) => setReviewStatus(e.target.value)}
-            />
-
-            <M3TextField
-              label="Skor Nilai (0 - 100) *"
-              type="number"
-              placeholder="85"
-              value={String(score)}
-              onChange={(e) => setScore(Number(e.target.value) || 0)}
-              required
-            />
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-md-on-surface-variant">
-                Catatan / Masukan Guru Pembimbing
-              </label>
-              <textarea
-                rows={3}
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Beri arahan atau catatan perbaikan untuk siswa..."
-                className="w-full rounded-[8px] border border-md-outline bg-transparent p-2.5 text-sm text-md-on-surface placeholder:text-md-outline focus:outline-none focus:border-md-primary focus:ring-1 focus:ring-md-primary"
-              />
-            </div>
-          </form>
-        </M3Dialog>
+    <M3Dialog isOpen={evidencePreviewOpen} onClose={closeEvidence} title="Bukti Jurnal PKL" subtitle={evidencePreviewRow?`${evidencePreviewRow.placement?.student?.name||"Siswa"} · ${evidencePreviewRow.dateOnly||String(evidencePreviewRow.date||"").slice(0,10)}`:""} actions={<M3Button variant="text" onClick={closeEvidence}>Tutup</M3Button>}>
+      <div className="flex min-h-[220px] items-center justify-center overflow-hidden rounded-[12px] bg-md-surface-container">
+        {evidencePreviewLoading?<M3CircularProgress size={36}/>:evidencePreviewUrl?<img src={evidencePreviewUrl} alt="Bukti jurnal PKL" className="max-h-[70vh] w-full object-contain"/>:<p className="p-6 text-sm text-md-on-surface-variant">Bukti tidak tersedia.</p>}
       </div>
-    </SchoolLayout>
-  );
+    </M3Dialog>
+
+    <M3Dialog isOpen={!!reviewRow} onClose={()=>setReviewRow(null)} title="Review Jurnal PKL" subtitle={reviewRow?.placement?.student?.name||""} actions={<><M3Button variant="text" onClick={()=>setReviewRow(null)}>Batal</M3Button><M3Button onClick={saveReview} isLoading={busy}>Simpan Review</M3Button></>}><div className="space-y-3"><M3Select label="Keputusan" value={decision} onChange={(e)=>setDecision(e.target.value as any)} options={[{value:"APPROVED",label:"Setujui"},{value:"REVISION",label:"Minta Revisi"}]}/><M3TextField label="Nilai 0–100" type="number" value={score} onChange={(e)=>setScore(e.target.value)}/><div><label className="mb-1 block text-xs font-semibold">Feedback</label><textarea rows={4} value={feedback} onChange={(e)=>setFeedback(e.target.value)} className="w-full rounded-[10px] border border-md-outline-variant bg-transparent px-3 py-2 text-sm"/></div></div></M3Dialog>
+  </div></SchoolLayout>;
 }

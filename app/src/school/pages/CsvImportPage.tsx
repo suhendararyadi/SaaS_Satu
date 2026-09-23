@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { type AuthUser } from "wasp/auth";
-import { Link } from "react-router";
 import {
   useQuery,
   getSchoolInfo,
-  importStudentsFromCsv,
+  importStudentsFromDapodik,
+  previewStudentsFromDapodik,
   importTeachersFromCsv,
   importCompaniesFromCsv,
 } from "wasp/client/operations";
@@ -15,75 +15,94 @@ import {
   M3Badge,
   M3Tabs,
   M3Banner,
-  M3Text,
   M3Icon,
   type M3TabItem,
 } from "../../client/components/m3";
-
+import { parseDapodikXlsx } from "../import/dapodikXlsx";
+import type { DapodikStudentRow } from "../import/dapodikFormat";
 
 type ImportType = "STUDENTS" | "TEACHERS" | "COMPANIES";
+
+type LegacyResult = {
+  totalProcessed: number;
+  successCount: number;
+  failedCount: number;
+  errors: string[];
+};
+
+type DapodikPreview = {
+  totalRows: number;
+  createCount: number;
+  updateCount: number;
+  invalidCount: number;
+  unmatchedClassCount: number;
+  warningCount: number;
+  previewRows: Array<{
+    sourceRow: number;
+    name: string;
+    nis: string | null;
+    nisn: string | null;
+    currentClassName: string | null;
+    matchedClassName: string | null;
+    action: "CREATE" | "UPDATE" | "INVALID";
+    issues: string[];
+  }>;
+  previewTruncated: boolean;
+};
+
+type DapodikResult = {
+  totalProcessed: number;
+  createdCount: number;
+  updatedCount: number;
+  successCount: number;
+  failedCount: number;
+  unmatchedClassCount: number;
+  errors: string[];
+  errorsTruncated: boolean;
+};
+
+function actionBadge(action: DapodikPreview["previewRows"][number]["action"]) {
+  if (action === "CREATE") return <M3Badge variant="success" size="sm">Baru</M3Badge>;
+  if (action === "UPDATE") return <M3Badge variant="primary" size="sm">Update</M3Badge>;
+  return <M3Badge variant="error" size="sm">Invalid</M3Badge>;
+}
 
 export function CsvImportPage({ user }: { user: AuthUser }) {
   const { data: school } = useQuery(getSchoolInfo);
   const schoolLevel = school?.level || "SMA_SMK";
   const isVocationalOrHighSchool = schoolLevel === "SMA_SMK";
-  const isElementary = schoolLevel === "SD_MI";
-  const isJuniorHigh = schoolLevel === "SMP_MTS";
 
   const [activeTab, setActiveTab] = useState<ImportType>("STUDENTS");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [csvContent, setCsvContent] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<{
-    totalProcessed: number;
-    successCount: number;
-    failedCount: number;
-    errors: string[];
-  } | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [legacyResult, setLegacyResult] = useState<LegacyResult | null>(null);
+  const [dapodikResult, setDapodikResult] = useState<DapodikResult | null>(null);
+  const [dapodikRows, setDapodikRows] = useState<DapodikStudentRow[]>([]);
+  const [dapodikPreview, setDapodikPreview] = useState<DapodikPreview | null>(null);
+  const [recognizedColumns, setRecognizedColumns] = useState(0);
+  const [headerRowNumber, setHeaderRowNumber] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const studentSample = isElementary
-    ? `nama,nis,nisn,gender,kelas,email
-Ahmad Fauzi,1024001,0071234567,L,1-A,ahmad@siswa.id
-Siti Rahma,1024002,0071234568,P,1-A,siti@siswa.id
-Budi Pratama,1024003,0071234569,L,2-B,budi@siswa.id`
-    : isJuniorHigh
-    ? `nama,nis,nisn,gender,kelas,email
-Ahmad Fauzi,1024001,0071234567,L,7-A,ahmad@siswa.id
-Siti Rahma,1024002,0071234568,P,7-A,siti@siswa.id
-Budi Pratama,1024003,0071234569,L,8-B,budi@siswa.id`
-    : `nama,nis,nisn,gender,kelas,email
-Ahmad Fauzi,1024001,0071234567,L,XII RPL 1,ahmad@siswa.id
-Siti Rahma,1024002,0071234568,P,XII RPL 1,siti@siswa.id
-Budi Pratama,1024003,0071234569,L,XII TKJ 2,budi@siswa.id`;
-
   const templates: Record<
-    ImportType,
+    Exclude<ImportType, "STUDENTS">,
     { title: string; filename: string; sample: string; desc: string }
   > = {
-    STUDENTS: {
-      title: "Data Siswa",
-      filename: "template_siswa.csv",
-      desc: "Format CSV untuk pendaftaran massal siswa. Kolom kelas akan otomatis dihubungkan jika nama rombel sesuai.",
-      sample: studentSample,
-    },
     TEACHERS: {
       title: "Data Guru & Tendik",
       filename: "template_guru.csv",
-      desc: "Format CSV untuk pendaftaran akun guru dan tendik. Mendukung penugasan Waka.",
+      desc: "Format CSV untuk pendaftaran akun guru dan tendik. Mendukung penugasan Wakasek modular.",
       sample: `nama,nip,gelar,hp,email,is_waka
-Dra. Hj. Nurjanah,196805121994032001,M.Pd.,08122334455,nurjanah@guru.sch.id,ya
-Rahmat Hidayat,198502102009021003,S.Kom.,08133445566,rahmat@guru.sch.id,tidak
-Endah Triastuti,199011152015032002,S.Pd.,08155667788,endah@guru.sch.id,tidak`,
+Guru Contoh 01,190000000000000001,S.Pd.,080000000001,guru01@example.sch.id,ya
+Guru Contoh 02,190000000000000002,S.Kom.,080000000002,guru02@example.sch.id,tidak`,
     },
     COMPANIES: {
       title: "Mitra DUDI / Tempat PKL",
       filename: "template_dudi.csv",
-      desc: "Format CSV untuk master tempat PKL, lengkap dengan titik koordinat latitude/longitude dan radius presensi GPS.",
+      desc: "Format CSV untuk master tempat PKL, lengkap dengan koordinat dan radius presensi GPS.",
       sample: `nama_perusahaan,sektor,alamat,pic_nama,pic_hp,latitude,longitude,radius_meter,kuota
-PT Telkom Indonesia,Teknologi Informasi,Jl. Japati No. 1 Bandung,Budi Santoso,08123456789,-6.9008,107.6186,100,5
-CV Techno Kreatif,Software House,Jl. Cimanuk No. 45 Garut,Deni Firmansyah,08198765432,-7.2145,107.9012,150,4
-Bank BJB Cabang Garut,Perbankan,Jl. Ahmad Yani No. 10 Garut,Dewi Lestari,08132165498,-7.2189,107.9045,80,3`,
+PT Contoh Teknologi,Teknologi Informasi,Alamat contoh,Kontak Contoh,080000000011,-6.9000,107.6000,100,5`,
     },
   };
 
@@ -95,159 +114,280 @@ Bank BJB Cabang Garut,Perbankan,Jl. Ahmad Yani No. 10 Garut,Dewi Lestari,0813216
       : []),
   ];
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
+  const resetState = () => {
+    setSelectedFile(null);
+    setCsvContent("");
+    setLegacyResult(null);
+    setDapodikResult(null);
+    setDapodikRows([]);
+    setDapodikPreview(null);
+    setRecognizedColumns(0);
+    setHeaderRowNumber(0);
+    setErrorMsg("");
+  };
+
+  const handleStudentFile = async (file: File) => {
+    setIsPreviewing(true);
+    setErrorMsg("");
+    setDapodikPreview(null);
+    setDapodikResult(null);
+    setDapodikRows([]);
+
+    try {
+      const parsed = await parseDapodikXlsx(file);
+      setRecognizedColumns(parsed.recognizedColumns);
+      setHeaderRowNumber(parsed.headerRowNumber);
+      setDapodikRows(parsed.rows);
+
+      const preview = await previewStudentsFromDapodik({ rows: parsed.rows });
+      setDapodikPreview(preview as DapodikPreview);
+    } catch (error: any) {
+      setErrorMsg(error?.message || "File Dapodik tidak dapat diproses.");
+      setSelectedFile(null);
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
+
+  const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
     setSelectedFile(file);
+    setLegacyResult(null);
+    setDapodikResult(null);
+    setErrorMsg("");
     if (!file) return;
 
+    if (activeTab === "STUDENTS") {
+      await handleStudentFile(file);
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setCsvContent(text);
-      setResult(null);
-      setErrorMsg("");
+    reader.onload = (loadEvent) => {
+      setCsvContent(String(loadEvent.target?.result ?? ""));
+    };
+    reader.onerror = () => {
+      setErrorMsg("Berkas CSV tidak dapat dibaca.");
+      setSelectedFile(null);
     };
     reader.readAsText(file);
   };
 
-  const handleLoadSample = () => {
+  const handleLegacySample = () => {
+    if (activeTab === "STUDENTS") return;
     setCsvContent(templates[activeTab].sample);
     setSelectedFile(null);
-    setResult(null);
+    setLegacyResult(null);
     setErrorMsg("");
   };
 
   const handleImport = async () => {
-    if (!csvContent.trim()) {
-      setErrorMsg("Harap masukkan atau upload konten CSV terlebih dahulu.");
-      return;
-    }
-
     setErrorMsg("");
     setIsUploading(true);
-    setResult(null);
+    setLegacyResult(null);
+    setDapodikResult(null);
 
     try {
-      let res;
       if (activeTab === "STUDENTS") {
-        res = await importStudentsFromCsv({ csvContent });
-      } else if (activeTab === "TEACHERS") {
-        res = await importTeachersFromCsv({ csvContent });
-      } else {
-        res = await importCompaniesFromCsv({ csvContent });
+        if (!dapodikPreview || dapodikRows.length === 0) {
+          throw new Error("Pilih file .xlsx Dapodik dan tunggu proses preview selesai.");
+        }
+        const result = await importStudentsFromDapodik({
+          rows: dapodikRows,
+          confirm: true,
+        });
+        setDapodikResult(result as DapodikResult);
+        return;
       }
-      setResult(res);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Terjadi kesalahan saat memproses file CSV.");
+
+      if (!csvContent.trim()) {
+        throw new Error("Harap masukkan atau upload konten CSV terlebih dahulu.");
+      }
+
+      const result =
+        activeTab === "TEACHERS"
+          ? await importTeachersFromCsv({ csvContent })
+          : await importCompaniesFromCsv({ csvContent });
+      setLegacyResult(result as LegacyResult);
+    } catch (error: any) {
+      setErrorMsg(error?.message || "Terjadi kesalahan saat memproses berkas.");
     } finally {
       setIsUploading(false);
     }
   };
 
+  const isStudentImport = activeTab === "STUDENTS";
+  const legacyTemplate = isStudentImport ? null : templates[activeTab];
+
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span>Data Master</span>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">
-            Import Data Massal (CSV)
-          </span>
-        </div>
-
-        {/* Header */}
         <div>
-          <h2 className="text-2xl font-medium text-md-on-surface">
-            Import Data Massal (CSV)
-          </h2>
-          <p className="text-xs sm:text-sm text-md-on-surface-variant mt-0.5">
-            Upload data siswa, guru, atau mitra dari file CSV dan spreadsheet.
+          <h2 className="text-2xl font-medium text-md-on-surface">Import Data</h2>
+          <p className="mt-0.5 text-xs text-md-on-surface-variant sm:text-sm">
+            Data siswa menggunakan format Excel Dapodik; guru dan mitra tetap mendukung CSV.
           </p>
         </div>
 
-        {/* Google Material 3 Primary Tabs */}
         <M3Tabs
           tabs={tabs}
           activeTab={activeTab}
           onChange={(tabId) => {
             setActiveTab(tabId as ImportType);
-            setSelectedFile(null);
-            setResult(null);
-            setErrorMsg("");
+            resetState();
           }}
         />
 
-        {/* Main Grid: Left Form, Right Example */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <M3Card variant="elevated" className="p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
+            <M3Card variant="elevated" className="space-y-5 p-6">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                 <div>
-                  <h3 className="text-lg font-semibold text-md-on-surface">
-                    Unggah File {templates[activeTab].title}
-                  </h3>
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                    {templates[activeTab].desc}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-semibold text-md-on-surface">
+                      {isStudentImport ? "Impor Peserta Didik dari Dapodik" : `Unggah ${legacyTemplate?.title}`}
+                    </h3>
+                    {isStudentImport && (
+                      <M3Badge variant="primary" size="sm">Format resmi Dapodik</M3Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 max-w-2xl text-xs leading-5 text-md-on-surface-variant">
+                    {isStudentImport
+                      ? "Gunakan file Daftar Peserta Didik (.xlsx) hasil unduhan Dapodik tanpa mengubah nama atau urutan kolom. File dibaca untuk preview terlebih dahulu dan belum menyimpan data."
+                      : legacyTemplate?.desc}
                   </p>
                 </div>
-                <M3Button
-                  variant="tonal"
-                  size="sm"
-                  icon="description"
-                  onClick={handleLoadSample}
-                >
-                  Isi Contoh Format
-                </M3Button>
+                {!isStudentImport && (
+                  <M3Button variant="tonal" size="sm" icon="description" onClick={handleLegacySample}>
+                    Isi Contoh Format
+                  </M3Button>
+                )}
               </div>
 
-              {/* File Dropzone */}
-              <div className="border-2 border-dashed border-md-outline-variant/60 rounded-[16px] p-6 text-center hover:bg-md-on-surface/4 transition-colors">
+              <div className="rounded-[16px] border-2 border-dashed border-md-outline-variant/60 p-6 text-center transition-colors hover:bg-md-on-surface/4">
                 <input
                   type="file"
-                  id="csv-file-input"
-                  accept=".csv,.txt"
+                  id="school-import-file"
+                  accept={isStudentImport ? ".xlsx" : ".csv,.txt"}
                   onChange={handleFileInput}
                   className="hidden"
                 />
-                <label
-                  htmlFor="csv-file-input"
-                  className="cursor-pointer flex flex-col items-center gap-2"
-                >
-                  <div className="w-12 h-12 rounded-full bg-md-primary-container text-md-on-primary-container flex items-center justify-center">
-                    <M3Icon name="cloud_upload" size={26} />
+                <label htmlFor="school-import-file" className="flex cursor-pointer flex-col items-center gap-2">
+                  <div className="flex size-12 items-center justify-center rounded-full bg-md-primary-container text-md-on-primary-container">
+                    <M3Icon name={isStudentImport ? "table_view" : "cloud_upload"} size={26} />
                   </div>
                   <span className="text-sm font-semibold text-md-on-surface">
-                    {selectedFile ? selectedFile.name : "Pilih atau Seret Berkas CSV"}
+                    {selectedFile
+                      ? selectedFile.name
+                      : isStudentImport
+                        ? "Pilih File Excel Dapodik"
+                        : "Pilih atau Seret Berkas CSV"}
                   </span>
                   <span className="text-xs text-md-on-surface-variant">
-                    Format berkas yang didukung: .csv, .txt (maksimal 5MB)
+                    {isStudentImport ? ".xlsx · maksimal 10 MB" : ".csv atau .txt · maksimal 5 MB"}
                   </span>
                 </label>
               </div>
 
-              {/* Raw Textarea */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-md-on-surface-variant">
-                  Atau Tempel / Edit Konten CSV Langsung
-                </label>
-                <textarea
-                  value={csvContent}
-                  onChange={(e) => setCsvContent(e.target.value)}
-                  placeholder="nama,nis,kelas..."
-                  rows={8}
-                  className="w-full rounded-[12px] border border-md-outline bg-transparent p-3 text-xs font-mono text-md-on-surface placeholder:text-md-outline focus:outline-none focus:border-md-primary focus:ring-1 focus:ring-md-primary"
-                />
-              </div>
+              {isPreviewing && (
+                <div className="flex items-center gap-3 rounded-[14px] bg-md-surface-container px-4 py-3 text-sm text-md-on-surface-variant">
+                  <span className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                  Membaca struktur Dapodik dan memvalidasi data...
+                </div>
+              )}
+
+              {!isStudentImport && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-md-on-surface-variant">
+                    Atau Tempel / Edit Konten CSV Langsung
+                  </label>
+                  <textarea
+                    value={csvContent}
+                    onChange={(event) => setCsvContent(event.target.value)}
+                    placeholder="nama,nip,..."
+                    rows={8}
+                    className="w-full rounded-[12px] border border-md-outline bg-transparent p-3 font-mono text-xs text-md-on-surface placeholder:text-md-outline focus:border-md-primary focus:outline-none focus:ring-1 focus:ring-md-primary"
+                  />
+                </div>
+              )}
+
+              {dapodikPreview && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                    {[
+                      ["Total", dapodikPreview.totalRows, "outline"],
+                      ["Baru", dapodikPreview.createCount, "success"],
+                      ["Update", dapodikPreview.updateCount, "primary"],
+                      ["Invalid", dapodikPreview.invalidCount, "error"],
+                      ["Rombel belum cocok", dapodikPreview.unmatchedClassCount, "warning"],
+                    ].map(([label, value, tone]) => (
+                      <div key={String(label)} className="rounded-[12px] border border-md-outline-variant/35 bg-md-surface-container-low p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[.06em] text-md-on-surface-variant">
+                          {label}
+                        </p>
+                        <p className="mt-1 text-xl font-semibold text-md-on-surface">{value}</p>
+                        <div className="mt-1">
+                          <M3Badge variant={tone as any} size="sm">{label}</M3Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <M3Banner
+                    variant={dapodikPreview.invalidCount ? "warning" : "success"}
+                    headline="Preview Dapodik siap"
+                    supportingText={`${recognizedColumns} kolom dikenali. Header terdeteksi pada baris ${headerRowNumber}. Belum ada data yang disimpan. ${dapodikPreview.invalidCount ? "Baris invalid akan dilewati jika impor dilanjutkan." : "Semua baris siap diproses."}`}
+                  />
+
+                  <div className="overflow-hidden rounded-[14px] border border-md-outline-variant/40">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[760px] text-left text-xs">
+                        <thead className="bg-md-surface-container">
+                          <tr className="text-md-on-surface-variant">
+                            <th className="px-3 py-2.5 font-semibold">Baris</th>
+                            <th className="px-3 py-2.5 font-semibold">Nama</th>
+                            <th className="px-3 py-2.5 font-semibold">NIPD / NIS</th>
+                            <th className="px-3 py-2.5 font-semibold">NISN</th>
+                            <th className="px-3 py-2.5 font-semibold">Rombel Dapodik</th>
+                            <th className="px-3 py-2.5 font-semibold">Aksi</th>
+                            <th className="px-3 py-2.5 font-semibold">Catatan</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dapodikPreview.previewRows.slice(0, 25).map((row) => (
+                            <tr key={row.sourceRow} className="border-t border-md-outline-variant/25 align-top">
+                              <td className="px-3 py-2.5 font-mono text-md-on-surface-variant">{row.sourceRow}</td>
+                              <td className="px-3 py-2.5 font-medium text-md-on-surface">{row.name}</td>
+                              <td className="px-3 py-2.5 font-mono text-md-on-surface-variant">{row.nis || "—"}</td>
+                              <td className="px-3 py-2.5 font-mono text-md-on-surface-variant">{row.nisn || "—"}</td>
+                              <td className="px-3 py-2.5 text-md-on-surface-variant">
+                                {row.currentClassName || "—"}
+                                {row.matchedClassName && row.matchedClassName !== row.currentClassName && (
+                                  <span className="block text-[10px] text-md-secondary">→ {row.matchedClassName}</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2.5">{actionBadge(row.action)}</td>
+                              <td className="max-w-[280px] px-3 py-2.5 text-md-on-surface-variant">
+                                {row.issues.length ? row.issues.join(" ") : "Siap diproses."}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {(dapodikPreview.previewRows.length > 25 || dapodikPreview.previewTruncated) && (
+                      <div className="border-t border-md-outline-variant/25 bg-md-surface-container-low px-3 py-2 text-[11px] text-md-on-surface-variant">
+                        Preview tabel dibatasi. Seluruh baris tetap divalidasi oleh server.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {errorMsg && (
                 <M3Banner
                   variant="error"
-                  title="Gagal Memproses File CSV"
+                  title="Gagal Memproses Berkas"
                   supportingText={errorMsg}
                   dismissible
                   onDismiss={() => setErrorMsg("")}
@@ -260,86 +400,101 @@ Bank BJB Cabang Garut,Perbankan,Jl. Ahmad Yani No. 10 Garut,Dewi Lestari,0813216
                   size="md"
                   icon="upload_file"
                   isLoading={isUploading}
+                  disabled={isPreviewing || (isStudentImport && !dapodikPreview)}
                   onClick={handleImport}
                 >
-                  Mulai Import Sekarang
+                  {isStudentImport ? "Konfirmasi & Import Data Valid" : "Mulai Import Sekarang"}
                 </M3Button>
               </div>
             </M3Card>
 
-            {/* Result Card */}
-            {result && (
-              <div className="space-y-4">
+            {dapodikResult && (
+              <M3Card variant="outlined" className="space-y-4 p-5">
                 <M3Banner
-                  variant={result.failedCount === 0 ? "success" : "warning"}
-                  headline="Hasil Pemrosesan Import Selesai"
-                  supportingText={`Total ${result.totalProcessed} baris data diproses. ${result.successCount} baris berhasil disimpan, ${result.failedCount} baris dilewati.`}
+                  variant={dapodikResult.failedCount === 0 ? "success" : "warning"}
+                  headline="Import Dapodik selesai"
+                  supportingText={`${dapodikResult.successCount} berhasil diproses: ${dapodikResult.createdCount} siswa baru dan ${dapodikResult.updatedCount} siswa diperbarui. ${dapodikResult.failedCount} baris dilewati.`}
                 />
-                <M3Card variant="outlined" className="p-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-[12px] bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
-                    <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase">
-                      Berhasil Disimpan
-                    </p>
-                    <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-200 mt-1">
-                      {result.successCount} Baris
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-[12px] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
-                    <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase">
-                      Dilewati / Gagal
-                    </p>
-                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-200 mt-1">
-                      {result.failedCount} Baris
-                    </p>
-                  </div>
-                </div>
-
-                {result.errors.length > 0 && (
-                  <div className="p-3 rounded-[12px] bg-md-surface-container border border-md-outline-variant/40 max-h-44 overflow-y-auto space-y-1">
-                    <p className="text-xs font-bold text-md-on-surface">
-                      Catatan Penyesuaian:
-                    </p>
-                    {result.errors.map((err, idx) => (
-                      <p key={idx} className="text-xs text-md-on-surface-variant">
-                        • {err}
-                      </p>
+                {dapodikResult.errors.length > 0 && (
+                  <div className="max-h-52 space-y-1 overflow-y-auto rounded-[12px] bg-md-surface-container p-3">
+                    <p className="text-xs font-semibold text-md-on-surface">Catatan import</p>
+                    {dapodikResult.errors.map((error, index) => (
+                      <p key={index} className="text-xs text-md-on-surface-variant">• {error}</p>
                     ))}
+                    {dapodikResult.errorsTruncated && (
+                      <p className="text-xs font-medium text-md-tertiary">Daftar error dipotong pada 100 catatan.</p>
+                    )}
                   </div>
                 )}
               </M3Card>
-            </div>
-          )}
+            )}
+
+            {legacyResult && (
+              <M3Banner
+                variant={legacyResult.failedCount === 0 ? "success" : "warning"}
+                headline="Hasil import selesai"
+                supportingText={`Total ${legacyResult.totalProcessed} baris diproses. ${legacyResult.successCount} berhasil, ${legacyResult.failedCount} dilewati.`}
+              />
+            )}
           </div>
 
-          {/* Right Column: Guide & Format */}
           <div>
-            <M3Card variant="filled" className="p-5 space-y-4">
-              <h4 className="font-semibold text-base text-md-on-surface">
-                Format Kolom CSV
-              </h4>
-              <p className="text-xs text-md-on-surface-variant">
-                Pastikan baris pertama CSV Anda menyertakan header kolom sesuai contoh di bawah ini:
-              </p>
+            <M3Card variant="filled" className="space-y-4 p-5">
+              {isStudentImport ? (
+                <>
+                  <div>
+                    <h4 className="text-base font-semibold text-md-on-surface">Format Dapodik yang didukung</h4>
+                    <p className="mt-1 text-xs leading-5 text-md-on-surface-variant">
+                      Gunakan menu ekspor <strong>Daftar Peserta Didik</strong> dari Dapodik dalam format Excel .xlsx. Sistem mengenali metadata di bagian atas dan dua baris header Dapodik secara otomatis.
+                    </p>
+                  </div>
 
-              <div className="p-3 rounded-[12px] bg-md-surface-container-highest font-mono text-[11px] overflow-x-auto text-md-on-surface">
-                <pre className="m-0 leading-relaxed">{templates[activeTab].sample}</pre>
-              </div>
+                  <div className="space-y-2 rounded-[12px] bg-md-surface-container px-3 py-3 text-xs text-md-on-surface-variant">
+                    {[
+                      "Nama, NIPD, JK, NISN, tempat/tanggal lahir dan NIK",
+                      "Alamat, kontak, agama, tempat tinggal dan transportasi",
+                      "Data ayah, ibu dan wali",
+                      "Rombel Saat Ini",
+                      "KPS, KIP, KKS, PIP dan data rekening",
+                      "Kebutuhan khusus, sekolah asal, koordinat dan No KK",
+                      "Data fisik dan jarak rumah ke sekolah",
+                    ].map((label) => (
+                      <div key={label} className="flex items-start gap-2">
+                        <M3Icon name="check" size={15} className="mt-0.5 shrink-0 text-md-secondary" />
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
 
-              <div className="pt-3 border-t border-md-outline-variant/30 space-y-2 text-xs text-md-on-surface-variant">
-                <div className="flex items-center gap-2">
-                  <M3Icon name="check" size={16} className="text-emerald-600 shrink-0" />
-                  <span>Pemisah koma (,) atau titik-koma (;) didukung.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <M3Icon name="check" size={16} className="text-emerald-600 shrink-0" />
-                  <span>Data yang telah ada akan diperbarui otomatis.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <M3Icon name="check" size={16} className="text-emerald-600 shrink-0" />
-                  <span>Akun login siswa/guru langsung siap digunakan.</span>
-                </div>
-              </div>
+                  <div className="border-t border-md-outline-variant/30 pt-3 text-xs leading-5 text-md-on-surface-variant">
+                    <strong className="text-md-on-surface">Aturan update:</strong> sistem mencari siswa lama berdasarkan NISN, lalu NIK, lalu NIPD/NIS. File yang sama dapat diimpor ulang tanpa membuat duplikat selama identitas tersebut konsisten.
+                  </div>
+
+                  <div className="rounded-[12px] bg-md-tertiary-container/40 px-3 py-3 text-xs leading-5 text-md-on-tertiary-container">
+                    File hanya disimpan setelah tombol <strong>Konfirmasi & Import Data Valid</strong> ditekan. Proses preview tidak menulis data ke database.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4 className="text-base font-semibold text-md-on-surface">Format Kolom CSV</h4>
+                  <p className="text-xs text-md-on-surface-variant">
+                    Baris pertama harus berisi header sesuai contoh berikut.
+                  </p>
+                  <div className="overflow-x-auto rounded-[12px] bg-md-surface-container-highest p-3 font-mono text-[11px] text-md-on-surface">
+                    <pre className="m-0 leading-relaxed">{legacyTemplate?.sample}</pre>
+                  </div>
+                  <div className="space-y-2 border-t border-md-outline-variant/30 pt-3 text-xs text-md-on-surface-variant">
+                    <div className="flex items-center gap-2">
+                      <M3Icon name="check" size={16} className="shrink-0 text-md-secondary" />
+                      <span>Pemisah koma atau titik-koma didukung.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <M3Icon name="check" size={16} className="shrink-0 text-md-secondary" />
+                      <span>Data yang sesuai akan diproses oleh sekolah aktif.</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </M3Card>
           </div>
         </div>

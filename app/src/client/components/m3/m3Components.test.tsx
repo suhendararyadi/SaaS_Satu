@@ -32,7 +32,7 @@ import {
   M3NavigationDrawer,
 } from "./index";
 
-describe("Google Material 3 (M3) Components", () => {
+describe("Shared UI Components", () => {
   describe("M3Button", () => {
     it("renders filled button with text and handles clicks", () => {
       const handleClick = vi.fn();
@@ -46,7 +46,8 @@ describe("Google Material 3 (M3) Components", () => {
 
     it("renders tonal and danger variants", () => {
       const { rerender } = render(<M3Button variant="tonal">Batal</M3Button>);
-      expect(screen.getByRole("button").className).toContain("bg-md-secondary-container");
+      expect(screen.getByRole("button").className).toContain("bg-md-primary-container");
+      expect(screen.getByRole("button").className).toContain("text-md-primary");
 
       rerender(<M3Button variant="danger">Hapus</M3Button>);
       expect(screen.getByRole("button").className).toContain("bg-md-error");
@@ -90,10 +91,12 @@ describe("Google Material 3 (M3) Components", () => {
           </M3CardActions>
         </M3Card>
       );
-      expect(container.firstChild).toHaveClass("shadow-elevation-1");
+      expect(container.firstChild).toHaveClass("bg-md-surface");
+      expect(container.firstChild).toHaveClass("border-md-outline-variant");
 
       rerender(<M3Card variant="tonal">Tonal Card</M3Card>);
-      expect(container.firstChild).toHaveClass("bg-md-surface-container-high");
+      expect(container.firstChild).toHaveClass("bg-md-primary-container");
+      expect(container.firstChild).toHaveClass("border-md-primary/10");
 
       rerender(<M3Card variant="outlined">Outlined Card</M3Card>);
       expect(container.firstChild).toHaveClass("border-md-outline-variant");
@@ -103,13 +106,14 @@ describe("Google Material 3 (M3) Components", () => {
   describe("M3Badge", () => {
     it("renders badges with semantic color roles", () => {
       const { rerender } = render(<M3Badge variant="primary">Aktif</M3Badge>);
-      expect(screen.getByText("Aktif")).toHaveClass("bg-md-primary");
+      expect(screen.getByText("Aktif")).toHaveClass("bg-md-primary-container");
+      expect(screen.getByText("Aktif")).toHaveClass("text-md-primary");
 
       rerender(<M3Badge variant="error">Bahaya</M3Badge>);
       expect(screen.getByText("Bahaya")).toHaveClass("bg-md-error");
 
       rerender(<M3Badge variant="success">Berhasil</M3Badge>);
-      expect(screen.getByText("Berhasil")).toHaveClass("text-emerald-900");
+      expect(screen.getByText("Berhasil")).toHaveClass("text-md-on-secondary-container");
     });
   });
 
@@ -150,6 +154,31 @@ describe("Google Material 3 (M3) Components", () => {
 
       fireEvent.keyDown(window, { key: "Escape" });
       expect(handleClose).toHaveBeenCalled();
+    });
+
+    it("does not steal focus when a controlled dialog rerenders with a new onClose callback", () => {
+      const firstClose = vi.fn();
+      const secondClose = vi.fn();
+      const { rerender } = render(
+        <M3Dialog isOpen onClose={firstClose} title="Form Sekolah">
+          <M3TextField aria-label="Nama sekolah" value="S" onChange={() => {}} />
+        </M3Dialog>
+      );
+
+      const input = screen.getByRole("textbox", { name: "Nama sekolah" });
+      input.focus();
+      expect(input).toHaveFocus();
+
+      rerender(
+        <M3Dialog isOpen onClose={secondClose} title="Form Sekolah">
+          <M3TextField aria-label="Nama sekolah" value="SM" onChange={() => {}} />
+        </M3Dialog>
+      );
+
+      expect(screen.getByRole("textbox", { name: "Nama sekolah" })).toHaveFocus();
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(firstClose).not.toHaveBeenCalled();
+      expect(secondClose).toHaveBeenCalledTimes(1);
     });
 
     it("does not render when isOpen is false", () => {
@@ -406,7 +435,7 @@ describe("Google Material 3 (M3) Components", () => {
       );
       const alertEl = screen.getByRole("alert");
       expect(alertEl).toBeInTheDocument();
-      expect(alertEl.className).toContain("bg-md-error-container");
+      expect(alertEl.className).toContain("bg-md-error/5");
       expect(screen.getByText("Koneksi GPS Terputus")).toBeInTheDocument();
     });
 

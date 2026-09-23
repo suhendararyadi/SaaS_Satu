@@ -157,3 +157,88 @@ export const getPaginatedUsers: GetPaginatedUsers<
     totalPages,
   };
 };
+
+export const getMyStudentAccountProfile = async (
+  _args: unknown,
+  context: { user?: User },
+) => {
+  const currentUser = context.user;
+  if (!currentUser) {
+    throw new HttpError(401, "Anda harus login untuk melihat profil siswa.");
+  }
+  if (currentUser.role !== "STUDENT" || !currentUser.schoolId) {
+    throw new HttpError(403, "Profil peserta didik hanya tersedia untuk akun siswa sekolah.");
+  }
+
+  const student = await prisma.user.findFirst({
+    where: {
+      id: currentUser.id,
+      schoolId: currentUser.schoolId,
+      role: "STUDENT",
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      username: true,
+      school: {
+        select: {
+          id: true,
+          name: true,
+          npsn: true,
+          city: true,
+          province: true,
+          logoUrl: true,
+        },
+      },
+      classRoom: {
+        select: {
+          id: true,
+          name: true,
+          department: { select: { code: true, name: true } },
+          academicYear: {
+            select: {
+              id: true,
+              yearName: true,
+              semester: true,
+              isActive: true,
+            },
+          },
+        },
+      },
+      studentProfile: {
+        select: {
+          nis: true,
+          nisn: true,
+          gender: true,
+          birthPlace: true,
+          birthDate: true,
+          religion: true,
+          status: true,
+          address: true,
+          rt: true,
+          rw: true,
+          hamlet: true,
+          village: true,
+          district: true,
+          postalCode: true,
+          residenceType: true,
+          transportation: true,
+          phone: true,
+          mobilePhone: true,
+          previousSchool: true,
+          fatherName: true,
+          motherName: true,
+          guardianName: true,
+          dapodikImportedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!student) {
+    throw new HttpError(404, "Profil peserta didik tidak ditemukan pada unit sekolah aktif.");
+  }
+
+  return { student };
+};

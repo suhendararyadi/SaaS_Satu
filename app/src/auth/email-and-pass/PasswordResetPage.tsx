@@ -1,16 +1,4 @@
 import { ResetPasswordForm } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { AuthPageLayout } from "../AuthPageLayout";
-
-export function PasswordResetPage() {
-  return (
-    <AuthPageLayout>
-      <ResetPasswordForm />
-      <br />
-      <span className="text-sm font-medium text-gray-900">
-        If everything is okay,{" "}
-        <WaspRouterLink to={routes.LoginRoute.to}>go to login</WaspRouterLink>
-      </span>
-    </AuthPageLayout>
-  );
-}
+export function PasswordResetPage() { return <AuthPageLayout><div className="mb-6"><p className="text-xs font-bold text-md-primary">PASSWORD BARU</p><h1 className="mt-2 text-2xl font-extrabold text-md-on-surface">Atur ulang password</h1><p className="mt-2 text-sm leading-6 text-md-on-surface-variant">Gunakan password baru yang hanya Anda ketahui.</p></div><ResetPasswordForm /><p className="mt-5 border-t border-md-outline-variant/50 pt-4 text-sm text-md-on-surface-variant"><WaspRouterLink to={routes.LoginRoute.to} className="font-bold text-md-primary hover:underline">Kembali ke login</WaspRouterLink></p></AuthPageLayout>; }

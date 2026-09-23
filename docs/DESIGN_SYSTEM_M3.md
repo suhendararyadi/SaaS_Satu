@@ -1,5 +1,7 @@
 # Sistem Desain Google Material 3 (Material You)
 
+> **Catatan status (8 September 2026):** Dokumen ini terutama menggambarkan **baseline implementasi UI v1** yang sudah ada. Untuk seluruh pekerjaan redesign baru menuju **SaaS Satu v2 — Playful Academic**, gunakan [`UI_UX_REDESIGN_PLAN_V2.md`](./UI_UX_REDESIGN_PLAN_V2.md) sebagai **source of truth**. Palet hijau dan keputusan tipografi di bawah tidak otomatis menjadi keputusan final v2 sampai migrasi design token dilakukan.
+
 Aplikasi SaaS Sistem Informasi Sekolah menerapkan spesifikasi resmi **Google Material 3 (Material You)** dengan penyesuaian Expressive untuk platform berbasis web desktop dan mobile.
 
 ---

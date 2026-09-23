@@ -95,15 +95,6 @@ export function SchoolSettingsPage({ user }: { user: AuthUser }) {
   return (
     <SchoolLayout user={user}>
       <div className="space-y-6 pb-12 max-w-5xl mx-auto">
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
-          <Link to="/school" className="hover:text-md-primary transition-colors">
-            Portal Sekolah
-          </Link>
-          <span>/</span>
-          <span className="text-md-on-surface font-medium">Pengaturan Sekolah</span>
-        </div>
-
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -320,7 +311,7 @@ export function SchoolSettingsPage({ user }: { user: AuthUser }) {
               <div className="border-b border-md-outline-variant/30 pb-4 flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h3 className="text-lg font-semibold text-md-on-surface flex items-center gap-2">
-                    <M3Icon name="verified_user" size={22} className="text-emerald-600 dark:text-emerald-400" />
+                    <M3Icon name="verified_user" size={22} className="text-md-secondary" />
                     Status Layanan &amp; Kapasitas Kuota
                   </h3>
                   <p className="text-xs text-md-on-surface-variant mt-1">

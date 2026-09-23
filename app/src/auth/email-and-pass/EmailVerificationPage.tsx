@@ -1,18 +1,4 @@
 import { VerifyEmailForm } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { AuthPageLayout } from "../AuthPageLayout";
-
-export function EmailVerificationPage() {
-  return (
-    <AuthPageLayout>
-      <VerifyEmailForm />
-      <br />
-      <span className="text-sm font-medium text-gray-900">
-        If everything is okay,{" "}
-        <WaspRouterLink to={routes.LoginRoute.to} className="underline">
-          go to login
-        </WaspRouterLink>
-      </span>
-    </AuthPageLayout>
-  );
-}
+export function EmailVerificationPage() { return <AuthPageLayout><div className="mb-6"><p className="text-xs font-bold text-md-primary">VERIFIKASI EMAIL</p><h1 className="mt-2 text-2xl font-extrabold text-md-on-surface">Konfirmasi alamat email</h1><p className="mt-2 text-sm leading-6 text-md-on-surface-variant">Masukkan kode verifikasi yang dikirim oleh sistem.</p></div><VerifyEmailForm /><p className="mt-5 border-t border-md-outline-variant/50 pt-4 text-sm text-md-on-surface-variant">Sudah terverifikasi? <WaspRouterLink to={routes.LoginRoute.to} className="font-bold text-md-primary hover:underline">Kembali ke login</WaspRouterLink></p></AuthPageLayout>; }

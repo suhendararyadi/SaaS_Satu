@@ -15,22 +15,24 @@ export function TotalRevenueCard({
 }: DailyStatsProps) {
   const isDeltaPositive = useMemo(() => {
     if (!weeklyStats) return false;
-    return weeklyStats[0].totalRevenue - weeklyStats[1]?.totalRevenue > 0;
+    return (weeklyStats[0].totalRevenue ?? 0) - (weeklyStats[1]?.totalRevenue ?? 0) > 0;
   }, [weeklyStats]);
 
   const deltaPercentage = useMemo(() => {
     if (!weeklyStats || weeklyStats.length < 2 || isLoading) return;
     if (
+      weeklyStats[1]?.totalRevenue == null ||
+      weeklyStats[0]?.totalRevenue == null ||
       weeklyStats[1]?.totalRevenue === 0 ||
       weeklyStats[0]?.totalRevenue === 0
     )
       return 0;
 
-    weeklyStats.sort((a, b) => b.id - a.id);
+    const sortedStats = [...weeklyStats].sort((a, b) => b.id - a.id);
 
     const percentage =
-      ((weeklyStats[0].totalRevenue - weeklyStats[1]?.totalRevenue) /
-        weeklyStats[1]?.totalRevenue) *
+      (((sortedStats[0].totalRevenue ?? 0) - (sortedStats[1]?.totalRevenue ?? 0)) /
+        (sortedStats[1]?.totalRevenue ?? 1)) *
       100;
     return Math.floor(percentage);
   }, [isLoading, weeklyStats]);
@@ -46,10 +48,10 @@ export function TotalRevenueCard({
       <CardContent className="flex justify-between">
         <div>
           <h4 className="text-title-md text-foreground font-bold">
-            ${dailyStats?.totalRevenue}
+            {dailyStats?.totalRevenue == null ? "Belum tersedia" : `Rp ${dailyStats.totalRevenue.toLocaleString("id-ID")}`}
           </h4>
           <span className="text-muted-foreground text-sm font-medium">
-            Total Revenue
+            Pendapatan
           </span>
         </div>
 

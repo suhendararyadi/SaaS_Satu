@@ -1,220 +1,203 @@
-import React, { type ReactNode } from "react";
+import React, { useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { M3Icon } from "./M3Icon";
+import {
+  Activity,
+  BookOpen,
+  BriefcaseBusiness,
+  Building2,
+  CalendarDays,
+  Clock3,
+  DoorOpen,
+  FileText,
+  GraduationCap,
+  Home,
+  Mail,
+  MapPin,
+  Network,
+  NotebookPen,
+  Search,
+  Settings,
+  ShieldCheck,
+  TriangleAlert,
+  Upload,
+  UserRoundCheck,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
-export interface M3DrawerItem {
-  label: string;
-  href: string;
-  icon?: ReactNode | string;
-  badge?: string | number;
-}
+export interface M3DrawerItem { label: string; href: string; icon?: ReactNode | string; badge?: string | number; }
+export interface M3DrawerSection { title?: string; items: M3DrawerItem[] }
+export interface M3NavigationDrawerProps { sections: M3DrawerSection[]; header?: ReactNode; footer?: ReactNode; isOpen?: boolean; onClose?: () => void; isCollapsed?: boolean; isHidden?: boolean; onToggleCollapse?: () => void; className?: string; }
 
-export interface M3DrawerSection {
-  title?: string;
-  items: M3DrawerItem[];
-}
+const sidebarIconMap: Record<string, LucideIcon> = {
+  home: Home,
+  corporate_fare: Building2,
+  badge: UserRoundCheck,
+  calendar_month: CalendarDays,
+  meeting_room: DoorOpen,
+  account_tree: Network,
+  groups: UsersRound,
+  upload_file: Upload,
+  menu_book: BookOpen,
+  apartment: Building2,
+  work: BriefcaseBusiness,
+  edit_note: NotebookPen,
+  monitor_heart: Activity,
+  warning: TriangleAlert,
+  schedule: Clock3,
+  supervisor_account: UserRoundCheck,
+  verified_user: ShieldCheck,
+  description: FileText,
+  settings: Settings,
+  location_on: MapPin,
+  school: GraduationCap,
+  mail: Mail,
+};
 
-export interface M3NavigationDrawerProps {
-  sections: M3DrawerSection[];
-  header?: ReactNode;
-  footer?: ReactNode;
-  isOpen?: boolean;
-  onClose?: () => void;
-  isCollapsed?: boolean;
-  isHidden?: boolean;
-  onToggleCollapse?: () => void;
-  className?: string;
-}
-
-export function M3NavigationDrawer({
-  sections,
-  header,
-  footer,
-  isOpen = true,
-  onClose,
-  isCollapsed = false,
-  isHidden = false,
-  onToggleCollapse,
-  className = "",
-}: M3NavigationDrawerProps) {
+export function M3NavigationDrawer({ sections, header, footer, isOpen = true, onClose, isCollapsed = false, isHidden = false, className = "" }: M3NavigationDrawerProps) {
   const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+  const isSchoolPortal = location.pathname === "/school" || location.pathname.startsWith("/school/");
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase("id-ID");
+
+  const visibleSections = useMemo(() => {
+    if (!isSchoolPortal || !normalizedQuery) return sections;
+
+    return sections
+      .map((section) => {
+        const sectionMatches = section.title?.toLocaleLowerCase("id-ID").includes(normalizedQuery) ?? false;
+        return {
+          ...section,
+          items: sectionMatches
+            ? section.items
+            : section.items.filter((item) => item.label.toLocaleLowerCase("id-ID").includes(normalizedQuery)),
+        };
+      })
+      .filter((section) => section.items.length > 0);
+  }, [isSchoolPortal, normalizedQuery, sections]);
 
   const isCurrent = (href: string) => {
-    if (href === "/school") {
-      return location.pathname === "/school";
-    }
+    if (href === "/school" || href === "/admin") return location.pathname === href;
     return location.pathname.startsWith(href);
   };
-
   const isRail = isCollapsed && !isHidden;
-  const desktopWidthClass = isHidden
-    ? "w-0 border-r-0 opacity-0 pointer-events-none overflow-hidden"
-    : isRail
-    ? "w-20"
-    : "w-72";
+  const desktopWidthClass = isHidden ? "w-0 opacity-0 pointer-events-none overflow-hidden" : isRail ? "w-[60px]" : "w-[240px]";
 
-  const renderItem = (item: M3DrawerItem, active: boolean, isRailMode: boolean) => {
-    if (isRailMode) {
+  const iconToneMap: Record<string, string> = {
+    home: "bg-[#0A84FF]",
+    corporate_fare: "bg-[#5E5CE6]",
+    badge: "bg-[#30B0C7]",
+    calendar_month: "bg-[#FF9F0A]",
+    meeting_room: "bg-[#64D2FF]",
+    account_tree: "bg-[#AF52DE] dark:bg-[#BF5AF2]",
+    groups: "bg-[#34C759]",
+    upload_file: "bg-[#0A84FF]",
+    menu_book: "bg-[#5856D6]",
+    apartment: "bg-[#32ADE6] dark:bg-[#64D2FF]",
+    work: "bg-[#FF9F0A]",
+    edit_note: "bg-[#BF5AF2]",
+    monitor_heart: "bg-[#FF375F]",
+    warning: "bg-[#FF9500] dark:bg-[#FF9F0A]",
+    schedule: "bg-[#5E5CE6]",
+    supervisor_account: "bg-[#30B0C7]",
+    verified_user: "bg-[#34C759]",
+    description: "bg-[#007AFF] dark:bg-[#0A84FF]",
+    settings: "bg-[#AF52DE] dark:bg-[#BF5AF2]",
+    location_on: "bg-[#FF453A]",
+    school: "bg-[#0A84FF]",
+    mail: "bg-[#32ADE6] dark:bg-[#64D2FF]",
+  };
+
+  const renderDrawerIcon = (icon: M3DrawerItem["icon"], active: boolean) => {
+    const iconName = typeof icon === "string" ? icon : null;
+    const tileTone = iconName ? (iconToneMap[iconName] ?? "bg-[#5E5CE6]") : "bg-[#5E5CE6]";
+    const iconContent = (() => {
+      if (iconName) {
+        const SidebarIcon = sidebarIconMap[iconName];
+        if (SidebarIcon) return <SidebarIcon size={15} strokeWidth={2} className="text-white" aria-hidden="true" />;
+        return <M3Icon name={iconName} size={16} weight={300} className="text-white" />;
+      }
+      if (icon) return <span className="flex text-white">{icon}</span>;
+      return <span className="size-1.5 rounded-full bg-white" aria-hidden="true" />;
+    })();
+
+    return (
+      <span className={`flex size-[22px] shrink-0 items-center justify-center rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,.18)] ${tileTone}`}>
+        {iconContent}
+      </span>
+    );
+  };
+
+  const renderItem = (item: M3DrawerItem, active: boolean, rail: boolean) => {
+    if (rail) {
       return (
-        <Link
-          key={item.href}
-          to={item.href}
-          title={item.label}
-          onClick={() => {
-            if (onClose) onClose();
-          }}
-          className={`group relative flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-150 mx-auto ${
-            active
-              ? "text-md-on-secondary-container"
-              : "text-md-on-surface-variant hover:text-md-on-surface hover:bg-md-on-surface/8"
-          }`}
-        >
-          <div
-            className={`w-12 h-8 rounded-full flex items-center justify-center transition-all ${
-              active
-                ? "bg-md-secondary-container text-md-on-secondary-container shadow-xs"
-                : "group-hover:bg-md-on-surface/8"
-            }`}
-          >
-            {typeof item.icon === "string" ? (
-              <M3Icon
-                name={item.icon}
-                size={20}
-                filled={active}
-                className={
-                  active
-                    ? "text-md-on-secondary-container"
-                    : "text-md-on-surface-variant group-hover:text-md-on-surface"
-                }
-              />
-            ) : (
-              item.icon
-            )}
-          </div>
-          {item.badge !== undefined && (
-            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-md-primary ring-2 ring-md-surface-container-low" />
-          )}
+        <Link key={item.href} to={item.href} title={item.label} onClick={onClose} aria-current={active ? "page" : undefined} className={`relative mx-auto flex h-9 w-9 items-center justify-center rounded-[9px] transition-colors ${active ? "bg-md-primary" : "hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
+          {renderDrawerIcon(item.icon, active)}
+          {item.badge !== undefined && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-md-error" aria-label={`${item.badge}`} />}
         </Link>
       );
     }
 
     return (
-      <Link
-        key={item.href}
-        to={item.href}
-        onClick={() => {
-          if (onClose) onClose();
-        }}
-        className={`flex items-center gap-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-150 group ${
-          active
-            ? "bg-md-secondary-container text-md-on-secondary-container font-semibold shadow-xs"
-            : "text-md-on-surface-variant hover:bg-md-on-surface/8 hover:text-md-on-surface"
-        }`}
-      >
-        {typeof item.icon === "string" ? (
-          <M3Icon
-            name={item.icon}
-            size={20}
-            filled={active}
-            className={
-              active
-                ? "text-md-on-secondary-container"
-                : "text-md-on-surface-variant group-hover:text-md-on-surface"
-            }
-          />
-        ) : (
-          item.icon
-        )}
-        <span className="flex-1 truncate">{item.label}</span>
-        {item.badge !== undefined && (
-          <span
-            className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-              active
-                ? "bg-md-primary text-md-on-primary"
-                : "bg-md-surface-container-highest text-md-on-surface-variant"
-            }`}
-          >
-            {item.badge}
-          </span>
-        )}
+      <Link key={item.href} to={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`mx-0.5 flex min-h-11 items-center gap-2.5 rounded-[9px] px-2 text-[14px] font-medium transition-colors lg:min-h-9 lg:text-[13px] ${active ? "bg-md-primary text-white shadow-[0_1px_2px_rgba(0,0,0,.10)]" : "text-md-on-surface hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
+        <span className="flex size-[22px] shrink-0 items-center justify-center" aria-hidden="true">{renderDrawerIcon(item.icon, active)}</span>
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        {item.badge !== undefined && <span className={`min-w-5 rounded-[6px] px-1.5 py-0.5 text-center text-[10px] font-semibold ${active ? "bg-white/20 text-white" : "bg-black/[.055] text-md-on-surface-variant dark:bg-white/[.08]"}`}>{item.badge}</span>}
       </Link>
     );
   };
 
-  const renderContent = (isRailMode: boolean) => (
-    <div
-      className={`${
-        isRailMode ? "w-20" : "w-72"
-      } bg-md-surface-container-low flex flex-col h-full border-r border-md-outline-variant/30 select-none transition-all duration-300 ease-in-out overflow-x-hidden ${className}`}
-    >
-      {header && (
-        <div
-          className={`shrink-0 transition-all duration-200 ${
-            isRailMode ? "p-3 flex flex-col items-center" : "p-4 pb-2"
-          }`}
-        >
-          {header}
+  const renderContent = (rail: boolean) => (
+    <div className={`${rail ? "w-[60px]" : "w-[min(86vw,300px)] lg:w-[240px]"} hig-sidebar-material flex h-full flex-col border-r border-md-outline-variant transition-all duration-200 ${className}`}>
+      {header && <div className={`${rail ? "p-2.5" : "px-3 py-4"} shrink-0`}>{header}</div>}
+
+      {isSchoolPortal && !rail && (
+        <div className="shrink-0 px-2 pb-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-md-on-surface-variant" strokeWidth={1.8} aria-hidden="true" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Cari menu"
+              aria-label="Cari menu sidebar"
+              className="min-h-11 w-full rounded-[10px] border-0 bg-black/[.055] py-2 pl-9 pr-9 text-[13px] text-md-on-surface placeholder:text-md-on-surface-variant/75 focus:ring-2 focus:ring-md-primary/35 lg:min-h-9 dark:bg-white/[.08]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-md-on-surface-variant transition-colors hover:bg-black/[.06] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/40 dark:hover:bg-white/[.08]"
+                aria-label="Hapus pencarian menu"
+                title="Hapus pencarian"
+              >
+                <X size={14} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      <div
-        className={`flex-1 overflow-y-auto no-scrollbar transition-all duration-200 ${
-          isRailMode ? "px-2 py-3 space-y-4" : "px-3 py-2 space-y-6"
-        }`}
-      >
-        {sections.map((section, sIdx) => (
-          <div key={sIdx} className="space-y-1">
-            {section.title && !isRailMode && (
-              <h4 className="px-4 py-1.5 text-[11px] font-semibold tracking-wider text-md-outline uppercase">
-                {section.title}
-              </h4>
-            )}
-            {section.title && isRailMode && sIdx > 0 && (
-              <div className="w-8 mx-auto my-2 border-t border-md-outline-variant/30" />
-            )}
-            <div className={isRailMode ? "space-y-1.5" : "space-y-0.5"}>
-              {section.items.map((item) =>
-                renderItem(item, isCurrent(item.href), isRailMode)
-              )}
-            </div>
-          </div>
-        ))}
+      <div className={`${rail ? "space-y-2 px-1.5 py-2" : "space-y-3 px-2 py-1"} flex-1 overflow-y-auto`}>
+        {visibleSections.length > 0 ? visibleSections.filter((section) => section.items.length > 0).map((section, index) => (
+          <section key={`${section.title ?? "section"}-${index}`} className="space-y-1">
+            {section.title && !rail && <h2 className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/60">{section.title}</h2>}
+            {section.title && rail && index > 0 && <div className="mx-auto my-2 w-6 border-t border-md-outline-variant" />}
+            <div className="space-y-0.5">{section.items.map((item) => renderItem(item, isCurrent(item.href), rail))}</div>
+          </section>
+        )) : !rail && isSchoolPortal && normalizedQuery ? (
+          <p className="px-3 py-5 text-center text-[12px] leading-5 text-md-on-surface-variant" role="status">Menu tidak ditemukan.</p>
+        ) : null}
       </div>
 
-      {footer && (
-        <div
-          className={`border-t border-md-outline-variant/30 shrink-0 transition-all duration-200 ${
-            isRailMode ? "p-2 flex justify-center" : "p-3"
-          }`}
-        >
-          {footer}
-        </div>
-      )}
+      {footer && !isSchoolPortal && <div className={`${rail ? "p-2" : "p-3"} shrink-0 border-t border-md-outline-variant`}>{footer}</div>}
     </div>
   );
 
-  return (
-    <>
-      {/* Desktop Persistent / Collapsible Drawer */}
-      <aside
-        className={`hidden lg:flex shrink-0 h-screen sticky top-0 z-30 transition-all duration-300 ease-in-out ${desktopWidthClass}`}
-        aria-hidden={isHidden}
-      >
-        {!isHidden && renderContent(isRail)}
-      </aside>
-
-      {/* Mobile Modal Drawer with Scrim */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in"
-            onClick={onClose}
-          />
-          <div className="relative z-10 flex h-full animate-in slide-in-from-left duration-200">
-            {renderContent(false)}
-          </div>
-        </div>
-      )}
-    </>
-  );
+  return <>
+    <aside className={`sticky top-0 z-30 hidden h-screen shrink-0 transition-all duration-200 lg:flex ${desktopWidthClass}`} aria-hidden={isHidden}>{!isHidden && renderContent(isRail)}</aside>
+    {isOpen && <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true" aria-label="Menu navigasi"><button type="button" className="fixed inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} aria-label="Tutup menu navigasi" /><div className="relative z-10 h-full">{renderContent(false)}</div></div>}
+  </>;
 }

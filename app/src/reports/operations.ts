@@ -3,6 +3,7 @@ import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser } from "../school/authGuards";
+import { jakartaDateOnly } from "../school/dailyAttendance";
 
 function requireReportStaff(context: { user?: User }) {
   const user = ensureSchoolUser(context);
@@ -15,6 +16,21 @@ function requireReportStaff(context: { user?: User }) {
     throw new HttpError(403, "Laporan sekolah hanya dapat diakses oleh staf sekolah.");
   }
   return user;
+}
+
+
+function isUnrestrictedReportStaff(user: ReturnType<typeof requireReportStaff>) {
+  return user.isAdmin || user.role === "SUPERADMIN" || user.role === "SCHOOL_ADMIN";
+}
+
+function getStaffClassRoomScope(user: ReturnType<typeof requireReportStaff>) {
+  if (isUnrestrictedReportStaff(user)) return {};
+  return {
+    OR: [
+      { homeroomTeacherId: user.id },
+      { lmsCourses: { some: { teacherId: user.id } } },
+    ],
+  };
 }
 
 // =========================================================================
@@ -42,6 +58,7 @@ export const exportPklAttendanceReport = async (rawArgs: unknown, context: { use
       schoolId: user.schoolId,
       ...(filter?.placementId ? { id: filter.placementId } : {}),
       ...(filter?.classRoomId ? { student: { classRoomId: filter.classRoomId } } : {}),
+      ...(!isUnrestrictedReportStaff(user) ? { teacherSupervisorId: user.id } : {}),
     },
     include: {
       student: {
@@ -110,7 +127,11 @@ export const exportLmsGradesReport = async (rawArgs: unknown, context: { user?: 
   const { courseId } = ensureArgsSchemaOrThrowHttpError(exportLmsGradesSchema, rawArgs);
 
   const course = await prisma.lmsCourse.findFirst({
-    where: { id: courseId, schoolId: user.schoolId },
+    where: {
+      id: courseId,
+      schoolId: user.schoolId,
+      ...(!isUnrestrictedReportStaff(user) ? { teacherId: user.id } : {}),
+    },
     include: {
       school: true,
       teacher: { select: { id: true, name: true, teacherProfile: true } },
@@ -235,57 +256,39 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
-  const currentMonthIdx = filter?.month ? filter.month - 1 : new Date().getMonth();
-  const selectedMonthName = months[currentMonthIdx] || months[new Date().getMonth()];
-  const selectedYear = filter?.year || new Date().getFullYear();
-  const monthStart = new Date(selectedYear, currentMonthIdx, 1);
-  const nextMonthStart = new Date(selectedYear, currentMonthIdx + 1, 1);
+  const [todayYear, todayMonth] = jakartaDateOnly().split("-").map(Number);
+  const selectedMonth = filter?.month || todayMonth;
+  const currentMonthIdx = selectedMonth - 1;
+  const selectedMonthName = months[currentMonthIdx] || months[todayMonth - 1];
+  const selectedYear = filter?.year || todayYear;
+  const monthStartDateOnly = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+  const nextMonthDate = new Date(Date.UTC(selectedYear, selectedMonth, 1));
+  const nextMonthStartDateOnly = `${nextMonthDate.getUTCFullYear()}-${String(nextMonthDate.getUTCMonth() + 1).padStart(2, "0")}-01`;
 
   const school = await prisma.school.findUnique({
     where: { id: user.schoolId },
   });
 
-  const classRoom = filter?.classRoomId
-    ? await prisma.classRoom.findFirst({
-        where: { id: filter.classRoomId, schoolId: user.schoolId },
-        include: {
-          department: true,
-          academicYear: true,
-          homeroomTeacher: { select: { id: true, name: true, teacherProfile: true } },
-          students: {
-            select: {
-              id: true,
-              name: true,
-              studentProfile: true,
-              attendanceRecords: {
-                where: { session: { date: { gte: monthStart, lt: nextMonthStart } } },
-                select: { status: true },
-              },
-            },
-            orderBy: { name: "asc" },
-          },
+  const classRoom = await prisma.classRoom.findFirst({
+    where: {
+      schoolId: user.schoolId,
+      ...(filter?.classRoomId ? { id: filter.classRoomId } : {}),
+      ...getStaffClassRoomScope(user),
+    },
+    include: {
+      department: true,
+      academicYear: true,
+      homeroomTeacher: { select: { id: true, name: true, teacherProfile: true } },
+      students: {
+        select: {
+          id: true,
+          name: true,
+          studentProfile: true,
         },
-      })
-    : await prisma.classRoom.findFirst({
-        where: { schoolId: user.schoolId },
-        include: {
-          department: true,
-          academicYear: true,
-          homeroomTeacher: { select: { id: true, name: true, teacherProfile: true } },
-          students: {
-            select: {
-              id: true,
-              name: true,
-              studentProfile: true,
-              attendanceRecords: {
-                where: { session: { date: { gte: monthStart, lt: nextMonthStart } } },
-                select: { status: true },
-              },
-            },
-            orderBy: { name: "asc" },
-          },
-        },
-      });
+        orderBy: { name: "asc" },
+      },
+    },
+  });
 
   if (!classRoom) {
     return {
@@ -297,13 +300,38 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
     };
   }
 
+  const attendanceRecords = await prisma.schoolDailyAttendance.findMany({
+    where: {
+      schoolId: user.schoolId,
+      classRoomId: classRoom.id,
+      dateOnly: {
+        gte: monthStartDateOnly,
+        lt: nextMonthStartDateOnly,
+      },
+    },
+    select: {
+      studentId: true,
+      status: true,
+      dateOnly: true,
+    },
+  });
+
+  const recordsByStudent = new Map<string, typeof attendanceRecords>();
+  for (const record of attendanceRecords) {
+    const current = recordsByStudent.get(record.studentId) || [];
+    current.push(record);
+    recordsByStudent.set(record.studentId, current);
+  }
+
   const studentsAttendance = classRoom.students.map((student) => {
-    const records = student.attendanceRecords || [];
+    const records = recordsByStudent.get(student.id) || [];
     const hadir = records.filter((r) => r.status === "HADIR").length;
     const sakit = records.filter((r) => r.status === "SAKIT").length;
     const izin = records.filter((r) => r.status === "IZIN").length;
     const alpa = records.filter((r) => r.status === "ALPA").length;
-    const total = hadir + sakit + izin + alpa;
+    const terlambat = records.filter((r) => r.status === "TERLAMBAT").length;
+    const total = hadir + sakit + izin + alpa + terlambat;
+    const present = hadir + terlambat;
 
     return {
       studentId: student.id,
@@ -315,7 +343,8 @@ export const getClassRoomAttendanceReport = async (rawArgs: unknown, context: { 
       sakit,
       izin,
       alpa,
-      rate: total > 0 ? Math.round((hadir / total) * 100) : null,
+      terlambat,
+      rate: total > 0 ? Math.round((present / total) * 100) : null,
     };
   });
 
@@ -356,9 +385,23 @@ export const getActiveStudentCertificateData = async (rawArgs: unknown, context:
     where: { id: user.schoolId },
   });
 
+  const accessibleClassIds = isUnrestrictedReportStaff(user)
+    ? null
+    : (
+        await prisma.classRoom.findMany({
+          where: { schoolId: user.schoolId, ...getStaffClassRoomScope(user) },
+          select: { id: true },
+        })
+      ).map((classRoom) => classRoom.id);
+
   const student = filter?.studentId
     ? await prisma.user.findFirst({
-        where: { id: filter.studentId, schoolId: user.schoolId, role: "STUDENT" },
+        where: {
+          id: filter.studentId,
+          schoolId: user.schoolId,
+          role: "STUDENT",
+          ...(accessibleClassIds ? { classRoomId: { in: accessibleClassIds } } : {}),
+        },
         include: {
           studentProfile: true,
           classRoom: {
@@ -367,7 +410,11 @@ export const getActiveStudentCertificateData = async (rawArgs: unknown, context:
         },
       })
     : await prisma.user.findFirst({
-        where: { schoolId: user.schoolId, role: "STUDENT" },
+        where: {
+          schoolId: user.schoolId,
+          role: "STUDENT",
+          ...(accessibleClassIds ? { classRoomId: { in: accessibleClassIds } } : {}),
+        },
         include: {
           studentProfile: true,
           classRoom: {
@@ -406,14 +453,14 @@ export const getActiveStudentCertificateData = async (rawArgs: unknown, context:
 // =========================================================================
 
 export const getSchoolReportContext = async (_rawArgs: unknown, context: { user?: User }) => {
-  const user = ensureSchoolUser(context);
+  const user = requireReportStaff(context);
 
   const school = await prisma.school.findUnique({
     where: { id: user.schoolId },
   });
 
   const classRooms = await prisma.classRoom.findMany({
-    where: { schoolId: user.schoolId },
+    where: { schoolId: user.schoolId, ...getStaffClassRoomScope(user) },
     include: {
       department: true,
       _count: { select: { students: true } },
@@ -421,8 +468,13 @@ export const getSchoolReportContext = async (_rawArgs: unknown, context: { user?
     orderBy: { name: "asc" },
   });
 
+  const accessibleClassIds = classRooms.map((classRoom) => classRoom.id);
   const students = await prisma.user.findMany({
-    where: { schoolId: user.schoolId, role: "STUDENT" },
+    where: {
+      schoolId: user.schoolId,
+      role: "STUDENT",
+      ...(!isUnrestrictedReportStaff(user) ? { classRoomId: { in: accessibleClassIds } } : {}),
+    },
     select: {
       id: true,
       name: true,

@@ -1,7 +1,8 @@
 import { action, page, query, route, type Spec } from "@wasp.sh/spec";
-import { WakaKurikulumPage } from "./pages/WakaKurikulumPage" with { type: "ref" };
+import { WakasekDashboardPage } from "./pages/WakasekDashboardPage" with { type: "ref" };
 import { GuruPiketPage } from "./pages/GuruPiketPage" with { type: "ref" };
 import { WaliKelasPage } from "./pages/WaliKelasPage" with { type: "ref" };
+import { OrganizationAssignmentCenterPage } from "./pages/OrganizationAssignmentCenterPage" with { type: "ref" };
 
 import {
   getWakaSupervisionData,
@@ -9,9 +10,55 @@ import {
   createDutyTeacherReport,
   getHomeroomDashboardData,
 } from "./operations" with { type: "ref" };
+import { getWakasekDashboardData } from "./wakasekOperations" with { type: "ref" };
+import {
+  getSchoolOrganizationData,
+  saveSchoolStaffAssignment,
+  archiveSchoolStaffAssignment,
+  setHomeroomTeacherAssignment,
+  setWakasekOrganizationAssignment,
+} from "./organizationOperations" with { type: "ref" };
 
 export const governanceSpec: Spec = [
   // Queries
+  query(getSchoolOrganizationData, {
+    entities: [
+      "School",
+      "User",
+      "TeacherProfile",
+      "WakasekAssignment",
+      "SchoolStaffAssignment",
+      "AcademicYear",
+      "ClassRoom",
+      "Department",
+    ],
+  }),
+  query(getWakasekDashboardData, {
+    entities: [
+      "WakasekAssignment",
+      "School",
+      "User",
+      "TeacherProfile",
+      "AcademicYear",
+      "LmsCourse",
+      "LmsAgenda",
+      "ClassRoom",
+      "Department",
+      "SchoolDailyAttendance",
+      "Company",
+      "Placement",
+      "SchoolSite",
+      "SchoolSiteContent",
+      "FacilityRoom",
+      "AssetItem",
+      "AssetMaintenance",
+      "StudentViolation",
+      "StudentAchievement",
+      "StudentCoaching",
+      "StudentPermit",
+      "SchoolFollowUpCase",
+    ],
+  }),
   query(getWakaSupervisionData, {
     entities: [
       "LmsCourse",
@@ -20,10 +67,11 @@ export const governanceSpec: Spec = [
       "LmsAgenda",
       "LmsAgendaPhoto",
       "TeacherProfile",
+      "WakasekAssignment",
     ],
   }),
   query(getDutyTeacherReports, {
-    entities: ["DutyTeacherReport", "User"],
+    entities: ["DutyTeacherReport", "User", "SchoolStaffAssignment", "AcademicYear"],
   }),
   query(getHomeroomDashboardData, {
     entities: [
@@ -36,19 +84,45 @@ export const governanceSpec: Spec = [
       "Company",
       "AttendanceLog",
       "DailyJournal",
+      "StudentViolation",
+      "StudentAchievement",
+      "StudentCoaching",
+      "StudentPermit",
     ],
   }),
 
   // Actions
+  action(saveSchoolStaffAssignment, {
+    entities: ["SchoolStaffAssignment", "School", "User", "AcademicYear", "Department"],
+  }),
+  action(archiveSchoolStaffAssignment, {
+    entities: ["SchoolStaffAssignment"],
+  }),
+  action(setHomeroomTeacherAssignment, {
+    entities: ["ClassRoom", "User"],
+  }),
+  action(setWakasekOrganizationAssignment, {
+    entities: ["WakasekAssignment", "User", "TeacherProfile"],
+  }),
   action(createDutyTeacherReport, {
-    entities: ["DutyTeacherReport"],
+    entities: ["DutyTeacherReport", "SchoolStaffAssignment", "AcademicYear"],
   }),
 
   // Routes
   route(
+    "OrganizationAssignmentCenterRoute",
+    "/school/governance/organization",
+    page(OrganizationAssignmentCenterPage, { authRequired: true })
+  ),
+  route(
+    "WakasekDashboardRoute",
+    "/school/governance/wakasek",
+    page(WakasekDashboardPage, { authRequired: true })
+  ),
+  route(
     "WakaKurikulumRoute",
     "/school/governance/waka",
-    page(WakaKurikulumPage, { authRequired: true })
+    page(WakasekDashboardPage, { authRequired: true })
   ),
   route(
     "GuruPiketRoute",
