@@ -242,6 +242,37 @@ enum AttendanceActivityStatus {
   CANCELED
 }
 
+
+enum AdministrationTemplateStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum AdministrationDocumentStatus {
+  DRAFT
+  IN_REVIEW
+  RETURNED_FOR_REVISION
+  APPROVED
+  VOID
+}
+
+enum AdministrationDirection {
+  OUTGOING
+  INCOMING
+}
+
+enum AdministrationAuditAction {
+  MODULE_INITIALIZED
+  TEMPLATE_CREATED
+  TEMPLATE_VERSION_CREATED
+  TEMPLATE_STATUS_CHANGED
+  DOCUMENT_CREATED
+  DOCUMENT_UPDATED
+  DOCUMENT_STATUS_CHANGED
+  REGISTER_UPDATED
+}
+
 model User {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -305,6 +336,12 @@ model User {
   createdAttendanceActivities AttendanceActivity[]      @relation("AttendanceActivityCreator")
   activityAttendanceRecords AttendanceActivityRecord[]  @relation("ActivityAttendanceStudent")
   recordedActivityAttendanceRecords AttendanceActivityRecord[] @relation("ActivityAttendanceRecorder")
+  administrationTemplatesCreated AdministrationTemplate[] @relation("AdministrationTemplateCreator")
+  administrationTemplateVersionsCreated AdministrationTemplateVersion[] @relation("AdministrationTemplateVersionCreator")
+  administrationDocumentsCreated AdministrationDocument[] @relation("AdministrationDocumentCreator")
+  administrationDocumentsUpdated AdministrationDocument[] @relation("AdministrationDocumentUpdater")
+  administrationStudentDocuments AdministrationDocument[] @relation("AdministrationDocumentStudent")
+  administrationAuditEvents AdministrationAuditEvent[] @relation("AdministrationAuditActor")
 
   paymentProcessorUserId        String?   @unique
   lemonSqueezyCustomerPortalUrl String? // Lemon Squeezy portal
@@ -375,6 +412,10 @@ model School {
   attendanceCalendarDays SchoolCalendarDay[]
   attendanceEvents     StudentAttendanceEvent[]
   attendanceActivities AttendanceActivity[]
+  administrationTemplates AdministrationTemplate[]
+  administrationDocuments AdministrationDocument[]
+  administrationRegisters LetterRegister[]
+  administrationAuditEvents AdministrationAuditEvent[]
   site                 SchoolSite?
   siteContents         SchoolSiteContent[]
   siteNavItems         SchoolSiteNavItem[]
@@ -1633,6 +1674,121 @@ model SchoolSiteRevision {
 
   @@index([schoolId, createdAt])
   @@index([schoolId, resourceType, resourceId, createdAt])
+}
+
+model AdministrationTemplate {
+  id             String                       @id @default(uuid())
+  schoolId       String
+  school         School                       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  code           String
+  name           String
+  category       String
+  description    String?
+  status         AdministrationTemplateStatus @default(ACTIVE)
+  currentVersion Int                          @default(1)
+  isStarter      Boolean                      @default(false)
+  createdById    String?
+  createdBy      User?                        @relation("AdministrationTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  versions       AdministrationTemplateVersion[]
+  documents      AdministrationDocument[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, status])
+}
+
+model AdministrationTemplateVersion {
+  id              String                 @id @default(uuid())
+  templateId      String
+  template        AdministrationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version         Int
+  subjectTemplate String?
+  bodyHtml        String                 @db.Text
+  variableSchema  Json
+  pageConfig      Json?
+  createdById     String?
+  createdBy       User?                  @relation("AdministrationTemplateVersionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime               @default(now())
+  documents       AdministrationDocument[]
+
+  @@unique([templateId, version])
+  @@index([templateId, createdAt])
+}
+
+model LetterRegister {
+  id              String                  @id @default(uuid())
+  schoolId        String
+  school          School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  code            String
+  name            String
+  direction       AdministrationDirection @default(OUTGOING)
+  pattern         String
+  resetPolicy     String                  @default("YEARLY")
+  currentSequence Int                     @default(0)
+  isConfigured    Boolean                 @default(false)
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  documents       AdministrationDocument[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, direction, isActive])
+}
+
+model AdministrationDocument {
+  id                String                       @id @default(uuid())
+  schoolId          String
+  school            School                       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  templateId        String
+  template          AdministrationTemplate       @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateVersionId String
+  templateVersion   AdministrationTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  registerId        String?
+  register          LetterRegister?              @relation(fields: [registerId], references: [id], onDelete: SetNull)
+  status            AdministrationDocumentStatus @default(DRAFT)
+  direction         AdministrationDirection      @default(OUTGOING)
+  title             String
+  subject           String?
+  recipientName     String?
+  recipientAddress  String?
+  relatedStudentId  String?
+  relatedStudent    User?                        @relation("AdministrationDocumentStudent", fields: [relatedStudentId], references: [id], onDelete: SetNull)
+  manualData        Json                         @default("{}")
+  variableSnapshot  Json                         @default("{}")
+  renderedHtml      String                       @db.Text
+  documentNumber    String?
+  sequenceNumber    Int?
+  notes             String?
+  createdById       String
+  createdBy         User                         @relation("AdministrationDocumentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedById       String?
+  updatedBy         User?                        @relation("AdministrationDocumentUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  revision          Int                          @default(1)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  auditEvents       AdministrationAuditEvent[]
+
+  @@index([schoolId, status, createdAt])
+  @@index([schoolId, relatedStudentId])
+  @@index([templateId, createdAt])
+}
+
+model AdministrationAuditEvent {
+  id          String                    @id @default(uuid())
+  schoolId    String
+  school      School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  documentId  String?
+  document    AdministrationDocument?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  actorId     String?
+  actor       User?                     @relation("AdministrationAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action      AdministrationAuditAction
+  summary     String
+  metadata    Json?
+  createdAt   DateTime                  @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([documentId, createdAt])
 }
 
 model GptResponse {

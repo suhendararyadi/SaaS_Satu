@@ -45,6 +45,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/classes", "Kelas & Rombel"],
   ["/school/teachers", "Guru & Tendik"],
   ["/school/notifications", "Notifikasi"],
+  ["/school/administration", "Tata Usaha"],
   ["/school/student-affairs", "Kesiswaan Terpadu"],
   ["/school/students", "Data Siswa"],
   ["/school/attendance/command", "Command Center Kehadiran"],
@@ -251,6 +252,12 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     ((teacherDashboard.assignments?.wakasekRoles || []) as WakasekRoleCode[]).some((role) => role === "KESISWAAN" || role === "KURIKULUM") ||
     (teacherDashboard.assignments?.staffAssignments || []).some((assignment: any) => assignment.role === "PRINCIPAL" || assignment.role === "DUTY_TEACHER")
   );
+  const teacherHasAdministration = isTeacher && !!teacherDashboard &&
+    (teacherDashboard.assignments?.staffAssignments || []).some((assignment: any) => {
+      if (assignment.role === "PRINCIPAL") return true;
+      const text = `${assignment.customTitle || ""} ${assignment.unitName || ""} ${assignment.displayTitle || ""}`.toLowerCase();
+      return assignment.role === "OTHER" && (text.includes("administrasi") || text.includes("tata usaha"));
+    });
 
   const drawerSections: M3DrawerSection[] = (() => {
     const sections: M3DrawerSection[] = [{ title: "UTAMA", items: [
@@ -288,6 +295,11 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ] });
       sections.push({ title: "PUBLIKASI", items: [
         { label: "Website Sekolah", href: "/school/website", icon: "language" },
+      ] });
+      sections.push({ title: "TATA USAHA", items: [
+        { label: "Dashboard TU", href: "/school/administration", icon: "business_center" },
+        { label: "Surat Keluar", href: "/school/administration/outgoing", icon: "outbox" },
+        { label: "Template Surat", href: "/school/administration/templates", icon: "library_books" },
       ] });
       sections.push({ title: "TATA KELOLA", items: [
         { label: "Struktur & Penugasan", href: "/school/governance/organization", icon: "account_tree" },
@@ -330,6 +342,11 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         }))),
       ];
       if (responsibilities.length) sections.push({ title: "TANGGUNG JAWAB", items: responsibilities });
+      if (teacherHasAdministration) sections.push({ title: "TATA USAHA", items: [
+        { label: "Dashboard TU", href: "/school/administration", icon: "business_center" },
+        { label: "Surat Keluar", href: "/school/administration/outgoing", icon: "outbox" },
+        { label: "Template Surat", href: "/school/administration/templates", icon: "library_books" },
+      ] });
       if (teacherHasAttendance) sections.push({ title: "KEHADIRAN", items: [
         { label: "Command Center", href: "/school/attendance/command", icon: "monitoring" },
         ...(teacherDashboard?.assignments?.homeroomClass ? [{ label: "Rekonsiliasi Wali Kelas", href: "/school/attendance", icon: "fact_check" }] : []),
