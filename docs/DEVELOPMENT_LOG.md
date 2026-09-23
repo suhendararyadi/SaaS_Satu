@@ -1175,3 +1175,11 @@ Attendance behavior/security was not weakened: server geofence, schedule/calenda
 Student mobile attendance was simplified further. `/school/my-attendance` now uses the same bottom-navigation set as the student home instead of a special page-only navigation. The mobile `Verifikasi presensi` card was removed; the large `MASUK`/`PULANG` action now invokes front-camera capture directly when selfie evidence is required, uploads evidence, then submits the existing server-authoritative attendance operation automatically. Student mobile hamburger/sidebar access was removed while desktop sidebar and non-student mobile drawers remain unchanged.
 
 Quality gate: Wasp build PASS, **163/163 regression tests across 30 files**, server bundle PASS, Vite SSR/client PASS, immutable preflight/deploy PASS, repeat deploy idempotent. Runtime release `eada47c-student-mobile-selfie-nav`; rollback `c083fdf-student-mobile-attendance`.
+
+---
+
+## 23 September 2026 — Student account now uses School OS profile data
+
+For School OS users with role `STUDENT` and a school assignment, `/account` no longer shows generic SaaS plan/credits/payment content. It now renders a read-only School OS student profile using the existing `StudentProfile`, school, class, department and academic-year data. Non-student account behavior is unchanged.
+
+A self-only `getMyStudentAccountProfile` query was added. It requires a logged-in school student and always scopes to the authenticated user's own id + school id. Sensitive fields such as NIK/KK, bank data, benefit-card numbers, home coordinates and physical measurements are not selected. Quality gate: Wasp build PASS, full regression **163/163 across 30 files**, server bundle and Vite SSR/client PASS, immutable preflight/deploy PASS, repeat deploy idempotent. Runtime release: `8a6d5c2-student-account-profile`; rollback: `eada47c-student-mobile-selfie-nav`.

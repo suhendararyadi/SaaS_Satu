@@ -706,3 +706,9 @@ No schema or attendance-policy logic changed. Validation remains server-authorit
 Student mobile views use bottom navigation as the primary navigation mechanism and do **not** expose the desktop sidebar through a mobile hamburger/drawer. Desktop student views retain the sidebar. Student attendance uses the same bottom-nav composition as student home.
 
 For selfie-required Attendance 360 actions on mobile, the dominant `MASUK`/`PULANG` action directly starts native camera capture; after authenticated evidence upload succeeds, the existing server-side attendance action is submitted with that evidence key. Do not reintroduce a separate `Verifikasi presensi` step on mobile unless requirements explicitly change.
+
+## Student account profile rule — 23 September 2026
+
+For role `STUDENT` with a School OS school assignment, `/account` is a school/student profile surface, not a SaaS subscriber profile. Display school identity, student identity, class/department/academic-year, safe contact/address/family summary, and login identity from the existing School OS database. Keep it read-only unless a future explicit self-service data-change workflow is designed.
+
+Do not expose NIK/KK, parent NIKs, bank account information, KIP/KPS numbers, home coordinates or physical measurements in the student account summary. `getMyStudentAccountProfile` is intentionally self-only and accepts no target student id. Generic SaaS plan/billing account content remains for non-student users only.

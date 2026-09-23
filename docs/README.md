@@ -128,3 +128,5 @@ Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DE
    - Student mobile Attendance UI release: [`RELEASE_2026-09-23_STUDENT_MOBILE_ATTENDANCE_UI.md`](./RELEASE_2026-09-23_STUDENT_MOBILE_ATTENDANCE_UI.md).
 
    - Student mobile selfie/navigation refinement: [`RELEASE_2026-09-23_STUDENT_MOBILE_SELFIE_NAV_REFINEMENT.md`](./RELEASE_2026-09-23_STUDENT_MOBILE_SELFIE_NAV_REFINEMENT.md).
+
+   - Student account school-profile release: [`RELEASE_2026-09-23_STUDENT_ACCOUNT_SCHOOL_PROFILE.md`](./RELEASE_2026-09-23_STUDENT_ACCOUNT_SCHOOL_PROFILE.md).

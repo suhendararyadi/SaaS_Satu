@@ -439,3 +439,11 @@ Live release `eada47c-student-mobile-selfie-nav` establishes two UX rules:
 2. On mobile Attendance 360, tapping the large `MASUK`/`PULANG` action opens the front-camera capture directly when selfie evidence is required. Successful evidence upload immediately feeds the existing `recordSelfAttendance` operation. Do not restore the removed mobile `Verifikasi presensi` card.
 
 Keep `DESIGN.md` authoritative and preserve server-side geofence/GPS/schedule/selfie/idempotency/tenant validation.
+
+## Student account uses school profile — 23 September 2026
+
+Live runtime release: `8a6d5c2-student-account-profile`.
+
+School OS STUDENT users with `schoolId` must see a read-only school profile on `/account`, rendered in `SchoolLayout`, not the generic SaaS subscription/credits/payment account view. The self-profile operation is `getMyStudentAccountProfile`; it must remain scoped to authenticated `context.user.id` + `context.user.schoolId` and role `STUDENT`, with no arbitrary target id.
+
+Privacy rule: do not add NIK/KK, parent NIK, bank account, KIP/KPS number, home coordinates or physical measurements to the student account summary without a new explicit requirement and privacy review. Preserve `DESIGN.md`, shared student bottom navigation and the no-sidebar-on-student-mobile rule.
