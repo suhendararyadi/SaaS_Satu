@@ -2,6 +2,7 @@ import { defineEnvValidationSchema } from "wasp/env";
 
 import * as z from "zod";
 import { googleAnalyticsEnvSchema, plausibleEnvSchema } from "./analytics/env";
+import { integrationEnvSchema } from "./integration/env";
 import { authEnvSchema } from "./auth/env";
 import { fileUploadEnvSchema } from "./file-upload/env";
 import { lemonSqueezyEnvSchema } from "./payment/lemonSqueezy/env";
@@ -24,5 +25,6 @@ export const serverEnvValidationSchema = defineEnvValidationSchema(
     ...fileUploadEnvSchema.shape,
     ...plausibleEnvSchema.shape,
     ...googleAnalyticsEnvSchema.shape,
+    ...integrationEnvSchema.shape,
   }),
 );

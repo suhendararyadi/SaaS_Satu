@@ -22,6 +22,7 @@ import { governanceSpec } from "./src/governance/governance.wasp";
 import { reportsSpec } from "./src/reports/reports.wasp";
 import { attendance360Spec } from "./src/attendance360/attendance360.wasp";
 import { administrationSpec } from "./src/administration/administration.wasp";
+import { integrationSpec } from "./src/integration/integration.wasp";
 
 
 export default app({
@@ -63,6 +64,7 @@ export default app({
     lmsSpec,
     governanceSpec,
     reportsSpec,
+    integrationSpec,
   ],
 });
 
