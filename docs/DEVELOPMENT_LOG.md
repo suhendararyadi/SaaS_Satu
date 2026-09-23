@@ -1191,3 +1191,11 @@ A self-only `getMyStudentAccountProfile` query was added. It requires a logged-i
 The first TU framework is now live in Starter Mode. Runtime release `4231a13-tu-foundation` adds an Administration dashboard, editable/versioned template library, outgoing draft workspace, student/master-data merge, A4-style draft preview, internal review states, starter numbering register and audit trail. Ten generic templates were initialized for SMKN 12 Garut. They are editable starter content, not official legal formats.
 
 Official numbering/signing/issuing is intentionally disabled. The starter register remains `isConfigured=false`, sequence `0`, and production has `0` TU documents. Migration `20260923014500_add_tu_foundation` was applied using the application DB owner after clone testing exposed the importance of table ownership. Real-DB clone UAT **28/28 PASS**; full regression **167/167 across 31 test files**; Wasp build/server bundle/Vite SSR+client PASS; deploy and idempotent redeploy PASS. Backup: `/home/ubuntu/backups/SaaS_Satu/pre-tu-foundation-20260923.dump`.
+
+---
+
+## 23 September 2026 — TU letterhead + manual number + person autocomplete
+
+TU correspondence now uses a shared Jawa Barat/Dinas Pendidikan-style letterhead inspired by the user's uploaded reference, with school identity sourced from School OS. Nomor Surat is mandatory manual input. Active Principal identity/NIP is resolved automatically from `SchoolStaffAssignment + TeacherProfile`. Student and guru/tendik selection now use debounced tenant-scoped database autocomplete instead of preloading large lists. A related staff relation was added to AdministrationDocument, and Surat Tugas starter was versioned to v2 to render selected staff name/NIP/title.
+
+Real-DB clone UAT **23/23 PASS**; full regression **169/169 across 31 files**; Wasp build/server bundle/Vite SSR+client PASS; additive migration and immutable deploy PASS; repeat deploy idempotent. Runtime release `7ce72db-tu-letterhead-search`; rollback `4231a13-tu-foundation`.

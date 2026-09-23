@@ -138,3 +138,5 @@ Untuk pengujian visual/workflow dengan data sintetis, baca [`DEMO_DATA.md`](./DE
 - TU template intake register: [`TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md`](./TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md).
 
 - TU Foundation Starter release: [`RELEASE_2026-09-23_TU_FOUNDATION_STARTER.md`](./RELEASE_2026-09-23_TU_FOUNDATION_STARTER.md).
+
+- TU letterhead/manual-number/person-search release: [`RELEASE_2026-09-23_TU_LETTERHEAD_PERSON_SEARCH.md`](./RELEASE_2026-09-23_TU_LETTERHEAD_PERSON_SEARCH.md).

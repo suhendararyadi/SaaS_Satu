@@ -728,3 +728,16 @@ Live runtime release: `4231a13-tu-foundation`.
 TU is now available as a real School OS module in Starter Mode with Dashboard TU, Template Surat, Surat Keluar, draft creation and document preview/review. SMKN 12 Garut has 10 generic starter templates and one unconfigured starter register. `ISSUED`, official numbering and signing remain unavailable by design.
 
 Do not treat starter wording or the candidate register pattern as an official SMKN 12 Garut format. Users may customize templates through versioning. Preserve the safe placeholder whitelist, server/client HTML sanitization, tenant scoping, template-version snapshots, audit trail and optimistic workflow concurrency.
+
+## TU correspondence identity rule — 23 September 2026
+
+Live release `7ce72db-tu-letterhead-search` establishes the current TU correspondence contract:
+
+- letterhead follows Jawa Barat Provincial Government / Education Office visual hierarchy and adds tenant school identity from `School`;
+- letter number is manual operator input in Starter Mode;
+- Kepala Sekolah identity is never typed manually for normal drafts: resolve the active `PRINCIPAL` assignment and TeacherProfile snapshot;
+- student and guru/tendik references use server-side tenant-scoped autocomplete;
+- `AdministrationDocument.relatedStaffId` stores the selected guru/tendik relation;
+- `ASSIGNMENT` starter v2 uses `staff.*` master-data variables.
+
+Do not reintroduce huge client-side student selects or free-text principal identity. Official issuance remains gated.

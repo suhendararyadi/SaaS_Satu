@@ -1442,3 +1442,20 @@ Still deliberately gated:
 - archive retention workflow.
 
 The generic starter wording is now intended to be customized progressively by the school instead of blocking implementation on sample-letter intake.
+
+---
+
+## 27. Letterhead & master-data form refinement — 23 September 2026
+
+Implemented live in `7ce72db-tu-letterhead-search`:
+
+- Jawa Barat/Dinas Pendidikan style shared letterhead with School OS tenant identity;
+- manual required Nomor Surat;
+- automatic active Kepala Sekolah identity/NIP resolver;
+- server-side student autocomplete;
+- server-side guru/tendik autocomplete;
+- optional related staff relation on AdministrationDocument;
+- staff/principal/document-number template variables;
+- Surat Tugas starter v2 based on staff master data.
+
+This refinement does not change the governance decision that official issue/TTE remains disabled until the school confirms the full issuance policy.

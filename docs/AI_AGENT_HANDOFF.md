@@ -467,3 +467,17 @@ SMKN 12 Garut is initialized with 10 editable generic starter templates and `STA
 Authorization currently supports School Admin, Principal assignment, and legacy administration/TU staff assignments for compatibility; Phase 0 docs describe the planned capability-based refinement. Sensitive student fields are not in the template variable whitelist. Manual variables are escaped, template HTML is server-sanitized, and the local template preview is sanitized too.
 
 Release record: `docs/RELEASE_2026-09-23_TU_FOUNDATION_STARTER.md`.
+
+## TU letterhead & people search live — 23 September 2026
+
+Runtime: `7ce72db-tu-letterhead-search` / commit `7ce72db`.
+
+TU draft/template preview shares `AdministrationLetterhead`: Jabar emblem, `PEMERINTAH DAERAH PROVINSI JAWA BARAT`, `DINAS PENDIDIKAN`, school identity/contact/NPSN, and Disdik Jabar mark. This is based on the user-approved visual reference; do not replace it with generic SaaS branding.
+
+`Nomor Surat` is mandatory manual input for draft creation. Keep automatic numbering disabled while `STARTER-OUTGOING.isConfigured=false`.
+
+Resolve signer identity from the active `PRINCIPAL` SchoolStaffAssignment + TeacherProfile. Student and staff selectors must use `searchAdministrationPeople`, which is tenant scoped and searches master data. Do not preload all students into the browser. `AdministrationDocument.relatedStaffId` is now available.
+
+SMKN 12 Garut starter `ASSIGNMENT` is version 2 and uses `staff.name`, `staff.nip`, `staff.title`. Keep sensitive fields outside the template whitelist.
+
+Release record: `docs/RELEASE_2026-09-23_TU_LETTERHEAD_PERSON_SEARCH.md`.
