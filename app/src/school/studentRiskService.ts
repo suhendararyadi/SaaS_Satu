@@ -354,6 +354,7 @@ export async function buildStudentRiskOverview(
     attendanceRows,
     attendanceCurrentRows,
     habituationEvents,
+    subjectAlpaRows,
     violations,
     coachings,
     overduePermits,
@@ -397,6 +398,33 @@ export async function buildStudentRiskOverview(
             status: { in: ["TIDAK_HADIR", "TERLAMBAT"] },
           },
           select: { id: true, studentId: true, status: true, dateOnly: true, occurredAt: true, metadata: true },
+        })
+      : Promise.resolve([]),
+    fullStudentIds.length
+      ? prisma.lmsAttendanceRecord.findMany({
+          where: {
+            studentId: { in: fullStudentIds },
+            status: "ALPA",
+            session: {
+              course: { schoolId: user.schoolId },
+              teachingSession: {
+                is: {
+                  dateOnly: { gte: currentWindow.key },
+                  status: { in: ["IN_PROGRESS", "COMPLETED"] },
+                },
+              },
+            },
+          },
+          select: {
+            id: true,
+            studentId: true,
+            session: {
+              select: {
+                teachingSession: { select: { id: true, dateOnly: true } },
+                course: { select: { id: true, subjectName: true } },
+              },
+            },
+          },
         })
       : Promise.resolve([]),
     fullStudentIds.length
@@ -528,6 +556,47 @@ export async function buildStudentRiskOverview(
       const item = signal({ id: `attendance-conflict:${row.id}`, source: "ATTENDANCE", code: "ATTENDANCE_CONFLICT", title: "Evidence kehadiran perlu diverifikasi", detail: `Ada evidence kehadiran yang belum konsisten pada ${row.dateOnly}.`, points: 2, href: "/school/attendance", occurredAt: row.updatedAt, comparableWindow: window });
       addTrend(row.studentId, item); if (isCurrent) addLive(row.studentId, item);
     }
+  }
+
+  // Kehadiran mapel tetap independen dari Global. Hanya anomali Global HADIR/TERLAMBAT + mapel ALPA
+  // yang masuk EWS sebagai selective truancy, tanpa mengubah SchoolDailyAttendance.
+  const globalPresentByStudentDate = new Set(
+    attendanceCurrentRows
+      .filter((row) => row.status === "HADIR" || row.status === "TERLAMBAT")
+      .map((row) => `${row.studentId}:${row.dateOnly}`),
+  );
+  const selectiveTruancyByStudent = new Map<string, Array<{ id: string; dateOnly: string; subjectName: string; courseId: string }>>();
+  for (const row of subjectAlpaRows) {
+    const teachingSession = row.session.teachingSession;
+    if (!teachingSession) continue;
+    if (!globalPresentByStudentDate.has(`${row.studentId}:${teachingSession.dateOnly}`)) continue;
+    const items = selectiveTruancyByStudent.get(row.studentId) || [];
+    items.push({
+      id: row.id,
+      dateOnly: teachingSession.dateOnly,
+      subjectName: row.session.course.subjectName,
+      courseId: row.session.course.id,
+    });
+    selectiveTruancyByStudent.set(row.studentId, items);
+  }
+  for (const [studentId, items] of selectiveTruancyByStudent) {
+    if (!items.length) continue;
+    const points = items.length >= 4 ? 8 : items.length >= 2 ? 4 : 2;
+    const subjects = [...new Set(items.map((item) => item.subjectName))].slice(0, 3).join(", ");
+    const newest = [...items].sort((a, b) => b.dateOnly.localeCompare(a.dateOnly))[0];
+    const item = signal({
+      id: `subject-truancy:${studentId}:${currentWindow.key}`,
+      source: "ATTENDANCE",
+      code: "SELECTIVE_TRUANCY",
+      title: "Tidak hadir pada sesi mapel saat tercatat hadir di sekolah",
+      detail: `${items.length} sesi ALPA mapel dalam 30 hari terakhir saat Kehadiran Global tercatat hadir/terlambat${subjects ? ` · ${subjects}` : ""}.`,
+      points,
+      href: `/school/lms/courses/${newest.courseId}/teaching`,
+      occurredAt: new Date(`${newest.dateOnly}T12:00:00+07:00`),
+      comparableWindow: "CURRENT",
+    });
+    addLive(studentId, item);
+    addTrend(studentId, item);
   }
 
   // Pola 30 hari: agregasi kehadiran, keterlambatan, pulang awal, konflik, dan alpa beruntun.

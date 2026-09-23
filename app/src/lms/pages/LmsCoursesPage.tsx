@@ -272,27 +272,38 @@ export function LmsCoursesPage({ user }: { user: AuthUser }) {
               Ruang Mata Pelajaran (LMS)
             </h1>
             <p className="text-body-large text-md-on-surface-variant mt-1">
-              Kelola materi pembelajaran, tugas, agenda KBM, dan ujian CBT.
+              Kelola ruang mapel, materi, tugas, CBT, serta masuk ke pelaksanaan Teaching Session.
             </p>
           </div>
-          {canManage && (
           <div className="flex items-center gap-3 flex-wrap">
-            <M3Button
-              variant="tonal"
-              icon="library_add"
-              onClick={openMerdekaModal}
-            >
-              Paket Mapel Kurikulum Merdeka
-            </M3Button>
-            <M3Button
-              variant="filled"
-              icon="add"
-              onClick={openAddModal}
-            >
-              Buka Ruang Mapel Baru
-            </M3Button>
-          </div>
+            {(canManage || user.role === "TEACHER") && (
+              <M3Button
+                variant="outlined"
+                icon="play_circle"
+                href="/school/lms/teaching"
+              >
+                KBM Hari Ini
+              </M3Button>
+            )}
+          {canManage && (
+            <>
+              <M3Button
+                variant="tonal"
+                icon="library_add"
+                onClick={openMerdekaModal}
+              >
+                Paket Mapel Kurikulum Merdeka
+              </M3Button>
+              <M3Button
+                variant="filled"
+                icon="add"
+                onClick={openAddModal}
+              >
+                Buka Ruang Mapel Baru
+              </M3Button>
+            </>
           )}
+          </div>
         </div>
 
         {/* Feedback Banner */}

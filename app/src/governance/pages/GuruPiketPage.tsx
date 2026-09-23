@@ -9,6 +9,8 @@ import {
   getSchoolOrganizationData,
   getDutyAttendanceConsole,
   recordDutyAttendanceEvent,
+  getTeachingDutyQueue,
+  markTeachingDelegationDelivered,
 } from "wasp/client/operations";
 import { Link } from "wasp/client/router";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
@@ -51,6 +53,12 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
     isDutyAssignmentForDay(assignment.dutyDays || [], todayDutyCode),
   );
   const canSubmitDutyReport = isAdmin || dutyTeachers.length === 0 || scheduledToday;
+  const teachingQueueQuery = useQuery(
+    getTeachingDutyQueue,
+    undefined,
+    { enabled: isAdmin || scheduledToday },
+  );
+  const teachingQueue: any = teachingQueueQuery.data;
 
   const [lateCount, setLateCount] = useState(0);
   const [dispensationCount, setDispensationCount] = useState(0);
@@ -190,6 +198,74 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
             }
             icon={scheduledToday ? "task_alt" : "event_busy"}
           />
+        )}
+
+        {(isAdmin || scheduledToday) && (
+          <M3Card variant="outlined" className="overflow-hidden">
+            <div className="flex flex-col gap-2 border-b border-md-outline-variant/25 p-5 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-md-primary">Teaching Session · SLA 15 Menit</p>
+                <h2 className="mt-1 text-title-large font-bold">Antrean KBM & Delegasi Guru</h2>
+                <p className="mt-1 text-xs text-md-on-surface-variant">
+                  Sesi yang belum dimulai melewati SLA dan tugas guru berhalangan muncul di sini tanpa mengubah Kehadiran Global siswa.
+                </p>
+              </div>
+              <M3Badge variant={(teachingQueue?.items?.length || 0) > 0 ? "warning" : "success"}>
+                {teachingQueue?.items?.length || 0} perhatian
+              </M3Badge>
+            </div>
+            {teachingQueueQuery.isLoading ? (
+              <div className="flex min-h-28 items-center justify-center"><M3CircularProgress size={28}/></div>
+            ) : teachingQueueQuery.error ? (
+              <div className="p-5 text-sm text-md-error">{(teachingQueueQuery.error as any)?.message || "Antrean KBM belum dapat dimuat."}</div>
+            ) : teachingQueue?.items?.length ? (
+              <div className="divide-y divide-md-outline-variant/20">
+                {teachingQueue.items.map((item: any) => (
+                  <div key={item.schedule.id} className="grid gap-3 p-4 lg:grid-cols-[120px_1fr_auto] lg:items-center">
+                    <div>
+                      <p className="text-sm font-bold">{item.schedule.startTime}–{item.schedule.endTime}</p>
+                      <M3Badge variant={item.type === "DELEGATED" ? "tertiary" : "warning"} size="sm">
+                        {item.type === "DELEGATED" ? "Tugas Delegasi" : "Jam Kosong / SLA"}
+                      </M3Badge>
+                    </div>
+                    <div>
+                      <p className="font-semibold">{item.schedule.course.subjectName} · {item.schedule.course.classRoom.name}</p>
+                      <p className="mt-1 text-xs text-md-on-surface-variant">Guru: {item.schedule.course.teacher.name || "Guru"}</p>
+                      {item.session?.dutyInstruction && (
+                        <p className="mt-2 rounded-[9px] bg-md-surface-container-low px-3 py-2 text-xs leading-5">
+                          <strong>Instruksi:</strong> {item.session.dutyInstruction}
+                        </p>
+                      )}
+                      {item.session?.absenceReason && <p className="mt-1 text-[11px] text-md-on-surface-variant">Alasan: {item.session.absenceReason}</p>}
+                    </div>
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      <M3Button variant="text" size="sm" href={"/school/lms/courses/" + item.schedule.course.id + "/teaching"}>Buka KBM</M3Button>
+                      {item.type === "DELEGATED" && item.session && !item.session.deliveredAt && (
+                        <M3Button
+                          variant="filled"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await markTeachingDelegationDelivered({ sessionId: item.session.id });
+                              setSuccessMsg("Tugas guru berhalangan ditandai sudah diteruskan ke kelas.");
+                              await teachingQueueQuery.refetch();
+                            } catch (err: any) {
+                              setErrorMsg(err?.message || "Status delegasi belum dapat diperbarui.");
+                            }
+                          }}
+                        >
+                          Tandai Diteruskan
+                        </M3Button>
+                      )}
+                      {item.session?.deliveredAt && <M3Badge variant="success" size="sm">Sudah Diteruskan</M3Badge>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-5 text-sm text-md-on-surface-variant">Tidak ada jam kosong atau delegasi yang perlu ditangani saat ini.</div>
+            )}
+          </M3Card>
         )}
 
         <M3Card variant="outlined" className="p-5 space-y-4">

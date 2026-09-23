@@ -55,6 +55,8 @@ const pageTitles: Array<[string, string]> = [
   ["/school/my-attendance", "Kehadiran Saya"],
   ["/school/attendance", "Presensi Harian"],
   ["/school/import", "Import Data"],
+  ["/school/lms/teaching/audit", "Audit Pelaksanaan KBM"],
+  ["/school/lms/teaching", "KBM Hari Ini"],
   ["/school/lms/courses", "Pembelajaran"],
   ["/school/pkl/foundation", "Fondasi PKL"],
   ["/school/pkl/companies", "Mitra DUDI"],
@@ -273,7 +275,11 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
         { label: "Import Data", href: "/school/import", icon: "upload_file" },
       ] });
-      sections.push({ title: "PEMBELAJARAN", items: [{ label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" }] });
+      sections.push({ title: "PEMBELAJARAN", items: [
+        { label: "KBM Hari Ini", href: "/school/lms/teaching", icon: "play_circle" },
+        { label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" },
+        { label: "Audit KBM", href: "/school/lms/teaching/audit", icon: "monitoring" },
+      ] });
       sections.push({ title: "KEHADIRAN", items: [
         { label: "Command Center", href: "/school/attendance/command", icon: "monitoring" },
         { label: "Presensi Harian", href: "/school/attendance", icon: "fact_check" },
@@ -313,6 +319,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       sections.push({ title: "SISTEM", items: [{ label: "Pengaturan Sekolah", href: "/school/settings", icon: "settings" }] });
     } else if (isTeacher) {
       sections.push({ title: "MENGAJAR", items: [
+        { label: "KBM Hari Ini", href: "/school/lms/teaching", icon: "play_circle" },
         { label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" },
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },
@@ -407,14 +414,14 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     ];
     if (isTeacher) return [
       { label: "Beranda", href: "/school", icon: "home" },
-      { label: "LMS", href: "/school/lms/courses", icon: "menu_book" },
+      { label: "KBM", href: "/school/lms/teaching", icon: "play_circle" },
       ...(teacherHasPkl ? [{ label: "PKL", href: "/school/pkl", icon: "work" }] : []),
       { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
     ];
     if (isSchoolAdmin) return [
       { label: "Beranda", href: "/school", icon: "home" },
       { label: "Siswa", href: "/school/students", icon: "groups" },
-      { label: "LMS", href: "/school/lms/courses", icon: "menu_book" },
+      { label: "KBM", href: "/school/lms/teaching", icon: "play_circle" },
       ...(usesPkl ? [{ label: "PKL", href: "/school/pkl/placements", icon: "work" }] : []),
       { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
     ];

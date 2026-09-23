@@ -352,6 +352,21 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
           <h1 className="text-headline-medium font-bold text-md-on-surface">
             {course.subjectName}
           </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            {canManageCourse && (
+              <M3Button
+                variant="outlined"
+                size="sm"
+                icon="play_circle"
+                href={"/school/lms/courses/" + course.id + "/teaching"}
+              >
+                Pelaksanaan KBM
+              </M3Button>
+            )}
+            <M3Button variant="text" size="sm" href="/school/lms/teaching">
+              KBM Hari Ini
+            </M3Button>
+          </div>
           <div className="flex items-center gap-4 flex-wrap text-body-medium text-md-on-surface-variant">
             <div className="flex items-center gap-1.5">
               <M3Icon name="person" size={15} className="shrink-0" />
