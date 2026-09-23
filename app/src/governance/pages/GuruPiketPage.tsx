@@ -145,16 +145,27 @@ export function GuruPiketPage({ user }: { user: AuthUser }) {
     <SchoolLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <M3Badge variant="tertiary">Piket Harian</M3Badge>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <M3Badge variant="tertiary">Piket Harian</M3Badge>
+            </div>
+            <h1 className="text-headline-medium font-bold text-md-on-surface">
+              Laporan Guru Piket
+            </h1>
+            <p className="text-body-large text-md-on-surface-variant">
+              Catat keterlambatan, izin dispensasi, ketertiban, dan koreksi Kehadiran Global hari berjalan.
+            </p>
           </div>
-          <h1 className="text-headline-medium font-bold text-md-on-surface">
-            Laporan Guru Piket
-          </h1>
-          <p className="text-body-large text-md-on-surface-variant">
-            Catat keterlambatan, izin dispensasi, dan ketertiban harian siswa.
-          </p>
+          {(isAdmin || scheduledToday) && (
+            <M3Button
+              variant="outlined"
+              icon="fact_check"
+              href="/school/attendance"
+            >
+              Koreksi Kehadiran Global
+            </M3Button>
+          )}
         </div>
 
         {!isAdmin && dutyTeachers.length === 0 && (

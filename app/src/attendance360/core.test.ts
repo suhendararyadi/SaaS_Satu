@@ -54,13 +54,24 @@ describe("Attendance 360 core", () => {
     expect(result.earlyLeave).toBe(true);
   });
 
-  it("marks gate-present but repeated subject absence for review", () => {
+  it("keeps global presence independent from repeated subject absence", () => {
     const result = reconcileAttendanceEvidence([
       { type: "SELF_CHECK_IN", status: "HADIR", occurredAt: new Date("2026-09-22T00:00:00Z") },
       { type: "SUBJECT_ATTENDANCE", status: "ALPA", occurredAt: new Date("2026-09-22T01:00:00Z") },
       { type: "SUBJECT_ATTENDANCE", status: "ALPA", occurredAt: new Date("2026-09-22T02:00:00Z") },
     ]);
     expect(result.status).toBe("HADIR");
-    expect(result.reconciliationStatus).toBe("NEEDS_REVIEW");
+    expect(result.reconciliationStatus).toBe("AUTO");
+    expect(result.evidenceSummary.subjectAbsentCount).toBe(2);
+  });
+
+  it("does not derive global attendance from subject attendance alone", () => {
+    const result = reconcileAttendanceEvidence([
+      { type: "SUBJECT_ATTENDANCE", status: "HADIR", occurredAt: new Date("2026-09-22T01:00:00Z") },
+      { type: "SUBJECT_ATTENDANCE", status: "ALPA", occurredAt: new Date("2026-09-22T02:00:00Z") },
+    ]);
+    expect(result.status).toBeNull();
+    expect(result.arrivalAt).toBeNull();
+    expect(result.reconciliationStatus).toBe("AUTO");
   });
 });

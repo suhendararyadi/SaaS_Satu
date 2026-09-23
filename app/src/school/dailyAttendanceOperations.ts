@@ -12,19 +12,26 @@ import {
   summarizeDailyAttendance,
 } from "./dailyAttendance";
 import {
+  canDutyCorrectDailyAttendance,
   canUseDailyAttendance,
   isDailyAttendanceAdmin,
 } from "./dailyAttendanceAccess";
+import { getAttendanceStaffScope } from "../attendance360/access";
 
 const dateOnlySchema = z.string().refine(isValidDateOnly, "Tanggal tidak valid.");
 
 function assertDailyAttendanceClassAccess(
   user: Pick<User, "id" | "role" | "isAdmin">,
   classRoom: { homeroomTeacherId: string | null },
+  canDutyToday: boolean,
 ) {
   if (isDailyAttendanceAdmin(user)) return;
+  if (canDutyToday) return;
   if (user.role === "TEACHER" && classRoom.homeroomTeacherId === user.id) return;
-  throw new HttpError(403, "Presensi harian hanya dapat dikelola oleh admin sekolah atau wali kelas rombel tersebut.");
+  throw new HttpError(
+    403,
+    "Presensi harian hanya dapat dikelola oleh admin sekolah, wali kelas rombel tersebut, atau guru piket aktif untuk hari ini.",
+  );
 }
 
 const getDailyAttendanceSchema = z.object({
@@ -46,11 +53,17 @@ export const getDailySchoolAttendance = async (
   });
 
   const isAdmin = isDailyAttendanceAdmin(user);
+  const staffScope = await getAttendanceStaffScope(user as User);
+  const canDutyToday = canDutyCorrectDailyAttendance(
+    staffScope.canDuty,
+    dateOnly,
+    jakartaDateOnly(),
+  );
   const classes = await prisma.classRoom.findMany({
     where: {
       schoolId: user.schoolId,
       ...(activeAcademicYear ? { academicYearId: activeAcademicYear.id } : {}),
-      ...(!isAdmin ? { homeroomTeacherId: user.id } : {}),
+      ...(!isAdmin && !canDutyToday ? { homeroomTeacherId: user.id } : {}),
     },
     select: {
       id: true,
@@ -64,8 +77,11 @@ export const getDailySchoolAttendance = async (
     orderBy: [{ gradeLevel: "asc" }, { name: "asc" }],
   });
 
-  if (!canUseDailyAttendance(user, classes.map((classRoom) => classRoom.id))) {
-    throw new HttpError(403, "Presensi harian hanya tersedia untuk admin sekolah dan wali kelas yang memiliki rombel binaan.");
+  if (!canDutyToday && !canUseDailyAttendance(user, classes.map((classRoom) => classRoom.id))) {
+    throw new HttpError(
+      403,
+      "Presensi harian hanya tersedia untuk admin sekolah, wali kelas yang memiliki rombel binaan, dan guru piket aktif pada hari berjalan.",
+    );
   }
 
   const classRoomId = args?.classRoomId || classes[0]?.id;
@@ -80,8 +96,14 @@ export const getDailySchoolAttendance = async (
       savedCount: 0,
       access: {
         isAdmin,
-        isHomeroomTeacher: !isAdmin,
-        scopeLabel: isAdmin ? "Semua rombel" : "Kelas binaan",
+        isHomeroomTeacher: false,
+        hasHomeroomAssignment: staffScope.homeroomClassIds.length > 0,
+        isDutyTeacher: canDutyToday,
+        scopeLabel: isAdmin
+          ? "Semua rombel"
+          : canDutyToday
+            ? "Semua rombel · Piket hari ini"
+            : "Kelas binaan",
       },
     };
   }
@@ -105,7 +127,7 @@ export const getDailySchoolAttendance = async (
   if (!selectedClass) {
     throw new HttpError(404, "Rombel tidak ditemukan pada tahun ajaran aktif.");
   }
-  assertDailyAttendanceClassAccess(user, selectedClass);
+  assertDailyAttendanceClassAccess(user, selectedClass, canDutyToday);
 
   const students = await prisma.user.findMany({
     where: {
@@ -162,8 +184,14 @@ export const getDailySchoolAttendance = async (
     savedCount: savedRecords.length,
     access: {
       isAdmin,
-      isHomeroomTeacher: !isAdmin,
-      scopeLabel: isAdmin ? "Semua rombel" : selectedClass.name,
+      isHomeroomTeacher: selectedClass.homeroomTeacherId === user.id,
+      hasHomeroomAssignment: staffScope.homeroomClassIds.length > 0,
+      isDutyTeacher: canDutyToday,
+      scopeLabel: isAdmin
+        ? "Semua rombel"
+        : canDutyToday
+          ? "Semua rombel · Piket hari ini"
+          : selectedClass.name,
     },
   };
 };
@@ -187,9 +215,17 @@ export const saveDailySchoolAttendance = async (
   const user = ensureSchoolUser(context);
   const args = ensureArgsSchemaOrThrowHttpError(saveDailyAttendanceSchema, rawArgs);
 
-  if (args.dateOnly > jakartaDateOnly()) {
+  const todayDateOnly = jakartaDateOnly();
+  if (args.dateOnly > todayDateOnly) {
     throw new HttpError(400, "Presensi harian tidak dapat dicatat untuk tanggal yang akan datang.");
   }
+
+  const staffScope = await getAttendanceStaffScope(user as User);
+  const canDutyToday = canDutyCorrectDailyAttendance(
+    staffScope.canDuty,
+    args.dateOnly,
+    todayDateOnly,
+  );
 
   const uniqueStudentIds = [...new Set(args.records.map((record) => record.studentId))];
   if (uniqueStudentIds.length !== args.records.length) {
@@ -213,7 +249,7 @@ export const saveDailySchoolAttendance = async (
     },
   });
   if (!classRoom) throw new HttpError(404, "Rombel tidak ditemukan.");
-  assertDailyAttendanceClassAccess(user, classRoom);
+  assertDailyAttendanceClassAccess(user, classRoom, canDutyToday);
   if (!classRoom.academicYear.isActive) {
     throw new HttpError(400, "Presensi harian hanya dapat dicatat pada tahun ajaran aktif.");
   }
@@ -237,6 +273,20 @@ export const saveDailySchoolAttendance = async (
   }
 
   const savedAt = new Date();
+  const isAdmin = isDailyAttendanceAdmin(user);
+  const isHomeroomTeacher = classRoom.homeroomTeacherId === user.id;
+  const overrideType = "HOMEROOM_OVERRIDE" as const;
+  const overrideRole = isAdmin
+    ? "ADMIN"
+    : isHomeroomTeacher
+      ? "HOMEROOM"
+      : "DUTY";
+  const overrideSource = isAdmin
+    ? "DAILY_ADMIN"
+    : isHomeroomTeacher
+      ? "DAILY_HOMEROOM"
+      : "DUTY_TEACHER";
+
   await prisma.$transaction(async (tx) => {
     for (const record of args.records) {
       const previous = await tx.schoolDailyAttendance.findUnique({
@@ -279,9 +329,13 @@ export const saveDailySchoolAttendance = async (
       await tx.studentAttendanceEvent.create({
         data: {
           schoolId: user.schoolId, studentId: record.studentId, dateOnly: args.dateOnly,
-          type: "HOMEROOM_OVERRIDE", status: record.status, source: "DAILY_MANUAL",
-          sourceKey: `manual:${saved.id}:${savedAt.toISOString()}`, actorId: user.id, occurredAt: savedAt,
-          notes: record.notes || null, metadata: { previousStatus: previous?.status || null, dailyAttendanceId: saved.id },
+          type: overrideType, status: record.status, source: overrideSource,
+          sourceKey: `manual:${overrideRole}:${saved.id}:${savedAt.toISOString()}`, actorId: user.id, occurredAt: savedAt,
+          notes: record.notes || null, metadata: {
+            previousStatus: previous?.status || null,
+            dailyAttendanceId: saved.id,
+            overrideRole,
+          },
         },
       });
     }

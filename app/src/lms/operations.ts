@@ -4,8 +4,9 @@ import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser, requireSchoolAdmin, requireTeacher } from "../school/authGuards";
 import { canAccessCourse, canManageCourse } from "./accessPolicy";
-import { createAttendanceEventIdempotent, reconcileStudentDay } from "../attendance360/service";
+import { createAttendanceEventIdempotent } from "../attendance360/service";
 import { attendanceLocalParts } from "../attendance360/time";
+import { globalAttendanceToSubjectDefault } from "./attendancePolicy";
 
 function requireActiveSchoolId(user: { schoolId?: string | null }) {
   if (!user.schoolId) {
@@ -175,6 +176,52 @@ export const getLmsCourseDetail = async (rawArgs: unknown, context: { user?: Use
   }
 
   return course;
+};
+
+const getCourseAttendanceSeedSchema = z.object({
+  courseId: z.string().uuid(),
+});
+
+export const getCourseAttendanceSeed = async (rawArgs: unknown, context: { user?: User }) => {
+  const teacher = requireTeacher(context);
+  const { courseId } = ensureArgsSchemaOrThrowHttpError(getCourseAttendanceSeedSchema, rawArgs);
+  const course = await getManagedCourseOrThrow(teacher, courseId);
+  const dateOnly = attendanceLocalParts(new Date()).dateOnly;
+
+  const [students, daily] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        schoolId: course.schoolId,
+        classRoomId: course.classRoomId,
+        role: "STUDENT",
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.schoolDailyAttendance.findMany({
+      where: {
+        schoolId: course.schoolId,
+        classRoomId: course.classRoomId,
+        dateOnly,
+      },
+      select: { studentId: true, status: true, updatedAt: true },
+    }),
+  ]);
+
+  const globalByStudent = new Map(daily.map((record) => [record.studentId, record]));
+  return {
+    dateOnly,
+    students: students.map((student) => {
+      const global = globalByStudent.get(student.id);
+      return {
+        id: student.id,
+        name: student.name,
+        globalStatus: global?.status || null,
+        globalUpdatedAt: global?.updatedAt || null,
+        defaultStatus: globalAttendanceToSubjectDefault(global?.status),
+      };
+    }),
+  };
 };
 
 const createLmsCourseSchema = z.object({
@@ -397,9 +444,13 @@ export const recordCourseAttendance = async (rawArgs: unknown, context: { user?:
         actorId: teacher.id,
         occurredAt: session.date,
         notes: record.notes || null,
-        metadata: { courseId: course.id, sessionId: session.id, sessionNumber: session.sessionNumber },
+        metadata: {
+          courseId: course.id,
+          sessionId: session.id,
+          sessionNumber: session.sessionNumber,
+          affectsGlobalAttendance: false,
+        },
       }, tx);
-      await reconcileStudentDay(course.schoolId, record.studentId, dateOnly, teacher.id, tx);
     }
     return session;
   });

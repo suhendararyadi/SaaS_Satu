@@ -5,6 +5,7 @@ import { LmsCourseDetailPage } from "./pages/LmsCourseDetailPage" with { type: "
 import {
   getLmsCourses,
   getLmsCourseDetail,
+  getCourseAttendanceSeed,
   createLmsCourse,
   bulkCreateLmsCourses,
   deleteLmsCourse,
@@ -54,6 +55,9 @@ export const lmsSpec: Spec = [
       "StudentProfile",
       "TeacherProfile",
     ],
+  }),
+  query(getCourseAttendanceSeed, {
+    entities: ["LmsCourse", "ClassRoom", "User", "SchoolDailyAttendance"],
   }),
 
   // Actions

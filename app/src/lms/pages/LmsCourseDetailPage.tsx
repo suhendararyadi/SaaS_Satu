@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type AuthUser } from "wasp/auth";
 import { useParams } from "react-router";
 import { Link } from "wasp/client/router";
 import {
   useQuery,
   getLmsCourseDetail,
+  getCourseAttendanceSeed,
   createCourseMaterial,
   createCourseAssignment,
   submitAssignment,
@@ -29,6 +30,7 @@ import {
   M3Text,
   M3Icon,
 } from "../../client/components/m3";
+import { type SubjectAttendanceStatus } from "../attendancePolicy";
 
 export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
   const { id } = useParams<{ id: string }>();
@@ -65,8 +67,31 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [sessionNum, setSessionNum] = useState(1);
   const [studentStatusMap, setStudentStatusMap] = useState<
-    Record<string, "HADIR" | "SAKIT" | "IZIN" | "ALPA" | "TERLAMBAT" | "DISPENSASI">
+    Record<string, SubjectAttendanceStatus>
   >({});
+  const {
+    data: attendanceSeed,
+    isLoading: attendanceSeedLoading,
+    error: attendanceSeedError,
+  } = useQuery(
+    getCourseAttendanceSeed,
+    { courseId: id || "" },
+    {
+      enabled: !!id && attendanceModalOpen,
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  useEffect(() => {
+    if (!attendanceModalOpen || !attendanceSeed?.students) return;
+    const next: Record<string, SubjectAttendanceStatus> = {};
+    for (const student of attendanceSeed.students) {
+      if (student.defaultStatus) {
+        next[student.id] = student.defaultStatus as SubjectAttendanceStatus;
+      }
+    }
+    setStudentStatusMap(next);
+  }, [attendanceModalOpen, attendanceSeed]);
 
   // CBT Exam Modal
   const [cbtModalOpen, setCbtModalOpen] = useState(false);
@@ -151,10 +176,15 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
 
   const handleSaveAttendance = async () => {
     if (!id || !course) return;
+    const missingStudents = course.classRoom.students.filter((student) => !studentStatusMap[student.id]);
+    if (missingStudents.length > 0) {
+      alert(`Tentukan status presensi untuk ${missingStudents.length} siswa yang belum memiliki status awal.`);
+      return;
+    }
     try {
       const records = course.classRoom.students.map((s) => ({
         studentId: s.id,
-        status: studentStatusMap[s.id] || "HADIR",
+        status: studentStatusMap[s.id] as SubjectAttendanceStatus,
       }));
 
       await recordCourseAttendance({
@@ -270,6 +300,9 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
     user.role === "SUPERADMIN" ||
     (user.role === "TEACHER" && course.teacher.id === user.id);
   const isStudent = user.role === "STUDENT" && !user.isAdmin;
+  const missingAttendanceCount = course.classRoom.students.filter(
+    (student) => !studentStatusMap[student.id],
+  ).length;
 
   const tabs = [
     {
@@ -513,11 +546,7 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
                   size="sm"
                   icon="add"
                   onClick={() => {
-                    const initMap: Record<string, "HADIR" | "SAKIT" | "IZIN" | "ALPA"> = {};
-                    course.classRoom.students.forEach((s) => {
-                      initMap[s.id] = "HADIR";
-                    });
-                    setStudentStatusMap(initMap);
+                    setStudentStatusMap({});
                     setSessionNum(course.attendances.length + 1);
                     setAttendanceModalOpen(true);
                   }}
@@ -816,33 +845,57 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
         {/* Dialog Attendance */}
         <M3Dialog
           isOpen={canManageCourse && attendanceModalOpen}
-          onClose={() => setAttendanceModalOpen(false)}
+          onClose={() => {
+            setAttendanceModalOpen(false);
+            setStudentStatusMap({});
+          }}
           title={`Presensi Pertemuan ke-${sessionNum}`}
-          description="Tandai kehadiran masing-masing siswa di kelas."
+          description="Status awal diambil dari Kehadiran Global hari ini. Koreksi pada mapel ini hanya berlaku untuk sesi pembelajaran dan tidak mengubah Kehadiran Global."
         >
           <div className="space-y-4 pt-2">
+            <div className="rounded-[10px] border border-md-outline-variant/40 bg-md-surface-container-low px-3 py-2.5 text-xs leading-5 text-md-on-surface-variant">
+              Prefill menggunakan Kehadiran Global tanggal <strong className="text-md-on-surface">{attendanceSeed?.dateOnly || "hari ini"}</strong>.
+              Status Global <strong>TERLAMBAT</strong> diprefill sebagai <strong>HADIR</strong> pada mapel dan tetap dapat dikoreksi guru.
+            </div>
+            {attendanceSeedError && (
+              <M3Banner
+                variant="error"
+                supportingText={(attendanceSeedError as any)?.message || "Status Kehadiran Global belum dapat dimuat. Guru tetap dapat menentukan status mapel secara manual."}
+              />
+            )}
+            {attendanceSeedLoading && (
+              <div className="flex items-center gap-2 text-xs text-md-on-surface-variant">
+                <M3CircularProgress size={18} />
+                Memuat status awal dari Kehadiran Global...
+              </div>
+            )}
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {course.classRoom.students.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between p-3 rounded-md-md border border-md-outline/20 bg-md-surface-container-low"
+                  className="flex flex-col gap-2 rounded-[10px] border border-md-outline/20 bg-md-surface-container-low p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="font-semibold text-body-medium text-md-on-surface">
-                    {s.name}
-                  </span>
-                  <div className="flex gap-1">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-body-medium text-md-on-surface">{s.name}</p>
+                    <p className="mt-0.5 text-[11px] text-md-on-surface-variant">
+                      Global: {attendanceSeed?.students.find((seed) => seed.id === s.id)?.globalStatus || "Belum tercatat"}
+                      {!studentStatusMap[s.id] ? " · Status mapel belum ditentukan" : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
                     {(["HADIR", "TERLAMBAT", "SAKIT", "IZIN", "DISPENSASI", "ALPA"] as const).map((st) => (
                       <button
                         key={st}
                         type="button"
+                        disabled={attendanceSeedLoading}
                         onClick={() =>
                           setStudentStatusMap((prev) => ({
                             ...prev,
                             [s.id]: st,
                           }))
                         }
-                        className={`px-3 py-1 rounded-md-full text-label-small font-bold transition-all ${
-                          (studentStatusMap[s.id] || "HADIR") === st
+                        className={`px-3 py-1 rounded-md-full text-label-small font-bold transition-all disabled:cursor-wait disabled:opacity-50 ${
+                          studentStatusMap[s.id] === st
                             ? st === "HADIR"
                               ? "bg-md-secondary text-md-on-secondary shadow-none"
                               : st === "ALPA"
@@ -862,12 +915,21 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
             <div className="flex justify-end gap-2 pt-4 border-t border-md-outline/10">
               <M3Button
                 variant="outlined"
-                onClick={() => setAttendanceModalOpen(false)}
+                onClick={() => {
+                  setAttendanceModalOpen(false);
+                  setStudentStatusMap({});
+                }}
               >
                 Batal
               </M3Button>
-              <M3Button variant="filled" onClick={handleSaveAttendance}>
-                Simpan Presensi
+              <M3Button
+                variant="filled"
+                onClick={handleSaveAttendance}
+                disabled={attendanceSeedLoading || missingAttendanceCount > 0}
+              >
+                {missingAttendanceCount > 0
+                  ? `Lengkapi ${missingAttendanceCount} Status`
+                  : "Simpan Presensi"}
               </M3Button>
             </div>
           </div>

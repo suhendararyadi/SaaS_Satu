@@ -383,7 +383,18 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
     finally { setReconcileBusy(false); }
   };
 
+  const dutyOnly = !!data?.access?.isDutyTeacher
+    && !data?.access?.isAdmin
+    && !data?.access?.hasHomeroomAssignment;
   const canSave = !!data?.students?.length && dateOnly <= today && !submitting;
+  const attendanceTabs = dutyOnly
+    ? [{ id: "INPUT", label: "Kehadiran Global", icon: "fact_check" }]
+    : [
+        { id: "INPUT", label: "Input Manual", icon: "fact_check" },
+        { id: "RECONCILE", label: "Perlu Verifikasi", icon: "sync_alt" },
+        { id: "MATRIX", label: "Matriks Bulanan", icon: "calendar_view_month" },
+        { id: "REPORT", label: "Rekap & Laporan", icon: "analytics" },
+      ];
   const commonError = errorMsg || (error as any)?.message || (reportError as any)?.message || (reconciliationError as any)?.message;
 
   return (
@@ -396,16 +407,11 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
               Presensi Harian
             </h1>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-md-on-surface-variant">
-              Satu sumber data kehadiran resmi sekolah. Admin mengelola seluruh rombel, sedangkan wali kelas hanya mengelola dan melaporkan rombel binaannya.
+              Satu sumber data kehadiran resmi sekolah. Kehadiran mandiri siswa menjadi dasar Global, lalu dapat dikoreksi Admin, wali kelas, atau Guru Piket aktif sesuai cakupannya.
             </p>
           </div>
           <M3Tabs
-            tabs={[
-              { id: "INPUT", label: "Input Manual", icon: "fact_check" },
-              { id: "RECONCILE", label: "Perlu Verifikasi", icon: "sync_alt" },
-              { id: "MATRIX", label: "Matriks Bulanan", icon: "calendar_view_month" },
-              { id: "REPORT", label: "Rekap & Laporan", icon: "analytics" },
-            ]}
+            tabs={attendanceTabs}
             activeTab={view}
             onChange={(tab) => setView(tab as "INPUT" | "RECONCILE" | "MATRIX" | "REPORT")}
           />
@@ -441,9 +447,14 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                     Cakupan akses: <strong>{data?.access?.scopeLabel || "Memuat..."}</strong>
                   </p>
                 </div>
-                {data?.access?.isHomeroomTeacher && (
-                  <M3Badge variant="primary">Wali Kelas</M3Badge>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {data?.access?.isHomeroomTeacher && (
+                    <M3Badge variant="primary">Wali Kelas</M3Badge>
+                  )}
+                  {data?.access?.isDutyTeacher && (
+                    <M3Badge variant="warning">Piket Hari Ini</M3Badge>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-3 md:grid-cols-[minmax(180px,0.8fr)_minmax(260px,1.2fr)_minmax(220px,1fr)]">
@@ -451,8 +462,9 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                   label="Tanggal"
                   type="date"
                   value={dateOnly}
-                  min={activeSemesterRange?.startDateOnly}
-                  max={activeSemesterRange && activeSemesterRange.endDateOnly < today ? activeSemesterRange.endDateOnly : today}
+                  min={dutyOnly ? today : activeSemesterRange?.startDateOnly}
+                  max={dutyOnly ? today : activeSemesterRange && activeSemesterRange.endDateOnly < today ? activeSemesterRange.endDateOnly : today}
+                  disabled={dutyOnly}
                   onChange={(event) => {
                     setDateOnly(event.target.value);
                     setMessage("");
@@ -467,7 +479,10 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                     setMessage("");
                     setSearch("");
                   }}
-                  disabled={!classOptions.length || !!data?.access?.isHomeroomTeacher}
+                  disabled={
+                    !classOptions.length
+                    || (!!data?.access?.hasHomeroomAssignment && !data?.access?.isDutyTeacher && !data?.access?.isAdmin)
+                  }
                 />
                 <M3TextField
                   label="Cari siswa"
@@ -525,7 +540,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
               <M3EmptyState
                 icon="supervisor_account"
                 title="Belum ada rombel yang dapat diakses"
-                description="Admin dapat mengakses seluruh rombel. Guru hanya dapat mengakses Presensi Harian setelah ditugaskan sebagai wali kelas pada rombel aktif."
+                description="Admin dapat mengakses seluruh rombel. Guru dapat mengakses sebagai wali kelas rombel aktif atau sebagai Guru Piket yang terjadwal pada hari berjalan."
               />
             ) : !data?.students?.length ? (
               <M3EmptyState
@@ -619,7 +634,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
 
                 <div className="sticky bottom-0 flex flex-col gap-3 border-t border-md-outline-variant/30 bg-md-surface/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <p className="text-xs leading-5 text-md-on-surface-variant">
-                    Status awal Hadir baru menjadi data resmi setelah disimpan. Perubahan berikutnya tetap tercatat pada pengguna terakhir yang memperbarui.
+                    Data yang disimpan di sini adalah Kehadiran Global resmi. Koreksi manusia dipertahankan dan sumber perubahan tercatat pada audit kehadiran.
                   </p>
                   <M3Button
                     variant="filled"
@@ -645,7 +660,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                 <M3Select label="Rombel" value={reconcileClassId} options={(reconciliationData?.classes || []).map((c:any)=>({value:c.id,label:c.name}))} onChange={(event)=>setReconcileClassId(event.target.value)} />
                 <M3Button icon="sync" onClick={runReconciliation} isLoading={reconcileBusy} disabled={!reconcileClassId}>Rekonsiliasi Sumber</M3Button>
               </div>
-              <p className="mt-3 text-xs text-md-on-surface-variant">Mesin menyatukan check-in/out, piket, presensi mapel, izin/sakit, dan evidence lain. Record MANUAL/VERIFIED tidak ditimpa otomatis.</p>
+              <p className="mt-3 text-xs text-md-on-surface-variant">Mesin menyatukan check-in/out sekolah, piket, izin/sakit, dan evidence Global lain. Presensi mapel tetap tercatat terpisah dan tidak mengubah Kehadiran Global. Record MANUAL/VERIFIED tidak ditimpa otomatis.</p>
             </M3Card>
             {reconciliationLoading ? <div className="flex min-h-[260px] items-center justify-center"><M3CircularProgress size={38}/></div> :
               <div className="space-y-3">{(reconciliationData?.rows || []).filter((row:any)=>row.needsReview).map((row:any)=><M3Card key={row.id} variant="outlined" className="p-4">
