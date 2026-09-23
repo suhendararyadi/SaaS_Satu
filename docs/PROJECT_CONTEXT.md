@@ -720,3 +720,11 @@ Blueprint stored in [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TATA_USAHA_MODULE.md). 
 ## TU Phase 0 — SMKN 12 Garut discovery baseline
 
 Read-only production discovery found complete core school identity, 1,539 students, 50 rombels, 7 departments, one Principal assignment, four Wakasek assignments and 22 active `Tenaga Administrasi Sekolah` assignments. All 22 TU candidates currently use primary role `TEACHER` and none has Auth. No structured Kepala TU assignment exists yet. Official letter samples, numbering/classification, approval routes, signer authority, letterhead asset and retention rules remain pending. See the three `TU_PHASE0_*` docs.
+
+## Tata Usaha Foundation Starter — live 23 September 2026
+
+Live runtime release: `4231a13-tu-foundation`.
+
+TU is now available as a real School OS module in Starter Mode with Dashboard TU, Template Surat, Surat Keluar, draft creation and document preview/review. SMKN 12 Garut has 10 generic starter templates and one unconfigured starter register. `ISSUED`, official numbering and signing remain unavailable by design.
+
+Do not treat starter wording or the candidate register pattern as an official SMKN 12 Garut format. Users may customize templates through versioning. Preserve the safe placeholder whitelist, server/client HTML sanitization, tenant scoping, template-version snapshots, audit trail and optimistic workflow concurrency.

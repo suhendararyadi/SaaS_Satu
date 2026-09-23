@@ -455,3 +455,15 @@ Authoritative implementation blueprint: [`PLAN_TATA_USAHA_MODULE.md`](./PLAN_TAT
 ## TU Phase 0 discovery executed — 23 September 2026
 
 SMKN 12 Garut Phase 0 is documented in `TU_PHASE0_SMKN12_GARUT_CONFIGURATION_PACK.md`, `TU_PHASE0_GOVERNANCE_CONTRACT.md`, and `TU_PHASE0_TEMPLATE_INTAKE_REGISTER.md`. Read these before implementing TU. Do not invent numbering/classification/signer rules. Current production data shows a Principal candidate, four Wakasek candidates, and 22 Tenaga Administrasi candidates, but no structured Kepala TU assignment and no Auth for those 22 staff. Phase 1 may build a gated foundation; production `ISSUED` must remain disabled until official samples/rules are confirmed.
+
+## Tata Usaha Foundation Starter live — 23 September 2026
+
+Current TU runtime foundation commit: `4231a13`; release: `4231a13-tu-foundation`.
+
+Routes live: `/school/administration`, `/school/administration/templates`, `/school/administration/outgoing`, `/school/administration/outgoing/new`, `/school/administration/documents/:id`.
+
+SMKN 12 Garut is initialized with 10 editable generic starter templates and `STARTER-OUTGOING`, but official issuance is hard-gated: register `isConfigured=false`, sequence=0, no production TU documents, no `ISSUED`/`SIGNED` state or final-number allocation operation. Do not bypass this gate. Next work should add explicit correspondence settings, atomic numbering and approval/signature policy before introducing official issue.
+
+Authorization currently supports School Admin, Principal assignment, and legacy administration/TU staff assignments for compatibility; Phase 0 docs describe the planned capability-based refinement. Sensitive student fields are not in the template variable whitelist. Manual variables are escaped, template HTML is server-sanitized, and the local template preview is sanitized too.
+
+Release record: `docs/RELEASE_2026-09-23_TU_FOUNDATION_STARTER.md`.

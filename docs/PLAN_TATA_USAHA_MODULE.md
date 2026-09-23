@@ -1410,3 +1410,35 @@ Data yang sudah siap: identity sekolah, 1.539 siswa, 50 rombel, 7 program/konsen
 Blocker sebelum surat production dapat diterbitkan: sample surat resmi, pattern penomoran/register, kode klasifikasi, assignment Kepala TU, approval/paraf matrix, signer authority per template, logo/kop asset, retention profile, dan kebijakan TTE.
 
 Phase 1 foundation boleh dirancang dengan feature gate; `ISSUED` production tidak boleh dibuka sebelum blocker kritis dikonfirmasi.
+
+---
+
+## 26. Phase 1 starter foundation status — 23 September 2026
+
+Phase 1/early Phase 2 framework is now live as release `4231a13-tu-foundation`.
+
+Implemented:
+
+- TU dashboard and navigation;
+- 10 generic editable starter templates;
+- template versioning;
+- safe placeholder resolver;
+- draft creation using existing School OS master data;
+- A4-style preview;
+- internal draft/review/approved/void workflow;
+- optimistic concurrency;
+- audit trail;
+- starter `LetterRegister` model/config row;
+- tenant isolation and role/assignment guards.
+
+Still deliberately gated:
+
+- official numbering;
+- signer/approval policy configuration;
+- final immutable PDF issuance;
+- TTE/QR;
+- incoming mail/disposition;
+- front-office service request;
+- archive retention workflow.
+
+The generic starter wording is now intended to be customized progressively by the school instead of blocking implementation on sample-letter intake.

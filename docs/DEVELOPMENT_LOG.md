@@ -1183,3 +1183,11 @@ Quality gate: Wasp build PASS, **163/163 regression tests across 30 files**, ser
 For School OS users with role `STUDENT` and a school assignment, `/account` no longer shows generic SaaS plan/credits/payment content. It now renders a read-only School OS student profile using the existing `StudentProfile`, school, class, department and academic-year data. Non-student account behavior is unchanged.
 
 A self-only `getMyStudentAccountProfile` query was added. It requires a logged-in school student and always scopes to the authenticated user's own id + school id. Sensitive fields such as NIK/KK, bank data, benefit-card numbers, home coordinates and physical measurements are not selected. Quality gate: Wasp build PASS, full regression **163/163 across 30 files**, server bundle and Vite SSR/client PASS, immutable preflight/deploy PASS, repeat deploy idempotent. Runtime release: `8a6d5c2-student-account-profile`; rollback: `eada47c-student-mobile-selfie-nav`.
+
+---
+
+## 23 September 2026 — Tata Usaha Foundation Starter live
+
+The first TU framework is now live in Starter Mode. Runtime release `4231a13-tu-foundation` adds an Administration dashboard, editable/versioned template library, outgoing draft workspace, student/master-data merge, A4-style draft preview, internal review states, starter numbering register and audit trail. Ten generic templates were initialized for SMKN 12 Garut. They are editable starter content, not official legal formats.
+
+Official numbering/signing/issuing is intentionally disabled. The starter register remains `isConfigured=false`, sequence `0`, and production has `0` TU documents. Migration `20260923014500_add_tu_foundation` was applied using the application DB owner after clone testing exposed the importance of table ownership. Real-DB clone UAT **28/28 PASS**; full regression **167/167 across 31 test files**; Wasp build/server bundle/Vite SSR+client PASS; deploy and idempotent redeploy PASS. Backup: `/home/ubuntu/backups/SaaS_Satu/pre-tu-foundation-20260923.dump`.
