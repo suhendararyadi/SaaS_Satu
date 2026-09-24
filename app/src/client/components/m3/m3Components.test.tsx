@@ -527,6 +527,41 @@ describe("Shared UI Components", () => {
       expect(screen.getByText("3")).toBeInTheDocument();
     });
 
+    it("uses a calm blue selection highlight instead of a solid primary block", () => {
+      window.history.pushState({}, "", "/school");
+      const { container } = render(
+        <BrowserRouter>
+          <M3NavigationDrawer
+            sections={mockSections}
+            isOpen={false}
+            isCollapsed={false}
+          />
+        </BrowserRouter>
+      );
+
+      const dashboardLink = screen.getByRole("link", { name: /dashboard/i });
+      expect(dashboardLink).toHaveAttribute("aria-current", "page");
+      expect(dashboardLink.className).toContain("bg-[#007AFF]/[.10]");
+      expect(dashboardLink.className).not.toContain("bg-md-primary text-white");
+      expect(container.querySelector('[data-sidebar-icon="dashboard"]')?.className).toContain("bg-[#007AFF]");
+    });
+
+    it("falls back to graphite instead of purple for unknown sidebar icons", () => {
+      window.history.pushState({}, "", "/school/other");
+      const { container } = render(
+        <BrowserRouter>
+          <M3NavigationDrawer
+            sections={[{ title: "Lainnya", items: [{ label: "Menu Lain", href: "/school/other", icon: "unknown_sidebar_icon" }] }]}
+            isOpen={false}
+          />
+        </BrowserRouter>
+      );
+      const tile = container.querySelector('[data-sidebar-icon="unknown_sidebar_icon"]');
+      expect(tile?.className).toContain("bg-[#8E8E93]");
+      expect(tile?.className).not.toContain("#AF52DE");
+      expect(tile?.className).not.toContain("#BF5AF2");
+    });
+
     it("renders collapsed navigation rail mode (isCollapsed=true) with titles and icons", () => {
       render(
         <BrowserRouter>
