@@ -1,51 +1,24 @@
 # School OS — Persistent Project Context
 
-Last verified: **22 September 2026 (Asia/Jakarta)**.
+Last verified: **26 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Agen baru harus membaca [`AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md) terlebih dahulu sebagai ringkasan cepat, lalu dokumen ini untuk konteks lengkap. Jika dokumentasi bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot.
 
 ## 1. Source tree aktif
 
-- Repository baseline: `/home/ubuntu/projects/SaaS_Satu`
-- Worktree aktif School OS: `/home/ubuntu/projects/SaaS_Satu-hardening`
-- Branch: `redesign/apple-hig`
-- Source CMS foundation: `5869a68` — `feat(website): add tenant-isolated school CMS`
-- Public-data safety + starter seed: `f382ad3` — `refine(website): protect public data and add starter seed`
-- Editorial review UI + deploy hardening: `9735dd2` — `refine(website): complete review flow and deploy checks`
-- Website Sekolah Phase 2: `ba863b9` — `feat(website): deliver phase 2 publishing experience`
-- Sitemap API signature fix: `5b16861` — `fix(website): align sitemap api signature`
-- Route-specific social metadata polish: `f142e94` — `fix(website): prefer school social metadata`
-- School OS Spotlight runtime: `4e50fd5` — `feat(school): add Spotlight search`
-- Spotlight interaction regression tests: `3188ae8` — `test(school): cover Spotlight interactions`
-- Spotlight HIG focus refinement: `0699046` — `refine(school): polish Spotlight HIG focus state`
-- Apple-style search field refinement: `5f20bdc` — `refine(school): align Spotlight search field with Apple HIG`
-- Inner input chrome fix: `5eb8b87` — `fix(school): remove Spotlight inner input chrome`
-- Dapodik-aligned student database: `783ff2c` — `feat(school): build Dapodik student database`
-- Student detail AcademicYear runtime fix: `2c07ede` — `fix(school): correct student detail academic year`
-- School-level feature adaptation: `128ef87` — `feat(school): adapt features by school level`
-- Daily student attendance + homeroom scope: `985df7e` / `0a5ecc5`
-- Modular Wakasek panels: `618703b`
-- Organization assignment center: `edd4bc4`
-- Integrated follow-up workflow: `05db875`
-- Sarpras inventory & maintenance: `32c7fc9`
-- Kesiswaan Terpadu: `e64d1ff`
-- Notification center: `fbd7fd3`
-- EWS lintas modul generasi kedua: `27d1b34`
-- Dapodik PTK detail profiles: `e212f56` — `feat(school): add Dapodik PTK detail profiles`
-- Complete Dapodik PTK profile editor: `03655f4` — `feat(school): add complete PTK profile editor`
-- PKL Foundation Generasi Kedua: `45a11a5` — final app commit for Gen2 foundation compatibility
-- PKL Gen2 full workflow suite: `5aee74e` — Placement/Readiness/Attendance/Journal/EWS/Role Panel/Reports/Import
-- PKL Gen2 UAT & hardening: `d0809d4` — concurrency, lifecycle, attendance, import, EWS and evidence hardening
-- Current production application commit: `d77dd38` — Attendance 360 evidence-based attendance platform
-- Repository `HEAD` may be newer because documentation-only commits are allowed after a production release; always distinguish Git documentation head from the deployed application commit.
-- Current attendance hardening branch/worktree: `hardening/daily-attendance-wali` at `/home/ubuntu/.cache/mso-worktrees/saas-satu-attendance-wali-hardening`; production app release: `16bad88-attendance-wali-hardening`.
-- Current Kesiswaan/Follow-Up hardening branch/worktree: `hardening/student-affairs-followup` at `/home/ubuntu/.cache/mso-worktrees/saas-satu-student-affairs-followup-hardening`; production app release: `0d52d90-student-affairs-followup`.
-- AI-agent handoff artifact: [`docs/AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md), verified against production on 20 September 2026.
-- Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md). Critical confirmed context is now independent of the project worktree.
-- `.agent/` adalah operational Project/RASMIC memory yang tidak dilacak Git; jangan dibersihkan hanya untuk merapikan status, tetapi jangan mengandalkannya sebagai satu-satunya memory permanen.
-
-Gunakan worktree `SaaS_Satu-hardening` untuk pengembangan School OS kecuali ada keputusan eksplisit untuk merge/rebase/promote ke branch lain.
-
+- Canonical repository: `/home/ubuntu/projects/SaaS_Satu`.
+- Canonical branch: `main`.
+- `/home/ubuntu/projects/SaaS_Satu-hardening` is a **legacy linked worktree** on `redesign/apple-hig`; it is not the live production source and should no longer be used as the default development workspace.
+- Development pattern: verify actual backend/static production pointers first, create an isolated feature/hardening worktree under `/home/ubuntu/.cache/mso-worktrees/`, test there, then reconcile verified work back into canonical `main`.
+- Live backend app: `c7814f5` / `c7814f5-lms-teaching-session-gen1`.
+- Live static/frontend: `c3297df` / `c3297df-sidebar-color-polish`.
+- Live service: `saas-satu.service` active.
+- `main` was reconciled on 26 September 2026 to include the live backend/static lineage plus the OpenClaw integration history already present on GitHub.
+- Student login provisioning, Attendance Global→LMS one-way, and Teaching Session Gen1 release artifacts are retained in `docs/`.
+- SMKN 12 Garut integrated demo runner/artifact is tracked under `app/scripts/school-os-demo-smkn12*.mjs` and [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
+- Real/Dapodik baseline remains **1,539 students and 50 class rooms**. Current integrated demo overlay adds **21 students, 5 class rooms, 4 companies, 8 PKL placements, and 5 Teaching Sessions**. A separate legacy demo company `DEMO-PKL-01 — PT Demo PKL School OS` with one placement also remains; never classify it as authoritative industry master data.
+- Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md).
+- `.agent/` is operational Project/RASMIC memory and is not the canonical source of truth.
 ## 2.1 Persistent memory architecture
 
 High-value confirmed knowledge School OS sekarang dipromosikan ke **MSO Agent Memory global** di luar folder proyek:
@@ -429,7 +402,7 @@ Operational hardening covers:
 
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-pkl-gen2-uat-hardening-20260921.dump`.
 
-SMKN 12 Garut remains **1,539 students / 103 PTK / zero PKL production rows**. The temporary UAT database was dropped after verification.
+At that historical checkpoint SMKN 12 Garut remained **1,539 real students / 103 PTK / zero PKL rows**. The temporary UAT database was dropped after verification. Current reversible demo data is documented in section 1 and `DEMO_SCENARIO_SMKN12_GARUT.md`.
 
 Human review remains only for real-device GPS/geofence, camera/selfie, mobile-network behavior and subjective UX.
 

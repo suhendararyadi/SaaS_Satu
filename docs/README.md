@@ -28,6 +28,12 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - PKL Gen2 Foundation permission fix: [`RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md`](./RELEASE_2026-09-21_PKL_GEN2_PERMISSION_FIX.md).
    - PKL Mitra DUDI edit validation fix: [`RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md`](./RELEASE_2026-09-21_PKL_COMPANY_EDIT_VALIDATION_FIX.md).
    - Presensi Harian + Wali Kelas production-grade hardening: [`RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md`](./RELEASE_2026-09-22_DAILY_ATTENDANCE_WALI_HARDENING.md).
+   - Student login provisioning: [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
+   - Kehadiran Global → LMS one-way: [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
+   - LMS Teaching Session Gen1: [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
+   - Sidebar color polish (live static): [`RELEASE_2026-09-24_SIDEBAR_COLOR_POLISH.md`](./RELEASE_2026-09-24_SIDEBAR_COLOR_POLISH.md).
+   - SMKN 12 Garut integrated demo scenario: [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
+   - Canonical repository reconciliation: [`RELEASE_2026-09-26_CANONICAL_RECONCILIATION.md`](./RELEASE_2026-09-26_CANONICAL_RECONCILIATION.md).
 
 2. [**Arsitektur & Fondasi Sistem (`ARCHITECTURE.md`)**](./ARCHITECTURE.md)
    - Spesifikasi stack teknologi (Wasp v0.25, React 19, Node.js 24, Prisma, PostgreSQL).

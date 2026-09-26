@@ -1241,3 +1241,21 @@ Verifikasi blue-green di 3102: atribusi sekolah per kelas PASS, rollup `schools[
 Defect pada script operator ditemukan dan diperbaiki: menuliskan `$(cat …token…)` ke file helper membuat nilainya ter-redaksi saat penulisan, sehingga request terkirim dengan header tidak valid. `schoolos-attendance-summary.sh` dan `schoolos-api.sh` kini membaca token dengan `read -r TOKEN < "$TOKEN_FILE"` dan tidak lagi memakai command substitution.
 
 Runtime release backend `34fcd3b-openclaw-tenant-attribution`; rollback `884abc6-openclaw-integration`; static release tidak berubah.
+
+---
+
+## 26 September 2026 — Canonical repository reconciliation
+
+Repository topology was audited against the actual live School OS deployment. `/home/ubuntu/projects/SaaS_Satu` is confirmed as the canonical repository. `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree on `redesign/apple-hig`; its unique post-divergence commits are documentation-only and the underlying student-login provisioning code is already in the production lineage.
+
+Canonical `main` was reconciled with the live static lineage `c3297df-sidebar-color-polish`, which already descends from backend runtime `c7814f5-lms-teaching-session-gen1`. This preserves the OpenClaw changes already on GitHub `main` while adding the verified Attendance Global→LMS one-way, LMS Teaching Session Gen1, and sidebar color polish production code.
+
+Missing durable artifacts were brought forward: student login provisioning release notes, Attendance Global→LMS release notes, Teaching Session Gen1 release notes, sidebar color polish notes, and the reversible integrated SMKN 12 Garut demo seed/scripts. Shared handoff/context documentation was rewritten to make the canonical repo/worktree policy explicit and to separate 1,539 real students / 50 real class rooms from the synthetic demo overlay.
+
+The pre-existing `DEMO-PKL-01 — PT Demo PKL School OS` row was verified to be a legacy demo, not real industry master data. It is documented separately from the newer `[DEMO] SMKN12` integrated demo set.
+
+The deployment metadata file `/home/ubuntu/deployments/SaaS_Satu/RELEASE_CURRENT` was refreshed from the actual backend/static symlink pointers because its previous contents lagged the live release state.
+
+No application deployment or production database migration was required for this repository reconciliation.
+
+Reconciliation verification: Wasp 0.25 build PASS, full Vitest regression **191/191 PASS across 35 files**, generated server bundle PASS, and Vite SSR/client production builds PASS. No runtime deployment was performed.

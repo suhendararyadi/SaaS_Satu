@@ -1,6 +1,6 @@
 # School OS — AI Agent Handoff
 
-Last verified: **20 September 2026 (Asia/Jakarta)**.
+Last verified: **26 September 2026 (Asia/Jakarta)**.
 
 This is the fast, durable entry point for any AI agent continuing School OS work. Read this file first, then [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) for the full persistent context and the release documents linked below.
 
@@ -11,18 +11,34 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Product: **School OS**, multi-tenant school SaaS.
 - Active operational tenant: **SMKN 12 Garut**.
 - Production: `https://sekolah.suhendararyadi.com`.
-- Repository baseline: `/home/ubuntu/projects/SaaS_Satu`.
-- Active School OS worktree: `/home/ubuntu/projects/SaaS_Satu-hardening`.
-- Active branch: `redesign/apple-hig`.
-- Current application commit: `197c969ccaa2287ea9c80b55e5a18eaa89139f8f` — PKL Mitra DUDI nullable optional-field validation fix.
-- Production release: `197c969-pkl-company-edit-fix`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/197c969-pkl-company-edit-fix`.
-- Current static pointer: `/var/www/saas-satu/releases/197c969-pkl-company-edit-fix`.
-- Rollback backend release: `d0809d4-pkl-uat-hardening`.
-- Rollback static release: `066254d-pkl-foundation-permission-ui`.
+- **Canonical repository**: `/home/ubuntu/projects/SaaS_Satu`.
+- **Canonical branch**: `main`.
+- Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
+- New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
+- Current backend runtime commit: `c7814f5de663cac48df38eeca860782af940923d` — LMS Teaching Session Gen1.
+- Current backend release: `c7814f5-lms-teaching-session-gen1`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/c7814f5-lms-teaching-session-gen1`.
+- Current static/frontend release: `c3297df-sidebar-color-polish`.
+- Current static pointer: `/var/www/saas-satu/releases/c3297df-sidebar-color-polish`.
 - Service: `saas-satu.service` **active**.
-
+- Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
+- Global Attendance → LMS one-way contract is live; see [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
+- Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
+- Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 ## 2. Production baseline — SMKN 12 Garut
+
+Verified again on **26 September 2026** after the integrated demo seed:
+
+- **real/Dapodik students: 1,539**;
+- **synthetic demo students: 21** (`smkn12-...@schoolos-demo.invalid`);
+- **real class rooms: 50**;
+- **demo class rooms: 5** (`[DEMO] SMKN12...`);
+- **legacy demo company (`DEMO-PKL-01`): 1**;
+- **demo companies: 4**;
+- **demo PKL placements: 8**;
+- **demo Teaching Sessions: 5**.
+
+When reporting production statistics, keep real/Dapodik counts separate from synthetic demo counts. Never treat the demo rows as authoritative Dapodik data.
 
 Verified on 20 September 2026:
 
@@ -130,7 +146,7 @@ DUDI Mentor creation creates a master `User` role `DUDI_MENTOR` but **does not c
 
 Legacy `Company.maxQuota` remains active for Placement Gen1. The new period/concentration capacity is planning data until Placement Gen2 switches quota enforcement.
 
-No synthetic PKL data has been inserted for SMKN 12 Garut. Verified post-rollout counts:
+Historical post-rollout baseline below was zero before demo seeding. It is retained only as release provenance; the current demo overlay is documented at the top of this handoff:
 
 - Company: **0**
 - PklPeriod: **0**
@@ -159,7 +175,7 @@ Migration: `20260920010500_add_pkl_gen2_workflows`.
 
 Release: `5aee74e-pkl-gen2-full`.
 
-No synthetic PKL data was inserted for SMKN 12 Garut. Current PKL rows for Company/Period/Mentor/Capacity/Placement/Attendance/Journal/Schedule/Event remain **0**.
+Historical release verification had zero PKL rows. This is no longer the current tenant state because explicitly authorized reversible demo data is now active; use the 26 September baseline at the top of this handoff.
 
 Release handoff: [`RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md`](./RELEASE_2026-09-20_PKL_GEN2_WORKFLOWS.md).
 
@@ -173,7 +189,7 @@ Hardening added server invariants for active placement assignments, valid comple
 
 No schema/migration change was required.
 
-SMKN 12 Garut remains **1,539 students / 103 PTK / zero PKL production rows**.
+At that release checkpoint SMKN 12 Garut remained **1,539 real students / 103 PTK / zero PKL rows**. This statement is historical; reversible demo PKL rows are active now.
 
 The temporary UAT database was removed after verification.
 
@@ -290,7 +306,7 @@ PKL Gen2 UAT/hardening quality gate:
 - repeat deploy: idempotent PASS;
 - all PKL routes including dashboard/placement/attendance/journal/monitoring/reports/import: HTTP 200;
 - unauthenticated sensitive Gen2 operations: HTTP 401;
-- final SMKN 12 baseline: **1,539 students / 103 PTK / zero PKL production data**;
+- historical verification at that release: **1,539 real students / 103 PTK / zero PKL rows**; current reversible demo overlay is documented in section 2;
 - temporary UAT database removed after verification.
 
 Rollback release: `5aee74e-pkl-gen2-full`.
@@ -354,7 +370,7 @@ Do not store raw student/PTK PII, credentials, tokens, or private keys in either
 
 ## 13. Current continuation point
 
-PKL Foundation + the complete PKL Generasi Kedua workflow suite are finished and live. Presensi Harian + Wali Kelas and Kesiswaan Terpadu + Tindak Lanjut have also completed production-grade hardening. The current application release is `d77dd38-attendance360`. Attendance 360 is now production-live and includes richer cross-module attendance evidence plus EWS Gen 3. The next module should be selected from remaining production-grade queue rather than reopening Attendance 360 without a concrete regression. Until authoritative PKL data is supplied, do not seed additional synthetic PKL production records beyond explicitly authorized reversible demo data.
+Current live backend is `c7814f5-lms-teaching-session-gen1` and current live static/frontend is `c3297df-sidebar-color-polish`. Attendance 360, Global→LMS one-way attendance, Kesiswaan/Follow-Up hardening, PKL Gen2, TU foundation, OpenClaw read-only integration, and LMS Teaching Session Gen1 are all part of the verified production lineage. The SMKN 12 Garut integrated demo overlay is active and explicitly reversible. New work must start from the verified live lineage in an isolated worktree and then be reconciled back into canonical `main`; do not resume from `SaaS_Satu-hardening`.
 
 Before starting the next feature:
 
@@ -366,9 +382,9 @@ Before starting the next feature:
 
 ---
 
-## Temporary PKL demo — 21 September 2026
+## Legacy temporary PKL demo — 21 September 2026 (historical)
 
-The owner explicitly authorized one minimal reversible PKL demo dataset in SMKN 12 Garut production for direct testing. This supersedes earlier statements in this document that PKL production counts are zero while the demo remains.
+The owner explicitly authorized one minimal reversible PKL demo dataset in SMKN 12 Garut production for direct testing. This dataset still exists as legacy demo `DEMO-PKL-01`; it is separate from the newer `[DEMO] SMKN12` integrated demo scenario.
 
 Current demo counts: Company 1, PklPeriod 1, DudiMentorProfile 1, PklCompanyCapacity 1, Placement 1 (PLANNED), PklWorkSchedule 1, PklPlacementEvent 1, AttendanceLog 0, DailyJournal 0.
 
@@ -378,7 +394,7 @@ Pre-demo backup: /home/ubuntu/backups/SaaS_Satu/pre-pkl-demo-smkn12-20260921.dum
 
 Cleanup script: /home/ubuntu/backups/SaaS_Satu/pkl-demo-smkn12-20260921.cleanup.sql
 
-When the owner says testing is complete, remove this demo dataset and restore the zero-PKL baseline.
+When the legacy test is complete, remove only this legacy `DEMO-PKL-01` dataset with its dedicated cleanup script. Do not remove the newer `[DEMO] SMKN12` integrated demo scenario unless the owner separately requests its cleanup.
 
 
 ## Presensi Harian + Wali Kelas production-grade — 22 September 2026
