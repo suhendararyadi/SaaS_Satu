@@ -86,33 +86,66 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
   const desktopWidthClass = isHidden ? "w-0 opacity-0 pointer-events-none overflow-hidden" : isRail ? "w-[60px]" : "w-[240px]";
 
   const iconToneMap: Record<string, string> = {
-    home: "bg-[#0A84FF]",
-    corporate_fare: "bg-[#5E5CE6]",
-    badge: "bg-[#30B0C7]",
-    calendar_month: "bg-[#FF9F0A]",
-    meeting_room: "bg-[#64D2FF]",
-    account_tree: "bg-[#AF52DE] dark:bg-[#BF5AF2]",
-    groups: "bg-[#34C759]",
-    upload_file: "bg-[#0A84FF]",
-    menu_book: "bg-[#5856D6]",
+    // Apple-inspired restrained system palette. Purple is intentionally not a fallback.
+    home: "bg-[#007AFF] dark:bg-[#0A84FF]",
+    dashboard: "bg-[#007AFF] dark:bg-[#0A84FF]",
+    notifications: "bg-[#FF9500] dark:bg-[#FF9F0A]",
+
+    // Academic master data.
+    calendar_month: "bg-[#FF9500] dark:bg-[#FF9F0A]",
+    account_tree: "bg-[#5856D6] dark:bg-[#5E5CE6]",
+    meeting_room: "bg-[#32ADE6] dark:bg-[#64D2FF]",
+    badge: "bg-[#30B0C7] dark:bg-[#40C8E0]",
+    groups: "bg-[#34C759] dark:bg-[#30D158]",
+    upload_file: "bg-[#8E8E93] dark:bg-[#98989D]",
+
+    // Learning and attendance.
+    play_circle: "bg-[#34C759] dark:bg-[#30D158]",
+    menu_book: "bg-[#007AFF] dark:bg-[#0A84FF]",
+    monitoring: "bg-[#32ADE6] dark:bg-[#64D2FF]",
+    fact_check: "bg-[#34C759] dark:bg-[#30D158]",
+    schedule: "bg-[#FF9500] dark:bg-[#FF9F0A]",
+    self_improvement: "bg-[#30B0C7] dark:bg-[#40C8E0]",
+    history: "bg-[#8E8E93] dark:bg-[#98989D]",
+    tune: "bg-[#64748B] dark:bg-[#94A3B8]",
+
+    // PKL and external activity.
+    hub: "bg-[#5856D6] dark:bg-[#5E5CE6]",
     apartment: "bg-[#32ADE6] dark:bg-[#64D2FF]",
-    work: "bg-[#FF9F0A]",
-    edit_note: "bg-[#BF5AF2]",
-    monitor_heart: "bg-[#FF375F]",
+    work: "bg-[#FF9500] dark:bg-[#FF9F0A]",
+    location_on: "bg-[#FF3B30] dark:bg-[#FF453A]",
+    edit_note: "bg-[#A2845E] dark:bg-[#AC8E68]",
+    monitor_heart: "bg-[#FF375F] dark:bg-[#FF375F]",
+    description: "bg-[#64748B] dark:bg-[#94A3B8]",
+
+    // Publication and administration.
+    language: "bg-[#32ADE6] dark:bg-[#64D2FF]",
+    business_center: "bg-[#A2845E] dark:bg-[#AC8E68]",
+    outbox: "bg-[#007AFF] dark:bg-[#0A84FF]",
+    library_books: "bg-[#FF9500] dark:bg-[#FF9F0A]",
+
+    // Governance and system.
+    assignment_turned_in: "bg-[#34C759] dark:bg-[#30D158]",
+    health_and_safety: "bg-[#FF3B30] dark:bg-[#FF453A]",
+    school: "bg-[#007AFF] dark:bg-[#0A84FF]",
+    inventory_2: "bg-[#A2845E] dark:bg-[#AC8E68]",
+    verified_user: "bg-[#34C759] dark:bg-[#30D158]",
+    supervisor_account: "bg-[#30B0C7] dark:bg-[#40C8E0]",
+    settings: "bg-[#8E8E93] dark:bg-[#98989D]",
+    corporate_fare: "bg-[#5856D6] dark:bg-[#5E5CE6]",
+
+    // Other existing aliases.
+    menu_book_legacy: "bg-[#007AFF] dark:bg-[#0A84FF]",
     warning: "bg-[#FF9500] dark:bg-[#FF9F0A]",
-    schedule: "bg-[#5E5CE6]",
-    supervisor_account: "bg-[#30B0C7]",
-    verified_user: "bg-[#34C759]",
-    description: "bg-[#007AFF] dark:bg-[#0A84FF]",
-    settings: "bg-[#AF52DE] dark:bg-[#BF5AF2]",
-    location_on: "bg-[#FF453A]",
-    school: "bg-[#0A84FF]",
+    location_on_legacy: "bg-[#FF3B30] dark:bg-[#FF453A]",
     mail: "bg-[#32ADE6] dark:bg-[#64D2FF]",
+    menu: "bg-[#8E8E93] dark:bg-[#98989D]",
+    person: "bg-[#30B0C7] dark:bg-[#40C8E0]",
   };
 
   const renderDrawerIcon = (icon: M3DrawerItem["icon"], active: boolean) => {
     const iconName = typeof icon === "string" ? icon : null;
-    const tileTone = iconName ? (iconToneMap[iconName] ?? "bg-[#5E5CE6]") : "bg-[#5E5CE6]";
+    const tileTone = iconName ? (iconToneMap[iconName] ?? "bg-[#8E8E93] dark:bg-[#98989D]") : "bg-[#8E8E93] dark:bg-[#98989D]";
     const iconContent = (() => {
       if (iconName) {
         const SidebarIcon = sidebarIconMap[iconName];
@@ -124,7 +157,7 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
     })();
 
     return (
-      <span className={`flex size-[22px] shrink-0 items-center justify-center rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,.18)] ${tileTone}`}>
+      <span data-sidebar-icon={iconName ?? "custom"} className={`flex size-[22px] shrink-0 items-center justify-center rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,.18)] ${tileTone}`}>
         {iconContent}
       </span>
     );
@@ -133,7 +166,7 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
   const renderItem = (item: M3DrawerItem, active: boolean, rail: boolean) => {
     if (rail) {
       return (
-        <Link key={item.href} to={item.href} title={item.label} onClick={onClose} aria-current={active ? "page" : undefined} className={`relative mx-auto flex h-9 w-9 items-center justify-center rounded-[9px] transition-colors ${active ? "bg-md-primary" : "hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
+        <Link key={item.href} to={item.href} title={item.label} onClick={onClose} aria-current={active ? "page" : undefined} className={`relative mx-auto flex h-9 w-9 items-center justify-center rounded-[9px] transition-[background-color,box-shadow] ${active ? "bg-[#007AFF]/[.10] shadow-[inset_0_0_0_1px_rgba(0,122,255,.08)] dark:bg-[#0A84FF]/[.18] dark:shadow-[inset_0_0_0_1px_rgba(10,132,255,.14)]" : "hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
           {renderDrawerIcon(item.icon, active)}
           {item.badge !== undefined && <span className="absolute right-1 top-1 size-1.5 rounded-full bg-md-error" aria-label={`${item.badge}`} />}
         </Link>
@@ -141,10 +174,10 @@ export function M3NavigationDrawer({ sections, header, footer, isOpen = true, on
     }
 
     return (
-      <Link key={item.href} to={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`mx-0.5 flex min-h-11 items-center gap-2.5 rounded-[9px] px-2 text-[14px] font-medium transition-colors lg:min-h-9 lg:text-[13px] ${active ? "bg-md-primary text-white shadow-[0_1px_2px_rgba(0,0,0,.10)]" : "text-md-on-surface hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
+      <Link key={item.href} to={item.href} onClick={onClose} aria-current={active ? "page" : undefined} className={`mx-0.5 flex min-h-11 items-center gap-2.5 rounded-[9px] px-2 text-[14px] font-medium text-md-on-surface transition-[background-color,box-shadow] lg:min-h-9 lg:text-[13px] ${active ? "bg-[#007AFF]/[.10] shadow-[inset_0_0_0_1px_rgba(0,122,255,.07)] dark:bg-[#0A84FF]/[.18] dark:shadow-[inset_0_0_0_1px_rgba(10,132,255,.12)]" : "hover:bg-black/[.045] dark:hover:bg-white/[.065]"}`}>
         <span className="flex size-[22px] shrink-0 items-center justify-center" aria-hidden="true">{renderDrawerIcon(item.icon, active)}</span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
-        {item.badge !== undefined && <span className={`min-w-5 rounded-[6px] px-1.5 py-0.5 text-center text-[10px] font-semibold ${active ? "bg-white/20 text-white" : "bg-black/[.055] text-md-on-surface-variant dark:bg-white/[.08]"}`}>{item.badge}</span>}
+        {item.badge !== undefined && <span className={`min-w-5 rounded-[6px] px-1.5 py-0.5 text-center text-[10px] font-semibold ${active ? "bg-[#007AFF]/[.12] text-[#0066CC] dark:bg-[#0A84FF]/[.22] dark:text-[#8FC4FF]" : "bg-black/[.055] text-md-on-surface-variant dark:bg-white/[.08]"}`}>{item.badge}</span>}
       </Link>
     );
   };

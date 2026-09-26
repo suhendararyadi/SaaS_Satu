@@ -42,24 +42,15 @@ export function reconcileAttendanceEvidence(events: readonly AttendanceEvidenceE
   let status: AttendanceReconciliation["status"] = null;
   let needsReview = false;
 
-  const hasPhysicalPresence = !!checkIn || !!dutyLate || subjectPresent.length > 0;
+  const hasPhysicalPresence = !!checkIn || !!dutyLate;
   if (hasPhysicalPresence) {
     status = checkIn?.status === "TERLAMBAT" || !!dutyLate ? "TERLAMBAT" : "HADIR";
     if (permit && !earlyLeaveEvent) {
       needsReview = true;
       reasons.push("Bukti hadir bertentangan dengan izin/sakit pada hari yang sama.");
     }
-    if (subjectAbsent.length >= 2 && subjectPresent.length === 0 && !!checkIn) {
-      needsReview = true;
-      reasons.push("Siswa check-in di sekolah tetapi tercatat alpa pada beberapa sesi pembelajaran.");
-    }
   } else if (permit) {
     status = permit.status as "IZIN" | "SAKIT";
-  } else if (subjectAbsent.length >= 2) {
-    status = "ALPA";
-  } else if (subjectAbsent.length === 1) {
-    needsReview = true;
-    reasons.push("Hanya ada satu bukti alpa mata pelajaran dan belum ada bukti gerbang.");
   }
 
   if (!events.length) {
@@ -72,7 +63,7 @@ export function reconcileAttendanceEvidence(events: readonly AttendanceEvidenceE
 
   return {
     status,
-    arrivalAt: checkIn?.occurredAt || dutyLate?.occurredAt || subjectPresent[0]?.occurredAt || null,
+    arrivalAt: checkIn?.occurredAt || dutyLate?.occurredAt || null,
     checkOutAt: checkOut?.occurredAt || null,
     lateMinutes: status === "TERLAMBAT" ? late : null,
     earlyLeave: !!earlyLeaveEvent,

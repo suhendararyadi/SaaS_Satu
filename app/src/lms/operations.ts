@@ -4,8 +4,8 @@ import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { ensureSchoolUser, requireSchoolAdmin, requireTeacher } from "../school/authGuards";
 import { canAccessCourse, canManageCourse } from "./accessPolicy";
-import { createAttendanceEventIdempotent, reconcileStudentDay } from "../attendance360/service";
 import { attendanceLocalParts } from "../attendance360/time";
+import { globalAttendanceToSubjectDefault } from "./attendancePolicy";
 
 function requireActiveSchoolId(user: { schoolId?: string | null }) {
   if (!user.schoolId) {
@@ -177,6 +177,53 @@ export const getLmsCourseDetail = async (rawArgs: unknown, context: { user?: Use
   return course;
 };
 
+const getCourseAttendanceSeedSchema = z.object({
+  courseId: z.string().uuid(),
+  dateOnly: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+export const getCourseAttendanceSeed = async (rawArgs: unknown, context: { user?: User }) => {
+  const teacher = requireTeacher(context);
+  const { courseId, dateOnly: requestedDateOnly } = ensureArgsSchemaOrThrowHttpError(getCourseAttendanceSeedSchema, rawArgs);
+  const course = await getManagedCourseOrThrow(teacher, courseId);
+  const dateOnly = requestedDateOnly || attendanceLocalParts(new Date()).dateOnly;
+
+  const [students, daily] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        schoolId: course.schoolId,
+        classRoomId: course.classRoomId,
+        role: "STUDENT",
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.schoolDailyAttendance.findMany({
+      where: {
+        schoolId: course.schoolId,
+        classRoomId: course.classRoomId,
+        dateOnly,
+      },
+      select: { studentId: true, status: true, updatedAt: true },
+    }),
+  ]);
+
+  const globalByStudent = new Map(daily.map((record) => [record.studentId, record]));
+  return {
+    dateOnly,
+    students: students.map((student) => {
+      const global = globalByStudent.get(student.id);
+      return {
+        id: student.id,
+        name: student.name,
+        globalStatus: global?.status || null,
+        globalUpdatedAt: global?.updatedAt || null,
+        defaultStatus: globalAttendanceToSubjectDefault(global?.status),
+      };
+    }),
+  };
+};
+
 const createLmsCourseSchema = z.object({
   subjectName: z.string().min(2, "Nama mata pelajaran minimal 2 karakter"),
   classRoomId: z.string().uuid(),
@@ -346,6 +393,7 @@ export const createCourseAgenda = async (rawArgs: unknown, context: { user?: Use
 
 const recordCourseAttendanceSchema = z.object({
   courseId: z.string().uuid(),
+  teachingSessionId: z.string().uuid().optional(),
   sessionNumber: z.number().int().min(1).default(1),
   records: z.array(
     z.object({
@@ -364,42 +412,120 @@ export const recordCourseAttendance = async (rawArgs: unknown, context: { user?:
   if (studentIds.length !== args.records.length) {
     throw new HttpError(400, "Setiap peserta didik hanya boleh dicatat sekali per sesi presensi.");
   }
-  const students = await prisma.user.findMany({
-    where: { id: { in: studentIds }, schoolId: course.schoolId, classRoomId: course.classRoomId, role: "STUDENT" },
+  const fullRoster = await prisma.user.findMany({
+    where: { schoolId: course.schoolId, classRoomId: course.classRoomId, role: "STUDENT" },
     select: { id: true },
   });
-  if (students.length !== studentIds.length) {
+  const rosterIds = new Set(fullRoster.map((student) => student.id));
+  if (studentIds.some((id) => !rosterIds.has(id))) {
     throw new HttpError(400, "Daftar presensi berisi siswa di luar rombel mata pelajaran ini.");
+  }
+  if (args.teachingSessionId && studentIds.length !== fullRoster.length) {
+    throw new HttpError(400, "Teaching Session harus mencatat seluruh roster siswa sebelum disimpan.");
+  }
+
+  const teachingSession = args.teachingSessionId
+    ? await prisma.lmsTeachingSession.findFirst({
+        where: {
+          id: args.teachingSessionId,
+          courseId: course.id,
+          status: { in: ["IN_PROGRESS", "COMPLETED"] },
+        },
+        select: { id: true, dateOnly: true, teacherCheckInAt: true },
+      })
+    : null;
+  if (args.teachingSessionId && !teachingSession) {
+    throw new HttpError(404, "Teaching Session aktif tidak ditemukan untuk presensi ini.");
+  }
+  if (teachingSession && !teachingSession.teacherCheckInAt) {
+    throw new HttpError(409, "Presensi mapel baru dapat disimpan setelah guru check-in KBM.");
   }
 
   return prisma.$transaction(async (tx) => {
-    const session = await tx.lmsAttendanceSession.create({
-      data: { courseId: args.courseId, date: new Date(), sessionNumber: args.sessionNumber },
-    });
-    await tx.lmsAttendanceRecord.createMany({
-      data: args.records.map((record) => ({
-        sessionId: session.id,
-        studentId: record.studentId,
-        status: record.status,
-        notes: record.notes || null,
-      })),
-    });
-    const dateOnly = attendanceLocalParts(session.date).dateOnly;
+    const session = args.teachingSessionId
+      ? await tx.lmsAttendanceSession.upsert({
+          where: { teachingSessionId: args.teachingSessionId },
+          create: {
+            courseId: args.courseId,
+            teachingSessionId: args.teachingSessionId,
+            date: new Date(),
+            sessionNumber: args.sessionNumber,
+          },
+          update: { sessionNumber: args.sessionNumber },
+        })
+      : await tx.lmsAttendanceSession.create({
+          data: { courseId: args.courseId, date: new Date(), sessionNumber: args.sessionNumber },
+        });
+
     for (const record of args.records) {
-      await createAttendanceEventIdempotent({
-        schoolId: course.schoolId,
-        studentId: record.studentId,
-        dateOnly,
-        type: "SUBJECT_ATTENDANCE",
-        status: record.status,
-        source: "LMS_SUBJECT",
-        sourceKey: `lms:${session.id}:${record.studentId}`,
-        actorId: teacher.id,
-        occurredAt: session.date,
-        notes: record.notes || null,
-        metadata: { courseId: course.id, sessionId: session.id, sessionNumber: session.sessionNumber },
-      }, tx);
-      await reconcileStudentDay(course.schoolId, record.studentId, dateOnly, teacher.id, tx);
+      await tx.lmsAttendanceRecord.upsert({
+        where: {
+          sessionId_studentId: {
+            sessionId: session.id,
+            studentId: record.studentId,
+          },
+        },
+        create: {
+          sessionId: session.id,
+          studentId: record.studentId,
+          status: record.status,
+          notes: record.notes || null,
+        },
+        update: {
+          status: record.status,
+          notes: record.notes || null,
+        },
+      });
+    }
+
+    const dateOnly = teachingSession?.dateOnly || attendanceLocalParts(session.date).dateOnly;
+    for (const record of args.records) {
+      const sourceKey = `lms:${session.id}:${record.studentId}`;
+      await tx.studentAttendanceEvent.upsert({
+        where: { schoolId_sourceKey: { schoolId: course.schoolId, sourceKey } },
+        create: {
+          schoolId: course.schoolId,
+          studentId: record.studentId,
+          dateOnly,
+          type: "SUBJECT_ATTENDANCE",
+          status: record.status,
+          source: "LMS_SUBJECT",
+          sourceKey,
+          actorId: teacher.id,
+          occurredAt: session.date,
+          notes: record.notes || null,
+          metadata: {
+            courseId: course.id,
+            sessionId: session.id,
+            teachingSessionId: args.teachingSessionId || null,
+            sessionNumber: session.sessionNumber,
+            affectsGlobalAttendance: false,
+          },
+        },
+        update: {
+          status: record.status,
+          notes: record.notes || null,
+          actorId: teacher.id,
+          metadata: {
+            courseId: course.id,
+            sessionId: session.id,
+            teachingSessionId: args.teachingSessionId || null,
+            sessionNumber: session.sessionNumber,
+            affectsGlobalAttendance: false,
+          },
+        },
+      });
+    }
+
+    if (args.teachingSessionId) {
+      await tx.lmsTeachingSessionEvent.create({
+        data: {
+          sessionId: args.teachingSessionId,
+          actorId: teacher.id,
+          actionType: "STUDENT_ATTENDANCE_SAVED",
+          metadata: { count: args.records.length },
+        },
+      });
     }
     return session;
   });

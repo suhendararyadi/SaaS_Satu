@@ -301,6 +301,10 @@ model User {
 
   teacherCourses            LmsCourse[]               @relation("TeacherCourses")
   attendanceRecords         LmsAttendanceRecord[]
+  deliveredTeachingSessions LmsTeachingSession[]       @relation("TeachingSessionDeliveredBy")
+  teachingSessionEvents     LmsTeachingSessionEvent[]  @relation("TeachingSessionEventActor")
+  engagementScores          LmsEngagementScore[]       @relation("EngagementScoreStudent")
+  recordedEngagementScores  LmsEngagementScore[]       @relation("EngagementScoreRecorder")
   assignmentSubmissions     LmsSubmission[]
   assessmentResults         LmsAssessmentResult[]
   dutyReports               DutyTeacherReport[]
@@ -1417,11 +1421,13 @@ model LmsCourse {
   subjectName    String // "Pemrograman Web"
   description    String?
 
-  agendas     LmsAgenda[]
-  materials   LmsMaterial[]
-  assignments LmsAssignment[]
-  assessments LmsAssessment[]
-  attendances LmsAttendanceSession[]
+  agendas            LmsAgenda[]
+  materials          LmsMaterial[]
+  assignments        LmsAssignment[]
+  assessments        LmsAssessment[]
+  attendances        LmsAttendanceSession[]
+  teachingSchedules  LmsTeachingSchedule[]
+  teachingSessions   LmsTeachingSession[]
 
   @@index([schoolId, classRoomId])
   @@index([schoolId, teacherId])
@@ -1429,14 +1435,17 @@ model LmsCourse {
 }
 
 model LmsAgenda {
-  id         String           @id @default(uuid())
-  courseId   String
-  course     LmsCourse        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  date       DateTime         @default(now())
-  period     String // "Jam ke 1-3"
-  competency String // Materi / KD yang diajarkan
-  summary    String // Uraian kegiatan pembelajaran
-  photos     LmsAgendaPhoto[]
+  id                String              @id @default(uuid())
+  courseId          String
+  course            LmsCourse           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teachingSessionId String?             @unique
+  teachingSession   LmsTeachingSession? @relation(fields: [teachingSessionId], references: [id], onDelete: SetNull)
+  date              DateTime            @default(now())
+  period            String // "Jam ke 1-3"
+  competency        String // Materi / KD yang diajarkan
+  method            String?
+  summary           String // Uraian kegiatan pembelajaran
+  photos            LmsAgendaPhoto[]
 
   @@index([courseId, date])
 }
@@ -1449,12 +1458,14 @@ model LmsAgendaPhoto {
 }
 
 model LmsAttendanceSession {
-  id            String                @id @default(uuid())
-  courseId      String
-  course        LmsCourse             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  date          DateTime              @default(now())
-  sessionNumber Int                   @default(1)
-  records       LmsAttendanceRecord[]
+  id                String              @id @default(uuid())
+  courseId          String
+  course            LmsCourse           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teachingSessionId String?             @unique
+  teachingSession   LmsTeachingSession? @relation(fields: [teachingSessionId], references: [id], onDelete: SetNull)
+  date              DateTime            @default(now())
+  sessionNumber     Int                 @default(1)
+  records           LmsAttendanceRecord[]
 
   @@index([courseId, date])
 }
@@ -1470,6 +1481,109 @@ model LmsAttendanceRecord {
 
   @@unique([sessionId, studentId])
   @@index([studentId])
+}
+
+model LmsTeachingSchedule {
+  id        String    @id @default(uuid())
+  courseId  String
+  course    LmsCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  roomLabel String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sessions LmsTeachingSession[]
+
+  @@unique([courseId, dayOfWeek, startTime, endTime])
+  @@index([courseId, dayOfWeek, isActive])
+}
+
+model LmsTeachingSession {
+  id                  String               @id @default(uuid())
+  courseId            String
+  course              LmsCourse            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  scheduleId          String?
+  schedule            LmsTeachingSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  dateOnly            String
+  scheduledStartAt    DateTime
+  scheduledEndAt      DateTime
+  status              String               @default("PENDING")
+
+  teacherCheckInAt    DateTime?
+  teacherCheckOutAt   DateTime?
+  checkInLatitude     Float?
+  checkInLongitude    Float?
+  checkInAccuracy     Float?
+  checkInDistanceM    Float?
+  checkInGeofence     String?
+  checkInEvidenceKey  String?
+  checkOutLatitude    Float?
+  checkOutLongitude   Float?
+  checkOutAccuracy    Float?
+  checkOutDistanceM   Float?
+  checkOutGeofence    String?
+  checkOutEvidenceKey String?
+
+  absenceType         String?
+  absenceReason       String?
+  dutyInstruction     String?
+  dutyFileUrl         String?
+  delegatedAt         DateTime?
+  deliveredAt         DateTime?
+  deliveredById       String?
+  deliveredBy         User?                @relation("TeachingSessionDeliveredBy", fields: [deliveredById], references: [id], onDelete: SetNull)
+
+  version             Int                  @default(1)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  agenda              LmsAgenda?
+  attendance          LmsAttendanceSession?
+  engagementScores    LmsEngagementScore[]
+  events              LmsTeachingSessionEvent[]
+
+  @@unique([scheduleId, dateOnly])
+  @@index([courseId, dateOnly, status])
+  @@index([dateOnly, status])
+  @@index([deliveredById, deliveredAt])
+}
+
+model LmsEngagementScore {
+  id           String             @id @default(uuid())
+  sessionId    String
+  session      LmsTeachingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User               @relation("EngagementScoreStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  recordedById String
+  recordedBy   User               @relation("EngagementScoreRecorder", fields: [recordedById], references: [id])
+  level        String
+  score        Float
+  notes        String?
+  tags         Json?
+  recordedAt   DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, recordedAt])
+  @@index([recordedById, recordedAt])
+}
+
+model LmsTeachingSessionEvent {
+  id         String             @id @default(uuid())
+  sessionId  String
+  session    LmsTeachingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actor      User?              @relation("TeachingSessionEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actionType String
+  metadata   Json?
+  createdAt  DateTime           @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([actionType, createdAt])
 }
 
 model LmsMaterial {

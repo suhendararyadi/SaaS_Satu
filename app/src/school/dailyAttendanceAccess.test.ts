@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   attendanceRate,
+  canDutyCorrectDailyAttendance,
   canUseDailyAttendance,
   isDailyAttendanceAdmin,
   isRequestedIdWithinScope,
@@ -19,6 +20,12 @@ describe("daily attendance access and reporting helpers", () => {
     expect(canUseDailyAttendance({ ...base, role: "TEACHER" } as any, [])).toBe(false);
     expect(canUseDailyAttendance({ ...base, role: "STUDENT" } as any, ["c1"])).toBe(false);
     expect(canUseDailyAttendance({ ...base, role: "DUDI_MENTOR" } as any, ["c1"])).toBe(false);
+  });
+
+  it("limits duty-teacher global corrections to the current day", () => {
+    expect(canDutyCorrectDailyAttendance(true, "2026-09-23", "2026-09-23")).toBe(true);
+    expect(canDutyCorrectDailyAttendance(true, "2026-09-22", "2026-09-23")).toBe(false);
+    expect(canDutyCorrectDailyAttendance(false, "2026-09-23", "2026-09-23")).toBe(false);
   });
 
   it("counts statuses and treats late students as present for the rate", () => {

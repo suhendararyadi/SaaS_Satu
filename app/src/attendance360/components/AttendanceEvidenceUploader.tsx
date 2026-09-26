@@ -13,10 +13,11 @@ type Props = {
   onUploaded?: (key: string) => void | Promise<void>;
   onBusyChange?: (busy: boolean) => void;
   onError?: (message: string) => void;
+  uploadUrl?: string;
 };
 
 export const AttendanceEvidenceUploader = forwardRef<AttendanceEvidenceUploaderHandle, Props>(function AttendanceEvidenceUploader(
-  { value, onChange, required = false, label = "Selfie langsung", triggerOnly = false, onUploaded, onBusyChange, onError },
+  { value, onChange, required = false, label = "Selfie langsung", triggerOnly = false, onUploaded, onBusyChange, onError, uploadUrl = "/operations/attendance-evidence-upload" },
   ref,
 ) {
   const [previewUrl, setPreviewUrl] = useState("");
@@ -45,7 +46,7 @@ export const AttendanceEvidenceUploader = forwardRef<AttendanceEvidenceUploaderH
     if (file.size > 5 * 1024 * 1024) return reportError("Ukuran selfie maksimal 5 MB.");
     setUploadBusy(true); setError("");
     try {
-      const payload = await api.post("/operations/attendance-evidence-upload", {
+      const payload = await api.post(uploadUrl, {
         headers: { "Content-Type": file.type, "X-File-Name": file.name || `attendance-${Date.now()}.jpg` },
         body: file,
       }).json<{ key: string }>();

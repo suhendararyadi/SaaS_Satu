@@ -8,6 +8,14 @@ export function canUseDailyAttendance(user: AttendanceActor, homeroomClassIds: r
   return isDailyAttendanceAdmin(user) || (user.role === "TEACHER" && homeroomClassIds.length > 0);
 }
 
+export function canDutyCorrectDailyAttendance(
+  canDuty: boolean,
+  dateOnly: string,
+  todayDateOnly: string,
+): boolean {
+  return canDuty && dateOnly === todayDateOnly;
+}
+
 export function summarizeAttendanceStatuses(records: ReadonlyArray<{ status: string }>) {
   const result = { hadir: 0, sakit: 0, izin: 0, alpa: 0, terlambat: 0, total: records.length };
   for (const record of records) {
