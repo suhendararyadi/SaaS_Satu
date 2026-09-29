@@ -411,7 +411,7 @@ export const schoolSpec: Spec = [
   route("SchoolWebsitePreviewRoute", "/school/website/preview", page(SchoolWebsitePreviewPage, { authRequired: true })),
 
   api("POST", "/operations/school-site-media-upload", schoolSiteMediaUploadApi, { entities: [...websiteEntities], auth: true }),
-  api("GET", "/site-media/:mediaId", schoolSiteMediaFileApi, { entities: [...websiteEntities], auth: false }),
+  api("GET", "/operations/site-media/:mediaId", schoolSiteMediaFileApi, { entities: [...websiteEntities], auth: false }),
   api("GET", "/site/:schoolSlug/sitemap.xml", schoolSiteSitemapApi, { entities: [...websiteEntities], auth: false }),
 
   route("PublicSchoolSiteRoute", "/site/:schoolSlug", page(PublicSchoolHomePage)),

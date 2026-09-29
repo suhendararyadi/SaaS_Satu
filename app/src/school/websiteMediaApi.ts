@@ -85,7 +85,7 @@ export const schoolSiteMediaUploadApi = async (
     });
 
     const mediaId = randomUUID();
-    const url = `${PUBLIC_ORIGIN}/site-media/${mediaId}`;
+    const url = `${PUBLIC_ORIGIN}/operations/site-media/${mediaId}`;
     const media = await prisma.schoolSiteMedia.create({
       data: {
         id: mediaId,
