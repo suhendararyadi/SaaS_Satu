@@ -34,5 +34,4 @@ export const adminSpec: Spec = [
     "/admin/ui/buttons",
     page(ButtonsPage, { authRequired: true }),
   ),
-  route(
 ];
