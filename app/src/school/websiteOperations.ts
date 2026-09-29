@@ -5,6 +5,8 @@ import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { requireSchoolAdmin } from "./authGuards";
 import { getSchoolCapabilities } from "./schoolCapabilities";
 import { isFileUploadConfigured } from "../file-upload/config";
+import { deleteFileFromS3 } from "../file-upload/s3Utils";
+import { isWebsiteMediaKeyForSchool } from "./websiteMediaPolicy";
 import {
   assertCmsTenant,
   cmsContentStatusSchema,
@@ -463,6 +465,13 @@ export const deleteSchoolWebsiteMedia = async (rawArgs: unknown, context: School
   const item = await requireTenantMedia(id, user.schoolId);
   await recordRevision({ schoolId: user.schoolId, resourceType: "MEDIA", resourceId: item.id, action: "DELETE_MEDIA", snapshot: item, createdById: user.id });
   await prisma.schoolSiteMedia.delete({ where: { id } });
+  if (isFileUploadConfigured() && isWebsiteMediaKeyForSchool(item.fileId, user.schoolId)) {
+    try {
+      await deleteFileFromS3({ s3Key: item.fileId! });
+    } catch (error) {
+      console.error(`Object storage cleanup failed for website media ${item.id}`, error);
+    }
+  }
   return { ok: true };
 };
 

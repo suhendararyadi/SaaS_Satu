@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
   S3ServiceException,
 } from "@aws-sdk/client-s3";
@@ -18,6 +19,8 @@ function getS3Client() {
   }
   return new S3Client({
     region: env.AWS_S3_REGION,
+    ...(env.AWS_S3_ENDPOINT ? { endpoint: env.AWS_S3_ENDPOINT } : {}),
+    forcePathStyle: env.AWS_S3_FORCE_PATH_STYLE === "true",
     credentials: {
       accessKeyId: env.AWS_S3_IAM_ACCESS_KEY,
       secretAccessKey: env.AWS_S3_IAM_SECRET_KEY,
@@ -68,6 +71,42 @@ export const getDownloadFileSignedURLFromS3 = async ({
     Key: s3Key,
   });
   return await getSignedUrl(getS3Client(), command, { expiresIn: 3600 });
+};
+
+
+export const putBufferToS3 = async ({
+  s3Key,
+  bytes,
+  contentType,
+}: {
+  s3Key: string;
+  bytes: Buffer;
+  contentType: string;
+}) => {
+  const command = new PutObjectCommand({
+    Bucket: getBucketName(),
+    Key: s3Key,
+    Body: bytes,
+    ContentType: contentType,
+    CacheControl: "public, max-age=31536000, immutable",
+  });
+  await getS3Client().send(command);
+  return s3Key;
+};
+
+export const getFileBufferFromS3 = async ({ s3Key }: { s3Key: string }) => {
+  const command = new GetObjectCommand({
+    Bucket: getBucketName(),
+    Key: s3Key,
+  });
+  const response = await getS3Client().send(command);
+  if (!response.Body) return null;
+  const bytes = Buffer.from(await response.Body.transformToByteArray());
+  return {
+    bytes,
+    contentType: response.ContentType || "application/octet-stream",
+    etag: response.ETag || null,
+  };
 };
 
 export const deleteFileFromS3 = async ({ s3Key }: { s3Key: string }) => {

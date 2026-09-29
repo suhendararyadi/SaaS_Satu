@@ -6,4 +6,6 @@ export const fileUploadEnvSchema = z.object({
   AWS_S3_IAM_ACCESS_KEY: z.string().min(1).optional(),
   AWS_S3_IAM_SECRET_KEY: z.string().min(1).optional(),
   AWS_S3_FILES_BUCKET: z.string().min(1).optional(),
+  AWS_S3_ENDPOINT: z.string().url().optional(),
+  AWS_S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).default("false"),
 });

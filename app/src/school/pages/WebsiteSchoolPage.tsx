@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { type AuthUser } from "wasp/auth";
+import { api } from "wasp/client/api";
 import {
   useQuery,
   getSchoolWebsiteAdmin,
@@ -126,6 +127,8 @@ export function WebsiteSchoolPage({ user }: { user: AuthUser }) {
   const [contentEditor, setContentEditor] = useState<any | null>(null);
   const [scheduleEditor, setScheduleEditor] = useState<{ id: string; title: string; scheduledAt: string } | null>(null);
   const [mediaEditor, setMediaEditor] = useState<any | null>(null);
+  const [mediaUploadEditor, setMediaUploadEditor] = useState<{ file: File | null; altText: string; caption: string } | null>(null);
+  const [mediaUploadBusy, setMediaUploadBusy] = useState(false);
   const [navEditor, setNavEditor] = useState<any | null>(null);
 
   const data = query.data as any;
@@ -169,6 +172,34 @@ export function WebsiteSchoolPage({ user }: { user: AuthUser }) {
     status === "PUBLISHED" ? "Konten dipublikasikan." : status === "IN_REVIEW" ? "Konten dikirim untuk review." : status === "ARCHIVED" ? "Konten diarsipkan." : "Status konten diperbarui.",
   );
 
+  const uploadWebsiteMedia = async () => {
+    if (!mediaUploadEditor?.file) return;
+    const altText = mediaUploadEditor.altText.trim();
+    if (altText.length < 3) { setError("Alt text minimal 3 karakter."); return; }
+    const file = mediaUploadEditor.file;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setError("Gunakan JPG, PNG, atau WebP."); return; }
+    if (file.size > 5 * 1024 * 1024) { setError("Ukuran gambar maksimal 5 MB."); return; }
+    setMediaUploadBusy(true); setError(""); setNotice("");
+    try {
+      await api.post("/operations/school-site-media-upload", {
+        headers: {
+          "Content-Type": file.type,
+          "X-File-Name": encodeURIComponent(file.name || `website-${Date.now()}.jpg`),
+          "X-Media-Alt": encodeURIComponent(altText),
+          "X-Media-Caption": encodeURIComponent(mediaUploadEditor.caption.trim()),
+        },
+        body: file,
+      }).json<{ media: any }>();
+      setNotice("Gambar berhasil diunggah ke object storage.");
+      setMediaUploadEditor(null);
+      await query.refetch();
+    } catch (err: any) {
+      setError(err?.message || "Upload media website belum berhasil.");
+    } finally {
+      setMediaUploadBusy(false);
+    }
+  };
+
   if (query.isLoading) return <SchoolLayout user={user}><div className="space-y-4"><div className="h-9 w-72 animate-pulse rounded-xl bg-md-surface-container"/><div className="h-72 animate-pulse rounded-[20px] bg-md-surface-container-low"/></div></SchoolLayout>;
   if (query.error || !data) return <SchoolLayout user={user}><M3Card variant="outlined"><M3EmptyState icon="cloud_off" title="Website Sekolah belum dapat dimuat" description="Coba muat ulang. Tidak ada data yang diubah." actionLabel="Coba lagi" onAction={() => query.refetch()} /></M3Card></SchoolLayout>;
 
@@ -194,7 +225,7 @@ export function WebsiteSchoolPage({ user }: { user: AuthUser }) {
       {tab === "news" && renderContentList(news, "NEWS", "Berita", "Publikasi editorial sekolah dengan kategori, cover, ringkasan, dan metadata SEO.")}
       {tab === "events" && <div className="space-y-7">{renderContentList(events, "EVENT", "Agenda", "Kegiatan publik sekolah dengan waktu, lokasi, dan informasi kegiatan.")}{renderContentList(announcements, "ANNOUNCEMENT", "Pengumuman", "Informasi penting dengan prioritas dan masa tayang yang terkontrol.")}</div>}
 
-      {tab === "media" && <div className="space-y-4"><SectionHeading title="Galeri & Media" note="Kelola gambar publik untuk hero, berita, dan galeri. Alt text wajib untuk aksesibilitas." action={<M3Button size="sm" icon="add_photo_alternate" onClick={() => setMediaEditor({ url: "", altText: "", caption: "" })}>Tambah via URL</M3Button>}/>{!data.mediaUploadEnabled && <div className="rounded-[14px] border border-md-outline-variant bg-md-surface-container-low px-4 py-3"><div className="flex items-start gap-3"><span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-[#EAF3FF] text-[#007AFF]"><M3Icon name="cloud_off" size={17}/></span><div><p className="text-[12.5px] font-semibold text-md-on-surface">Upload langsung belum diaktifkan pada server</p><p className="mt-1 text-[11.5px] leading-5 text-md-on-surface-variant">Sementara gunakan URL gambar HTTPS. Tombol upload file tidak ditampilkan agar tidak memberi fungsi palsu; library ini siap dipakai sebagai sumber hero dan cover.</p></div></div></div>}{data.media.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data.media.map((item: any) => <div key={item.id} className="overflow-hidden rounded-[16px] border border-md-outline-variant bg-md-surface"><div className="aspect-[16/9] bg-md-surface-container-low"><img src={item.url} alt={item.altText} loading="lazy" className="h-full w-full object-cover"/></div><div className="p-3"><p className="truncate text-[13px] font-semibold text-md-on-surface">{item.altText}</p><p className="mt-1 line-clamp-2 text-[11.5px] text-md-on-surface-variant">{item.caption || item.url}</p><div className="mt-3 flex gap-1"><M3Button variant="text" size="sm" onClick={() => setMediaEditor(item)}>Edit</M3Button><M3Button variant="text" size="sm" onClick={() => run(() => deleteSchoolWebsiteMedia({ id: item.id }), "Media dihapus dari library.")}>Hapus</M3Button></div></div></div>)}</div> : <div className="hig-grouped-surface"><M3EmptyState compact icon="photo_library" title="Library media masih kosong" description="Tambahkan gambar publik HTTPS. Setelah tersimpan, gambar dapat dipilih untuk hero dan cover konten."/></div>}</div>}
+      {tab === "media" && <div className="space-y-4"><SectionHeading title="Galeri & Media" note="Kelola gambar publik untuk hero, berita, dan galeri. Alt text wajib untuk aksesibilitas." action={<div className="flex flex-wrap gap-2">{data.mediaUploadEnabled && <M3Button size="sm" icon="upload_file" onClick={() => setMediaUploadEditor({ file: null, altText: "", caption: "" })}>Upload Gambar</M3Button>}<M3Button size="sm" variant={data.mediaUploadEnabled ? "tonal" : "filled"} icon="add_photo_alternate" onClick={() => setMediaEditor({ url: "", altText: "", caption: "" })}>Tambah via URL</M3Button></div>}/>{!data.mediaUploadEnabled && <div className="rounded-[14px] border border-md-outline-variant bg-md-surface-container-low px-4 py-3"><div className="flex items-start gap-3"><span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-[#EAF3FF] text-[#007AFF]"><M3Icon name="cloud_off" size={17}/></span><div><p className="text-[12.5px] font-semibold text-md-on-surface">Upload langsung belum diaktifkan pada server</p><p className="mt-1 text-[11.5px] leading-5 text-md-on-surface-variant">Sementara gunakan URL gambar HTTPS. Tombol upload file tidak ditampilkan agar tidak memberi fungsi palsu; library ini siap dipakai sebagai sumber hero dan cover.</p></div></div></div>}{data.media.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data.media.map((item: any) => <div key={item.id} className="overflow-hidden rounded-[16px] border border-md-outline-variant bg-md-surface"><div className="aspect-[16/9] bg-md-surface-container-low"><img src={item.url} alt={item.altText} loading="lazy" className="h-full w-full object-cover"/></div><div className="p-3"><p className="truncate text-[13px] font-semibold text-md-on-surface">{item.altText}</p><p className="mt-1 line-clamp-2 text-[11.5px] text-md-on-surface-variant">{item.caption || item.url}</p><div className="mt-3 flex gap-1"><M3Button variant="text" size="sm" onClick={() => setMediaEditor(item)}>Edit</M3Button><M3Button variant="text" size="sm" onClick={() => run(() => deleteSchoolWebsiteMedia({ id: item.id }), "Media dihapus dari library.")}>Hapus</M3Button></div></div></div>)}</div> : <div className="hig-grouped-surface"><M3EmptyState compact icon="photo_library" title="Library media masih kosong" description={data.mediaUploadEnabled ? "Upload gambar pertama ke object storage atau tambahkan URL publik HTTPS." : "Tambahkan gambar publik HTTPS. Setelah tersimpan, gambar dapat dipilih untuk hero dan cover konten."}/></div>}</div>}
 
       {tab === "navigation" && <div className="space-y-4"><SectionHeading title="Navigasi" note="Susun menu header dan footer. Navigasi hanya dapat menuju halaman tenant ini, route publik resmi, atau URL HTTPS." action={<M3Button size="sm" icon="add" onClick={() => setNavEditor({ location: "HEADER", label: "", type: "PAGE", contentId: pages[0]?.id || "", href: "", order: data.navItems.length, isVisible: true })}>Tambah menu</M3Button>}/><div className="hig-grouped-surface overflow-hidden">{data.navItems.length ? data.navItems.map((item: any) => <div key={item.id} className="flex min-h-[58px] items-center gap-3 border-b border-md-outline-variant px-4 py-3 last:border-0"><span className="flex size-8 items-center justify-center rounded-[8px] bg-[#5E5CE6] text-white"><M3Icon name={item.location === "HEADER" ? "web_asset" : "vertical_align_bottom"} size={17}/></span><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-md-on-surface">{item.label}</p><p className="mt-0.5 text-[11px] text-md-on-surface-variant">{item.location} · {item.type} · urutan {item.order}{!item.isVisible ? " · tersembunyi" : ""}</p></div><M3Button variant="text" size="sm" onClick={() => setNavEditor(item)}>Edit</M3Button><M3Button variant="icon" size="icon-sm" icon="delete" aria-label="Hapus navigasi" onClick={() => run(() => deleteSchoolWebsiteNavItem({ id: item.id }), "Item navigasi dihapus.")}/></div>) : <M3EmptyState compact icon="menu" title="Navigasi belum disusun" description="Tanpa navigasi custom, website tetap menampilkan Beranda, Berita, Agenda, dan Pengumuman sebagai fallback."/>}</div></div>}
 
@@ -208,6 +239,10 @@ export function WebsiteSchoolPage({ user }: { user: AuthUser }) {
 
     <M3Dialog isOpen={!!scheduleEditor} onClose={() => setScheduleEditor(null)} title="Jadwalkan publikasi" subtitle={scheduleEditor?.title} icon="schedule" maxWidth="sm" actions={<><M3Button variant="text" onClick={() => setScheduleEditor(null)}>Batal</M3Button><M3Button isLoading={busy} onClick={() => scheduleEditor && run(async () => { await setSchoolWebsiteContentStatus({ id: scheduleEditor.id, status: "SCHEDULED", scheduledAt: new Date(scheduleEditor.scheduledAt).toISOString() }); setScheduleEditor(null); }, "Konten dijadwalkan.")}>Jadwalkan</M3Button></>}>
       {scheduleEditor && <M3TextField type="datetime-local" label="Tanggal dan waktu" value={scheduleEditor.scheduledAt} onChange={(e) => setScheduleEditor({ ...scheduleEditor, scheduledAt: e.target.value })}/>} 
+    </M3Dialog>
+
+    <M3Dialog isOpen={!!mediaUploadEditor} onClose={() => !mediaUploadBusy && setMediaUploadEditor(null)} title="Upload gambar" subtitle="Gambar disimpan di object storage private dan ditayangkan melalui URL publik School OS." icon="cloud_upload" maxWidth="md" actions={<><M3Button variant="text" disabled={mediaUploadBusy} onClick={() => setMediaUploadEditor(null)}>Batal</M3Button><M3Button isLoading={mediaUploadBusy} disabled={!mediaUploadEditor?.file || (mediaUploadEditor?.altText.trim().length || 0) < 3} onClick={() => void uploadWebsiteMedia()}>Upload</M3Button></>}>
+      {mediaUploadEditor && <div className="space-y-4"><label className="block rounded-[12px] border border-dashed border-md-outline-variant bg-md-surface-container-low p-4 text-[12px] text-md-on-surface"><span className="mb-2 block font-semibold">File gambar</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={mediaUploadBusy} onChange={(e) => setMediaUploadEditor({ ...mediaUploadEditor, file: e.target.files?.[0] || null })} className="block w-full text-[12px]"/><span className="mt-2 block text-[11px] text-md-on-surface-variant">JPG, PNG, atau WebP · maksimal 5 MB</span></label><M3TextField label="Alt text *" value={mediaUploadEditor.altText} onChange={(e) => setMediaUploadEditor({ ...mediaUploadEditor, altText: e.target.value })}/><M3TextField label="Caption (opsional)" value={mediaUploadEditor.caption} onChange={(e) => setMediaUploadEditor({ ...mediaUploadEditor, caption: e.target.value })}/></div>}
     </M3Dialog>
 
     <M3Dialog isOpen={!!mediaEditor} onClose={() => setMediaEditor(null)} title={mediaEditor?.id ? "Edit media" : "Tambah media"} subtitle="Gunakan URL HTTPS dan alt text yang menjelaskan isi gambar." icon="image" maxWidth="md" actions={<><M3Button variant="text" onClick={() => setMediaEditor(null)}>Batal</M3Button><M3Button isLoading={busy} onClick={() => mediaEditor && run(async () => { await saveSchoolWebsiteMedia({ id: mediaEditor.id, url: mediaEditor.url, altText: mediaEditor.altText, caption: mediaEditor.caption || undefined }); setMediaEditor(null); }, "Media tersimpan.")}>Simpan</M3Button></>}>

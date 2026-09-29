@@ -103,6 +103,7 @@ import {
   getSchoolWebsitePreview,
 } from "./websiteOperations" with { type: "ref" };
 import { schoolSiteSitemapApi } from "./websitePublicApi" with { type: "ref" };
+import { schoolSiteMediaUploadApi, schoolSiteMediaFileApi } from "./websiteMediaApi" with { type: "ref" };
 import { getSchoolSpotlightSearch } from "./spotlightOperations" with { type: "ref" };
 import {
   getDailySchoolAttendance,
@@ -409,6 +410,8 @@ export const schoolSpec: Spec = [
   route("SchoolWebsiteRoute", "/school/website", page(WebsiteSchoolPage, { authRequired: true })),
   route("SchoolWebsitePreviewRoute", "/school/website/preview", page(SchoolWebsitePreviewPage, { authRequired: true })),
 
+  api("POST", "/operations/school-site-media-upload", schoolSiteMediaUploadApi, { entities: [...websiteEntities], auth: true }),
+  api("GET", "/site-media/:mediaId", schoolSiteMediaFileApi, { entities: [...websiteEntities], auth: false }),
   api("GET", "/site/:schoolSlug/sitemap.xml", schoolSiteSitemapApi, { entities: [...websiteEntities], auth: false }),
 
   route("PublicSchoolSiteRoute", "/site/:schoolSlug", page(PublicSchoolHomePage)),
