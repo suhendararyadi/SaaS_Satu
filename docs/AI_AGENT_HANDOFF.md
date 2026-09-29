@@ -15,19 +15,20 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - **Canonical branch**: `main`.
 - Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
 - New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
-- Current backend/runtime commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d` — Teacher/GTK Login Provisioning.
-- Current backend release: `3bd5515-teacher-login-provisioning`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/3bd5515-teacher-login-provisioning`.
-- Current static/frontend source commit: `bf79043747f36d8099b295876fad240d6930b4eb` — School Profile / SaaS Account Separation.
-- Current static/frontend release: `bf79043-school-profile-routing`.
-- Current static pointer: `/var/www/saas-satu/releases/bf79043-school-profile-routing`.
-- Runtime rollback: backend `c7814f5-lms-teaching-session-gen1`; static rollback `3bd5515-teacher-login-provisioning`.
+- Current backend/runtime commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818` — CBT Gen2.
+- Current backend release: `9b49eb6-cbt-gen2`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/9b49eb6-cbt-gen2`.
+- Current static/frontend source commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818` — CBT Gen2.
+- Current static/frontend release: `9b49eb6-cbt-gen2`.
+- Current static pointer: `/var/www/saas-satu/releases/9b49eb6-cbt-gen2`.
+- Application rollback: backend `3bd5515-teacher-login-provisioning`; previous static `bf79043-school-profile-routing`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
 - School Profile is separated from SaaS Account: operational school roles use `/school/profile`, while SaaS subscription/account stays on `/account`; see [`RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`](./RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md).
 - Global Attendance → LMS one-way contract is live; see [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
+- CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Current unfinished-work/progress source of truth: [`SCHOOL_OS_TODO_PROGRESS.md`](./SCHOOL_OS_TODO_PROGRESS.md). Read it before proposing new modules; it separates unfinished work from completed-but-unconfigured modules and records active priority P1–P7.
 ## 2. Production baseline — SMKN 12 Garut
@@ -586,3 +587,27 @@ Verification: targeted routing/menu **8/8 PASS**, full regression **200/200 PASS
 The release performed no database writes. Current Teacher Auth count in SMKN 12 Garut is 1 and belongs to synthetic demo `[DEMO] SMKN12 Maya Contoh — TJKT`; it is unrelated to this static release.
 
 Release record: [`RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`](./RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md).
+
+
+## CBT Gen2 production contract — 29 September 2026
+
+Release `9b49eb6-cbt-gen2` is live for backend and static. Migration `20260929050000_add_cbt_gen2` is applied and recorded in Prisma migration history.
+
+Compatibility contract:
+
+- existing `LmsAssessment`, `LmsAssessmentQuestion`, and `LmsAssessmentResult` data is preserved;
+- `LmsAssessmentResult` remains the final/compatibility projection on a **0–100 percentage scale**;
+- legacy result rows remain valid with `attemptId = NULL`;
+- Gen2 adds question bank, attempt, answer, and audit-event persistence;
+- direct legacy multiple-choice submit is routed through Gen2 attempt/timer rules;
+- no client score or client clock is authoritative.
+
+Teacher CBT workspace supports explicit schedule, Draft/Published/Archived state, attempt limits, configurable KKM, optional token, stable randomization, option shuffle, question bank, CSV import, multiple-choice + essay, monitoring, answer details, manual essay grading, item analysis, result summary, and audit trail.
+
+Student runner is mobile-first with token/eligibility, server-authoritative attempt timing, stable question/option order, no answer-key leakage, autosave/resume, navigator, final-submit flush, auto-submit on expiry, and score visibility policy.
+
+Verification: production-clone migration compatibility PASS; official Prisma migration path PASS; CBT lifecycle UAT **16/16 PASS**; full regression **200/200 PASS across 37 files**; Wasp build/server bundle/Vite SSR+client PASS; immutable preflight/deploy PASS; repeated deploy idempotent; unauthenticated CBT operations 401; service/log health clean.
+
+Immediate postdeploy production counts remained **24 assessments / 36 legacy results / 48 questions**, with zero Gen2 attempts before first real use.
+
+Release record: [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md).

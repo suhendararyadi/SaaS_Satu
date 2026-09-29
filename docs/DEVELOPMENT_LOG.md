@@ -1301,3 +1301,28 @@ Backend remains `3bd5515-teacher-login-provisioning`; this was a static-only rol
 Current Teacher Auth count in SMKN 12 Garut is 1 and belongs to synthetic demo `[DEMO] SMKN12 Maya Contoh — TJKT`; it was not created or modified by this profile release.
 
 Release record: `docs/RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`.
+
+
+---
+
+## 29 September 2026 — CBT Gen2 live
+
+School OS LMS CBT was upgraded from the basic one-shot assessment flow to CBT Gen2 while preserving all existing assessment/question/result data.
+
+CBT Gen2 adds additive persistence for Question Bank, Attempt, Answer, and Audit Event. Existing `LmsAssessmentResult` remains the compatibility/final-result projection on a 0–100 scale. Production migration `20260929050000_add_cbt_gen2` was tested first on a production clone and then applied through the official Prisma migration path. Legacy counts remained 24 assessments / 36 results / 48 questions; every legacy result remained valid with `attemptId = NULL`.
+
+Teacher workspace now supports explicit scheduling, Draft/Published/Archived lifecycle, attempt limits, KKM, optional token, randomization + option shuffle, question bank, CSV import, MC/essay, monitoring, answer details, essay grading/feedback, result analysis, and audit trail. Student CBT moved to a mobile-first dedicated runner with server-authoritative attempt/timer, autosave/resume, stable question/option order, token eligibility, question navigator, expiry auto-submit, final-submit flush, and score-visibility policy.
+
+Security/integrity: same-tenant/course/class checks, no answer keys in student payload, no client score/time trust, concurrent start collapses to a single attempt, final submit is transactional/idempotent, and question structure freezes after attempts exist. The legacy MC submit endpoint is retained as a compatibility adapter routed through Gen2 rules.
+
+Verification: production-clone migration compatibility PASS; fresh-clone `prisma migrate deploy` PASS; CBT lifecycle UAT **16/16 PASS**; full School OS regression **200/200 PASS across 37 files**; Wasp build PASS; generated server bundle PASS; Vite SSR/client production builds PASS; immutable preflight/deploy PASS; repeated deploy `idempotent=true`; CBT Gen2 unauthenticated operations return **401**; service/log health clean.
+
+Runtime commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818`.
+
+Production release: `9b49eb6-cbt-gen2`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-cbt-gen2-20260929-045036.dump` (SHA-256 `91bd17f2cae453b3e065d5539d3f137ac4e60bd4d36d2566e9d3f261acc857f4`).
+
+P4 in `SCHOOL_OS_TODO_PROGRESS.md` is now marked DONE. Optional advanced proctoring/full-offline/QTI/attendance-warning enhancements remain deferred and are not part of the completed CBT Gen2 core.
+
+Release record: `docs/RELEASE_2026-09-29_CBT_GEN2.md`.

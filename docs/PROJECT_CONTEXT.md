@@ -10,11 +10,11 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Canonical branch: `main`.
 - `/home/ubuntu/projects/SaaS_Satu-hardening` is a **legacy linked worktree** on `redesign/apple-hig`; it is not the live production source and should no longer be used as the default development workspace.
 - Development pattern: verify actual backend/static production pointers first, create an isolated feature/hardening worktree under `/home/ubuntu/.cache/mso-worktrees/`, test there, then reconcile verified work back into canonical `main`.
-- Live backend app: `3bd5515` / `3bd5515-teacher-login-provisioning`.
-- Live static/frontend: `bf79043` / `bf79043-school-profile-routing`; backend remains `3bd5515-teacher-login-provisioning`.
+- Live backend app: `9b49eb6` / `9b49eb6-cbt-gen2`.
+- Live static/frontend: `9b49eb6` / `9b49eb6-cbt-gen2`; backend is the same release.
 - Live service: `saas-satu.service` active.
 - `main` was reconciled on 26 September 2026 to include the live backend/static lineage plus the OpenClaw integration history already present on GitHub.
-- Student login provisioning, Teacher/GTK login provisioning, School Profile / SaaS Account separation, Attendance Global→LMS one-way, and Teaching Session Gen1 release artifacts are retained in `docs/`.
+- Student login provisioning, Teacher/GTK login provisioning, School Profile / SaaS Account separation, Attendance Global→LMS one-way, Teaching Session Gen1, and CBT Gen2 release artifacts are retained in `docs/`.
 - Current cross-module backlog/progress source of truth: [`SCHOOL_OS_TODO_PROGRESS.md`](./SCHOOL_OS_TODO_PROGRESS.md). Update it whenever a P1–P7 milestone is completed or a new audit changes module status.
 - SMKN 12 Garut integrated demo runner/artifact is tracked under `app/scripts/school-os-demo-smkn12*.mjs` and [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Real/Dapodik baseline remains **1,539 students and 50 class rooms**. Current integrated demo overlay adds **21 students, 5 class rooms, 4 companies, 8 PKL placements, and 5 Teaching Sessions**. A separate legacy demo company `DEMO-PKL-01 — PT Demo PKL School OS` with one placement also remains; never classify it as authoritative industry master data.
@@ -70,12 +70,11 @@ Domain: `https://sekolah.suhendararyadi.com`.
 
 Verified production state on **29 September 2026**:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/3bd5515-teacher-login-provisioning`;
-- **static current**: `/var/www/saas-satu/releases/bf79043-school-profile-routing`;
-- backend runtime/source commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d` — Teacher/GTK Login Provisioning;
-- static/frontend source commit: `bf79043747f36d8099b295876fad240d6930b4eb` — School Profile / SaaS Account Separation;
-- rollback backend: `c7814f5-lms-teaching-session-gen1`;
-- rollback static: `3bd5515-teacher-login-provisioning`;
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/9b49eb6-cbt-gen2`;
+- **static current**: `/var/www/saas-satu/releases/9b49eb6-cbt-gen2`;
+- backend/static runtime source commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818` — CBT Gen2;
+- application rollback backend: `3bd5515-teacher-login-provisioning`;
+- previous static release: `bf79043-school-profile-routing`;
 - `saas-satu.service`: **active**;
 - canonical source: `/home/ubuntu/projects/SaaS_Satu`, branch `main`;
 - operational tenant: **SMKN 12 Garut**;
@@ -91,9 +90,21 @@ Latest Auth capability:
 - Reset invalidates active Auth sessions; revoke preserves teacher master/profile/operational data.
 - No Teacher Auth is auto-created on deploy.
 
-Quality gate for current release: Teacher policy **3/3 PASS**, production-clone lifecycle UAT **10/10 PASS**, full regression **194/194 PASS across 36 files**, Wasp build, server bundle, Vite SSR/client, immutable preflight/deploy and idempotent redeploy PASS.
+Quality gate for current release: CBT Gen2 production-clone lifecycle UAT **16/16 PASS**, full School OS regression **200/200 PASS across 37 files**, Wasp build, server bundle, Vite SSR/client, official Prisma migration path, immutable preflight/deploy and idempotent redeploy PASS.
 
 Release record: [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
+
+
+Latest CBT capability:
+
+- CBT Gen2 is production-live at `/school/lms/courses/:id/cbt/:assessmentId`.
+- Teacher workspace: schedule/status, attempt policy, KKM, token, randomization, question bank, CSV import, MC/essay CRUD, monitoring, answer detail, essay grading, analysis, audit.
+- Student runner: server-authoritative attempts/timer, autosave/resume, stable random order, mobile navigator, expiry auto-submit, score visibility policy.
+- migration `20260929050000_add_cbt_gen2` is additive and applied through Prisma migrate deploy.
+- legacy CBT result compatibility remains on 0–100 score scale.
+- verification: clone migration PASS, UAT 16/16, regression 200/200, production builds/deploy PASS.
+
+Release record: [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md). Architecture: [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 
 School-profile routing is also live:
 

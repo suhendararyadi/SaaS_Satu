@@ -193,63 +193,74 @@ Snapshot saat audit:
 
 ## P4 — CBT Gen 2 / Ujian School OS production-grade
 
-**Status: 🟠 PARTIAL**
+**Status: ✅ DONE — live 29 September 2026**
 
-CBT dasar **sudah ada**, jadi ini bukan implementasi dari nol.
+Release production:
 
-Yang sudah tersedia:
+- runtime commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818`;
+- release: `9b49eb6-cbt-gen2`;
+- migration: `20260929050000_add_cbt_gen2`;
+- release record: [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md);
+- architecture: [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 
-- assessment per LMS Course;
-- durasi;
-- start/end backend;
-- multiple-choice question;
-- opsi jawaban;
-- single submission guard;
-- auto-scoring pilihan ganda;
-- result tersimpan;
-- student dapat mengerjakan dari course;
-- basic LMS grade/report integration.
+Legacy CBT tetap kompatibel. Pada saat deployment:
 
-Snapshot SMKN 12 Garut saat audit:
+- `LmsAssessment`: **24**;
+- `LmsAssessmentResult`: **36**;
+- `LmsAssessmentQuestion`: **48**;
+- seluruh 36 result legacy tetap tersimpan dengan `attemptId = NULL`;
+- belum ada attempt Gen2 production sampai pengguna mulai memakai flow baru.
 
-- `LmsAssessment`: **12**;
-- `LmsAssessmentResult`: **18**.
+### P4 yang sudah selesai
 
-### Gap penting saat audit
+- [x] Editor jadwal CBT yang proper: tanggal, jam mulai, jam selesai.
+- [x] Bank soal.
+- [x] Import soal CSV.
+- [x] CRUD/edit/delete soal yang aman.
+- [x] Pilihan tipe soal yang didukung secara jelas: pilihan ganda + esai.
+- [x] Soal esai end-to-end.
+- [x] Manual grading esai + feedback.
+- [x] Randomisasi urutan soal yang benar-benar diterapkan dan stabil per attempt.
+- [x] Randomisasi opsi pilihan ganda.
+- [x] Configurable attempt policy.
+- [x] Timer ujian server-authoritative.
+- [x] Save-progress/autosave + resume/recovery setelah refresh.
+- [x] Token ujian opsional + regenerate token.
+- [x] Dashboard monitoring siswa: belum mulai / sedang mengerjakan / terkirim / dinilai.
+- [x] Rekap nilai dan detail jawaban.
+- [x] Analisis butir soal pilihan ganda + pending grading esai.
+- [x] Audit CBT.
+- [x] KKM/passing threshold sebagai konfigurasi.
+- [x] UAT concurrency dan submission boundary.
+- [x] Compatibility endpoint CBT lama diarahkan melalui aturan Attempt/Timer Gen2.
+- [x] Mobile-first student runner dengan navigator soal dan touch target yang layak.
 
-UI Guru saat ini:
+### Verification P4
 
-- membuat ujian dengan start = waktu dibuat;
-- end = otomatis +2 hari;
-- question creator hanya mengekspos pilihan ganda A–D;
-- backend mengenal `ESSAY`, tetapi workflow UI + grading esai belum lengkap;
-- field `isRandomized` ada tetapi audit tidak menemukan penerapan shuffle yang matang pada UI pengerjaan.
+- production-clone migration compatibility: **PASS**;
+- official Prisma migration path pada fresh clone: **PASS**;
+- CBT Gen2 production-clone lifecycle UAT: **16/16 PASS**;
+- full School OS regression: **200/200 PASS across 37 test files**;
+- Wasp build: **PASS**;
+- server bundle: **PASS**;
+- Vite SSR/client production builds: **PASS**;
+- immutable preflight/deploy: **PASS**;
+- repeated deploy: `idempotent=true`;
+- unauthenticated CBT Gen2 operations: **401**;
+- service/log health: **clean**.
 
-### TODO P4
+### P4 enhancement yang sengaja ditunda
 
-- [ ] Buat editor jadwal CBT yang proper: tanggal, jam mulai, jam selesai.
-- [ ] Tambahkan bank soal.
-- [ ] Tambahkan import soal.
-- [ ] CRUD/edit/delete soal yang aman.
-- [ ] Pilihan tipe soal yang didukung secara jelas.
-- [ ] Implementasi soal esai end-to-end.
-- [ ] Implementasi manual grading esai + feedback.
-- [ ] Randomisasi urutan soal yang benar-benar diterapkan.
-- [ ] Randomisasi opsi bila dibutuhkan.
-- [ ] Tambahkan configurable attempt policy.
-- [ ] Tambahkan timer ujian yang authoritative.
-- [ ] Tambahkan save-progress / recovery strategy yang aman bila koneksi terganggu.
-- [ ] Tambahkan token ujian bila dipilih sebagai policy sekolah.
-- [ ] Tambahkan dashboard monitoring siswa sedang ujian.
-- [ ] Tambahkan status belum mulai / sedang mengerjakan / selesai.
-- [ ] Tambahkan rekap nilai dan detail jawaban.
-- [ ] Tambahkan analisis butir soal.
-- [ ] Tambahkan audit CBT.
-- [ ] Tambahkan policy KKM/threshold sebagai konfigurasi, bukan hard-coded.
-- [ ] Integrasikan warning kehadiran mapel/EWS bila dibutuhkan tanpa membuat hard-block default.
-- [ ] UAT concurrency dan submission boundary.
+**Status: 🔵 DEFERRED / optional, bukan blocker CBT Gen2 core**
 
-**Definition of Done P4:** Guru dapat menyiapkan, menjalankan, memonitor, menilai, dan menganalisis CBT dari School OS tanpa memakai sistem ujian eksternal.
+- [ ] Warning kehadiran mapel/EWS pada eligibility CBT bila nanti disetujui; default **tidak boleh menjadi hard-block**.
+- [ ] Advanced remote proctoring.
+- [ ] Webcam recording.
+- [ ] Lockdown-browser integration.
+- [ ] Full offline exam submission tanpa koneksi jaringan.
+- [ ] External QTI/item-bank standards.
+
+**Definition of Done P4:** ✅ tercapai. Guru dapat menyiapkan, menjalankan, memonitor, menilai, dan menganalisis CBT dari School OS; siswa menggunakan runner Gen2 dengan attempt, autosave/resume, timer server, dan final submission yang terjaga.
 
 ---
 
@@ -567,7 +578,7 @@ Urutan kerja setelah audit:
 1. **P1 — Tata Usaha official issuing**
 2. **P2 — Attendance 360 production activation**
 3. **P3 — Guru Piket real schedule**
-4. **P4 — CBT Gen 2**
+4. **P4 — CBT Gen 2** ✅ selesai 29 September 2026
 5. **P5 — Website SMKN 12 Garut activation**
 6. **P6 — SaaS/Super Admin completion**
 7. **P7 — cleanup/polish**
