@@ -6,6 +6,7 @@ import { ensureSchoolUser, requireSchoolAdmin, requireTeacher } from "../school/
 import { canAccessCourse, canManageCourse } from "./accessPolicy";
 import { attendanceLocalParts } from "../attendance360/time";
 import { globalAttendanceToSubjectDefault } from "./attendancePolicy";
+import { submitLegacyAssessmentAnswersCompat } from "./cbtOperations";
 
 function requireActiveSchoolId(user: { schoolId?: string | null }) {
   if (!user.schoolId) {
@@ -663,10 +664,16 @@ export const gradeSubmission = async (rawArgs: unknown, context: { user?: User }
 const createCourseAssessmentSchema = z.object({
   courseId: z.string().uuid(),
   title: z.string().min(2, "Judul ujian wajib diisi"),
-  durationMinutes: z.number().int().min(5).default(60),
+  instructions: z.string().optional().nullable(),
+  durationMinutes: z.number().int().min(5).max(480).default(60),
   startTime: z.string(), // ISO string
   endTime: z.string(),   // ISO string
   isRandomized: z.boolean().default(true),
+  shuffleOptions: z.boolean().optional().default(false),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional().default("PUBLISHED"),
+  attemptLimit: z.number().int().min(1).max(10).optional().default(1),
+  passingScore: z.number().min(0).max(100).optional().default(75),
+  showScoreMode: z.enum(["IMMEDIATE", "AFTER_END", "HIDDEN"]).optional().default("IMMEDIATE"),
 });
 
 export const createCourseAssessment = async (rawArgs: unknown, context: { user?: User }) => {
@@ -683,10 +690,16 @@ export const createCourseAssessment = async (rawArgs: unknown, context: { user?:
     data: {
       courseId: args.courseId,
       title: args.title.trim(),
+      instructions: args.instructions?.trim() || null,
       durationMinutes: args.durationMinutes,
       startTime,
       endTime,
       isRandomized: args.isRandomized,
+      shuffleOptions: args.shuffleOptions,
+      status: args.status,
+      attemptLimit: args.attemptLimit,
+      passingScore: args.passingScore,
+      showScoreMode: args.showScoreMode,
     },
   });
 };
@@ -734,6 +747,16 @@ export const addAssessmentQuestion = async (rawArgs: unknown, context: { user?: 
   });
   if (!assessment) throw new HttpError(404, "Ujian CBT tidak ditemukan.");
   await getManagedCourseOrThrow(teacher, assessment.courseId);
+  const attemptCount = await prisma.lmsAssessmentAttempt.count({
+    where: { assessmentId: args.assessmentId },
+  });
+  if (attemptCount > 0) {
+    throw new HttpError(409, "Struktur soal tidak dapat diubah setelah peserta mulai ujian.");
+  }
+  const maxPosition = await prisma.lmsAssessmentQuestion.aggregate({
+    where: { assessmentId: args.assessmentId },
+    _max: { position: true },
+  });
 
   return prisma.lmsAssessmentQuestion.create({
     data: {
@@ -743,6 +766,7 @@ export const addAssessmentQuestion = async (rawArgs: unknown, context: { user?: 
       imageUrl: args.imageUrl || null,
       options: args.options,
       points: args.points,
+      position: (maxPosition._max.position ?? -1) + 1,
     },
   });
 };
@@ -753,63 +777,6 @@ const submitAssessmentAnswersSchema = z.object({
 });
 
 export const submitAssessmentAnswers = async (rawArgs: unknown, context: { user?: User }) => {
-  const student = ensureSchoolUser(context, ["STUDENT", "SUPERADMIN"]);
   const args = ensureArgsSchemaOrThrowHttpError(submitAssessmentAnswersSchema, rawArgs);
-  const schoolId = requireActiveSchoolId(student);
-  if (student.role !== "STUDENT") throw new HttpError(403, "Hanya akun peserta didik yang dapat mengerjakan ujian CBT.");
-  const classRoomId = student.classRoomId;
-  if (!classRoomId) throw new HttpError(403, "Akun peserta didik belum terdaftar pada rombel.");
-
-  const assessment = await prisma.lmsAssessment.findFirst({
-    where: {
-      id: args.assessmentId,
-      course: { schoolId, classRoomId },
-    },
-    include: { questions: true },
-  });
-  if (!assessment) throw new HttpError(404, "Ujian CBT tidak ditemukan.");
-  const now = new Date();
-  if (now < assessment.startTime || now > assessment.endTime) {
-    throw new HttpError(400, "Ujian CBT belum dimulai atau sudah berakhir.");
-  }
-  const existingResult = await prisma.lmsAssessmentResult.findFirst({
-    where: { assessmentId: assessment.id, studentId: student.id },
-    select: { id: true },
-  });
-  if (existingResult) throw new HttpError(409, "Jawaban ujian CBT sudah pernah dikirim.");
-
-  const questionsById = new Map(assessment.questions.map((question) => [question.id, question]));
-  for (const [questionId, answer] of Object.entries(args.answers)) {
-    const question = questionsById.get(questionId);
-    if (!question) {
-      throw new HttpError(400, "Jawaban memuat soal yang tidak termasuk dalam ujian ini.");
-    }
-    if (question.questionType === "MULTIPLE_CHOICE") {
-      const options = Array.isArray(question.options) ? question.options : [];
-      if (!options.some((option: any) => option?.id === answer)) {
-        throw new HttpError(400, "Pilihan jawaban tidak valid untuk soal ujian.");
-      }
-    }
-  }
-
-  let totalScore = 0;
-  for (const question of assessment.questions) {
-    if (question.questionType === "MULTIPLE_CHOICE" && Array.isArray(question.options)) {
-      const studentAnswer = args.answers[question.id];
-      const correctOption = (question.options as any[]).find((option) => option.isCorrect === true);
-      if (correctOption && correctOption.id === studentAnswer) {
-        totalScore += question.points;
-      }
-    }
-  }
-
-  return prisma.lmsAssessmentResult.create({
-    data: {
-      assessmentId: args.assessmentId,
-      studentId: student.id,
-      score: totalScore,
-      finishedAt: new Date(),
-      answers: args.answers,
-    },
-  });
+  return submitLegacyAssessmentAnswersCompat(args, context);
 };

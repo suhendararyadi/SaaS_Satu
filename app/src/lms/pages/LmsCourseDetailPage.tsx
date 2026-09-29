@@ -13,8 +13,6 @@ import {
   createCourseAgenda,
   recordCourseAttendance,
   createCourseAssessment,
-  addAssessmentQuestion,
-  submitAssessmentAnswers,
 } from "wasp/client/operations";
 import { SchoolLayout } from "../../school/components/SchoolLayout";
 import {
@@ -23,14 +21,25 @@ import {
   M3Badge,
   M3Tabs,
   M3TextField,
-  M3Select,
   M3Dialog,
   M3CircularProgress,
   M3Banner,
-  M3Text,
   M3Icon,
 } from "../../client/components/m3";
 import { type SubjectAttendanceStatus } from "../attendancePolicy";
+
+function toLocalDateTimeInput(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatCbtDate(value: string | Date) {
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date(value));
+}
 
 export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
   const { id } = useParams<{ id: string }>();
@@ -93,26 +102,16 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
     setStudentStatusMap(next);
   }, [attendanceModalOpen, attendanceSeed]);
 
-  // CBT Exam Modal
+  // CBT Gen2 launch modal. Editing/questions/exam runner live on dedicated CBT page.
   const [cbtModalOpen, setCbtModalOpen] = useState(false);
   const [cbtTitle, setCbtTitle] = useState("");
   const [cbtDuration, setCbtDuration] = useState(60);
-
-  // CBT Question Modal
-  const [questionModalOpen, setQuestionModalOpen] = useState(false);
-  const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
-  const [qPrompt, setQPrompt] = useState("");
-  const [qOptA, setQOptA] = useState("");
-  const [qOptB, setQOptB] = useState("");
-  const [qOptC, setQOptC] = useState("");
-  const [qOptD, setQOptD] = useState("");
-  const [correctOpt, setCorrectOpt] = useState("A");
-
-  // CBT Taking Modal (Student)
-  const [takeExamModalOpen, setTakeExamModalOpen] = useState(false);
-  const [takingExam, setTakingExam] = useState<any>(null);
-  const [examAnswers, setExamAnswers] = useState<Record<string, string>>({});
-  const [examScore, setExamScore] = useState<number | null>(null);
+  const [cbtStart, setCbtStart] = useState(() =>
+    toLocalDateTimeInput(new Date(Date.now() + 10 * 60 * 1000)),
+  );
+  const [cbtEnd, setCbtEnd] = useState(() =>
+    toLocalDateTimeInput(new Date(Date.now() + 2 * 60 * 60 * 1000)),
+  );
 
   const handleAddMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,69 +201,34 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
   const handleAddCbt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
+    const startTime = new Date(cbtStart);
+    const endTime = new Date(cbtEnd);
+    if (Number.isNaN(startTime.valueOf()) || Number.isNaN(endTime.valueOf()) || startTime >= endTime) {
+      alert("Jadwal mulai harus lebih awal daripada waktu selesai.");
+      return;
+    }
     try {
       await createCourseAssessment({
         courseId: id,
         title: cbtTitle.trim(),
         durationMinutes: Number(cbtDuration),
-        startTime: new Date().toISOString(),
-        endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        status: "DRAFT",
+        attemptLimit: 1,
+        passingScore: 75,
+        isRandomized: true,
+        shuffleOptions: false,
+        showScoreMode: "IMMEDIATE",
       });
       setCbtModalOpen(false);
       setCbtTitle("");
+      setCbtDuration(60);
       await refetch();
     } catch (err: any) {
       alert(err.message);
     }
   };
-
-  const handleAddQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await addAssessmentQuestion({
-        assessmentId: selectedAssessmentId,
-        questionType: "MULTIPLE_CHOICE",
-        prompt: qPrompt.trim(),
-        options: [
-          { id: "A", text: qOptA.trim(), isCorrect: correctOpt === "A" },
-          { id: "B", text: qOptB.trim(), isCorrect: correctOpt === "B" },
-          { id: "C", text: qOptC.trim(), isCorrect: correctOpt === "C" },
-          { id: "D", text: qOptD.trim(), isCorrect: correctOpt === "D" },
-        ],
-        points: 25,
-      });
-      setQuestionModalOpen(false);
-      setQPrompt("");
-      setQOptA("");
-      setQOptB("");
-      setQOptC("");
-      setQOptD("");
-      await refetch();
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  const handleSubmitExam = async () => {
-    if (!takingExam) return;
-    try {
-      const res = await submitAssessmentAnswers({
-        assessmentId: takingExam.id,
-        answers: examAnswers,
-      });
-      setExamScore(res.score);
-      await refetch();
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  const correctOptOptions = [
-    { value: "A", label: "Opsi A" },
-    { value: "B", label: "Opsi B" },
-    { value: "C", label: "Opsi C" },
-    { value: "D", label: "Opsi D" },
-  ];
 
   if (isLoading) {
     return (
@@ -615,86 +579,84 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
           </div>
         )}
 
-        {/* Tab 5: CBT Exams */}
+        {/* Tab 5: CBT Gen2 */}
         {activeTab === "CBT" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-title-large font-bold text-md-on-surface">Ujian Daring CBT</h2>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-title-large font-bold text-md-on-surface">Ujian CBT Gen2</h2>
+                <p className="mt-0.5 text-xs text-md-on-surface-variant">
+                  Jadwal eksplisit, attempt server-side, autosave, randomisasi, bank soal, monitoring, dan koreksi esai.
+                </p>
+              </div>
               {canManageCourse && (
-                <M3Button
-                  variant="filled"
-                  size="sm"
-                  icon="add"
-                  onClick={() => setCbtModalOpen(true)}
-                >
-                  Jadwalkan Ujian CBT
+                <M3Button variant="filled" size="sm" icon="add" onClick={() => setCbtModalOpen(true)}>
+                  Buat Ujian CBT
                 </M3Button>
               )}
             </div>
 
             {course.assessments.length === 0 ? (
-              <M3Card variant="outlined" className="p-12 text-center">
-                <p className="text-body-large text-md-on-surface-variant">
-                  Belum ada jadwal ujian CBT yang dibuat.
+              <M3Card variant="outlined" className="p-10 text-center">
+                <M3Icon name="quiz" size={34} className="mx-auto text-md-on-surface-variant" />
+                <p className="mt-3 text-body-large font-semibold text-md-on-surface">Belum ada ujian CBT.</p>
+                <p className="mt-1 text-body-small text-md-on-surface-variant">
+                  Guru dapat membuat ujian dalam status Draft lalu mengatur paket soal dan publikasinya.
                 </p>
               </M3Card>
             ) : (
-              <div className="space-y-4">
-                {course.assessments.map((cbt) => (
-                  <M3Card key={cbt.id} variant="elevated" className="p-5">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center flex-wrap gap-3">
-                        <div>
-                          <h3 className="text-title-medium font-bold text-md-on-surface">{cbt.title}</h3>
-                          <p className="text-body-small text-md-on-surface-variant mt-0.5">
-                            Durasi: {cbt.durationMinutes} Menit • {cbt.questions.length} Butir Soal
+              <div className="space-y-3">
+                {course.assessments.map((cbt: any) => {
+                  const now = Date.now();
+                  const start = new Date(cbt.startTime).getTime();
+                  const end = new Date(cbt.endTime).getTime();
+                  const phase = cbt.status !== "PUBLISHED"
+                    ? cbt.status
+                    : now < start
+                      ? "TERJADWAL"
+                      : now > end
+                        ? "SELESAI"
+                        : "BERLANGSUNG";
+                  return (
+                    <M3Card key={cbt.id} variant="outlined" className="p-4 sm:p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <M3Badge
+                              variant={phase === "BERLANGSUNG" ? "success" : phase === "DRAFT" ? "outline" : "secondary"}
+                              size="sm"
+                            >
+                              {phase}
+                            </M3Badge>
+                            <M3Badge variant="outline" size="sm">{cbt.durationMinutes} menit</M3Badge>
+                            <M3Badge variant="outline" size="sm">{cbt.questions.length} soal</M3Badge>
+                            {cbt.requireToken && <M3Badge variant="outline" size="sm">Token</M3Badge>}
+                          </div>
+                          <h3 className="mt-2 text-title-medium font-bold text-md-on-surface">{cbt.title}</h3>
+                          <p className="mt-1 text-xs leading-5 text-md-on-surface-variant">
+                            {formatCbtDate(cbt.startTime)} — {formatCbtDate(cbt.endTime)}
                           </p>
-                        </div>
-
-                        <div className="flex gap-2">
-                          {canManageCourse && (
-                            <M3Button
-                              variant="outlined"
-                              size="sm"
-                              icon="add"
-                              onClick={() => {
-                                setSelectedAssessmentId(cbt.id);
-                                setQuestionModalOpen(true);
-                              }}
-                            >
-                              Tambah Soal
-                            </M3Button>
+                          <p className="mt-1 text-xs text-md-on-surface-variant">
+                            Attempt maks {cbt.attemptLimit || 1} · KKM {cbt.passingScore ?? 75}% · {cbt.isRandomized ? "soal diacak" : "urutan tetap"}
+                          </p>
+                          {canManageCourse && cbt.results.length > 0 && (
+                            <p className="mt-2 text-xs text-md-on-surface-variant">
+                              {cbt.results.length} hasil legacy/final tersimpan. Monitoring detail tersedia di workspace CBT.
+                            </p>
                           )}
-                          {isStudent && (
-                            <M3Button
-                              variant="filled"
-                              size="sm"
-                              onClick={() => {
-                                setTakingExam(cbt);
-                                setExamAnswers({});
-                                setExamScore(null);
-                                setTakeExamModalOpen(true);
-                              }}
-                            >
-                              Kerjakan Ujian
-                            </M3Button>
-                          )}
-                      </div>
-                      </div>
-
-                      {cbt.results.length > 0 && (
-                        <div className="pt-3 border-t border-md-outline/10 text-body-small text-md-on-surface-variant">
-                          Nilai Siswa Terbaru:{" "}
-                          {cbt.results.map((res) => (
-                            <span key={res.id} className="font-bold text-md-on-surface mr-2">
-                              {res.student.name}: {res.score}
-                            </span>
-                          ))}
                         </div>
-                      )}
-                    </div>
-                  </M3Card>
-                ))}
+                        <M3Button
+                          variant={isStudent ? "filled" : "tonal"}
+                          size="sm"
+                          icon={isStudent ? "play_circle" : "tune"}
+                          href={`/school/lms/courses/${course.id}/cbt/${cbt.id}`}
+                        >
+                          {isStudent ? "Buka Ujian" : "Kelola CBT"}
+                        </M3Button>
+                      </div>
+                    </M3Card>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -950,217 +912,56 @@ export function LmsCourseDetailPage({ user }: { user: AuthUser }) {
           </div>
         </M3Dialog>
 
-        {/* Dialog Add CBT Exam */}
+        {/* Dialog Create CBT Gen2 */}
         <M3Dialog
           isOpen={canManageCourse && cbtModalOpen}
           onClose={() => setCbtModalOpen(false)}
-          title="Jadwalkan Ujian CBT"
-          description="Buat paket ujian online untuk kelas ini."
+          title="Buat Ujian CBT Gen2"
+          description="Ujian dibuat sebagai Draft. Atur paket soal, token, randomisasi, dan publikasi dari workspace CBT."
         >
           <form onSubmit={handleAddCbt} className="space-y-4 pt-2">
             <M3TextField
               label="Judul Ujian *"
-              placeholder="Contoh: Penilaian Akhir Semester Ganjil"
+              placeholder="Contoh: Sumatif Basis Data — DDL & DML"
               value={cbtTitle}
               onChange={(e) => setCbtTitle(e.target.value)}
               required
             />
-
+            <div className="grid gap-4 sm:grid-cols-2">
+              <M3TextField
+                label="Mulai *"
+                type="datetime-local"
+                value={cbtStart}
+                onChange={(e) => setCbtStart(e.target.value)}
+                required
+              />
+              <M3TextField
+                label="Selesai *"
+                type="datetime-local"
+                value={cbtEnd}
+                onChange={(e) => setCbtEnd(e.target.value)}
+                required
+              />
+            </div>
             <M3TextField
-              label="Durasi Pengerjaan (Menit) *"
+              label="Durasi Attempt (menit) *"
               type="number"
-              placeholder="60"
+              min="5"
+              max="480"
               value={String(cbtDuration)}
               onChange={(e) => setCbtDuration(Number(e.target.value) || 60)}
               required
             />
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-md-outline/10">
-              <M3Button
-                variant="outlined"
-                type="button"
-                onClick={() => setCbtModalOpen(false)}
-              >
-                Batal
-              </M3Button>
-              <M3Button variant="filled" type="submit">
-                Simpan Ujian
-              </M3Button>
+            <div className="rounded-[10px] bg-md-surface-container-low px-3 py-2.5 text-xs leading-5 text-md-on-surface-variant">
+              Batas waktu siswa dihitung server sebagai nilai paling awal antara durasi attempt dan jadwal selesai ujian.
+            </div>
+            <div className="flex justify-end gap-2 border-t border-md-outline/10 pt-4">
+              <M3Button variant="outlined" type="button" onClick={() => setCbtModalOpen(false)}>Batal</M3Button>
+              <M3Button variant="filled" type="submit">Buat Draft Ujian</M3Button>
             </div>
           </form>
         </M3Dialog>
 
-        {/* Dialog Add CBT Question */}
-        <M3Dialog
-          isOpen={canManageCourse && questionModalOpen}
-          onClose={() => setQuestionModalOpen(false)}
-          title="Tambah Butir Soal CBT"
-          description="Tuliskan pertanyaan pilihan ganda dan kunci jawaban."
-        >
-          <form onSubmit={handleAddQuestion} className="space-y-4 pt-2">
-            <div>
-              <label className="block text-label-medium text-md-on-surface-variant mb-1 font-medium">
-                Teks Pertanyaan *
-              </label>
-              <textarea
-                className="w-full rounded-md-md border border-md-outline bg-md-surface px-4 py-3 text-body-medium text-md-on-surface focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-transparent transition-all"
-                placeholder="Tuliskan butir soal..."
-                value={qPrompt}
-                onChange={(e) => setQPrompt(e.target.value)}
-                rows={3}
-                required
-              />
-            </div>
-
-            <M3TextField
-              label="Pilihan Opsi A *"
-              placeholder="Teks opsi A..."
-              value={qOptA}
-              onChange={(e) => setQOptA(e.target.value)}
-              required
-            />
-            <M3TextField
-              label="Pilihan Opsi B *"
-              placeholder="Teks opsi B..."
-              value={qOptB}
-              onChange={(e) => setQOptB(e.target.value)}
-              required
-            />
-            <M3TextField
-              label="Pilihan Opsi C *"
-              placeholder="Teks opsi C..."
-              value={qOptC}
-              onChange={(e) => setQOptC(e.target.value)}
-              required
-            />
-            <M3TextField
-              label="Pilihan Opsi D *"
-              placeholder="Teks opsi D..."
-              value={qOptD}
-              onChange={(e) => setQOptD(e.target.value)}
-              required
-            />
-
-            <M3Select
-              label="Kunci Jawaban Benar *"
-              options={correctOptOptions}
-              value={correctOpt}
-              onChange={(e) => setCorrectOpt(e.target.value)}
-            />
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-md-outline/10">
-              <M3Button
-                variant="outlined"
-                type="button"
-                onClick={() => setQuestionModalOpen(false)}
-              >
-                Batal
-              </M3Button>
-              <M3Button variant="filled" type="submit">
-                Simpan Soal
-              </M3Button>
-            </div>
-          </form>
-        </M3Dialog>
-
-        {/* Dialog Take CBT Exam Simulation */}
-        <M3Dialog
-          isOpen={isStudent && takeExamModalOpen && !!takingExam}
-          onClose={() => setTakeExamModalOpen(false)}
-          title={takingExam?.title || "Simulasi Ujian CBT"}
-          description="Pengerjaan tes daring interaktif siswa."
-        >
-          <div className="space-y-4 pt-2">
-            {examScore !== null ? (
-              <div className="p-8 text-center bg-md-secondary/10 rounded-md-xl">
-                <M3Icon name="check_circle" size={48} className="text-md-secondary mx-auto mb-2 block" />
-                <h3 className="text-headline-small font-bold text-md-on-surface">Ujian Selesai!</h3>
-                <p className="text-body-medium text-md-on-surface-variant mt-1">
-                  Skor Nilai Otomatis Anda:
-                </p>
-                <div className="text-display-medium font-extrabold text-md-secondary mt-2">
-                  {examScore}
-                </div>
-                <div className="mt-6">
-                  <M3Button
-                    variant="filled"
-                    size="sm"
-                    onClick={() => setTakeExamModalOpen(false)}
-                  >
-                    Tutup Simulasi
-                  </M3Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
-                  {takingExam?.questions.map((q: any, qIdx: number) => (
-                    <M3Card key={q.id} variant="outlined" className="p-4">
-                      <div className="space-y-3">
-                        <p className="font-semibold text-body-medium text-md-on-surface">
-                          {qIdx + 1}. {q.prompt}
-                        </p>
-                        <div className="space-y-2">
-                          {Array.isArray(q.options) &&
-                            q.options.map((opt: any) => {
-                              const isSelected = examAnswers[q.id] === opt.id;
-                              return (
-                                <button
-                                  key={opt.id}
-                                  type="button"
-                                  onClick={() =>
-                                    setExamAnswers((prev) => ({
-                                      ...prev,
-                                      [q.id]: opt.id,
-                                    }))
-                                  }
-                                  className={`w-full text-left p-3 rounded-md-md text-body-medium transition-all flex items-center gap-3 border ${
-                                    isSelected
-                                      ? "bg-md-primary-container text-md-on-primary-container border-md-primary font-medium"
-                                      : "bg-md-surface text-md-on-surface border-md-outline/30 hover:bg-md-surface-container"
-                                  }`}
-                                >
-                                  <div
-                                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                                      isSelected
-                                        ? "border-md-primary bg-md-primary"
-                                        : "border-md-outline"
-                                    }`}
-                                  >
-                                    {isSelected && (
-                                      <div className="w-2 h-2 rounded-full bg-md-on-primary" />
-                                    )}
-                                  </div>
-                                  <span>
-                                    {opt.id}. {opt.text}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    </M3Card>
-                  ))}
-                </div>
-
-                <div className="flex justify-end gap-2 pt-4 border-t border-md-outline/10">
-                  <M3Button
-                    variant="outlined"
-                    onClick={() => setTakeExamModalOpen(false)}
-                  >
-                    Batal
-                  </M3Button>
-                  <M3Button
-                    variant="filled"
-                    onClick={handleSubmitExam}
-                  >
-                    Kirim Jawaban Ujian
-                  </M3Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </M3Dialog>
       </div>
     </SchoolLayout>
   );

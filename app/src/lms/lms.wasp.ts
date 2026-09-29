@@ -1,6 +1,7 @@
 import { action, api, page, query, route, type Spec } from "@wasp.sh/spec";
 import { LmsCoursesPage } from "./pages/LmsCoursesPage" with { type: "ref" };
 import { LmsCourseDetailPage } from "./pages/LmsCourseDetailPage" with { type: "ref" };
+import { LmsAssessmentPage } from "./pages/LmsAssessmentPage" with { type: "ref" };
 import { LmsTeachingWorkspacePage } from "./pages/LmsTeachingWorkspacePage" with { type: "ref" };
 import { LmsCourseTeachingPage } from "./pages/LmsCourseTeachingPage" with { type: "ref" };
 import { LmsTeachingAuditPage } from "./pages/LmsTeachingAuditPage" with { type: "ref" };
@@ -25,6 +26,25 @@ import {
 } from "./operations" with { type: "ref" };
 
 import {
+  getCbtTeacherWorkspace,
+  getCbtStudentWorkspace,
+  getCbtQuestionBank,
+  updateCbtAssessmentSettings,
+  regenerateCbtToken,
+  saveCbtQuestionBankItem,
+  deleteCbtQuestionBankItem,
+  addCbtQuestion,
+  updateCbtQuestion,
+  deleteCbtQuestion,
+  addCbtQuestionFromBank,
+  importCbtQuestions,
+  startCbtAttempt,
+  saveCbtAnswers,
+  submitCbtAttempt,
+  gradeCbtEssayAnswer,
+} from "./cbtOperations" with { type: "ref" };
+
+import {
   getTeachingWorkspace,
   getCourseTeachingData,
   upsertTeachingSchedule,
@@ -37,6 +57,20 @@ import {
   markTeachingDelegationDelivered,
   getTeachingAudit,
 } from "./teachingOperations" with { type: "ref" };
+
+const cbtEntities = [
+  "School",
+  "User",
+  "ClassRoom",
+  "LmsCourse",
+  "LmsAssessment",
+  "LmsAssessmentQuestion",
+  "LmsAssessmentResult",
+  "LmsQuestionBankItem",
+  "LmsAssessmentAttempt",
+  "LmsAssessmentAnswer",
+  "LmsAssessmentEvent",
+] as const;
 
 const teachingEntities = [
   "School",
@@ -100,6 +134,9 @@ export const lmsSpec: Spec = [
   query(getCourseAttendanceSeed, {
     entities: ["LmsCourse", "ClassRoom", "User", "SchoolDailyAttendance"],
   }),
+  query(getCbtTeacherWorkspace, { entities: [...cbtEntities] }),
+  query(getCbtStudentWorkspace, { entities: [...cbtEntities] }),
+  query(getCbtQuestionBank, { entities: [...cbtEntities] }),
   query(getTeachingWorkspace, { entities: [...teachingEntities] }),
   query(getCourseTeachingData, { entities: [...teachingEntities] }),
   query(getTeachingDutyQueue, { entities: [...teachingEntities] }),
@@ -130,11 +167,22 @@ export const lmsSpec: Spec = [
   action(createCourseAssignment, { entities: ["LmsAssignment"] }),
   action(submitAssignment, { entities: ["LmsSubmission", "LmsAssignment"] }),
   action(gradeSubmission, { entities: ["LmsSubmission"] }),
-  action(createCourseAssessment, { entities: ["LmsAssessment"] }),
-  action(addAssessmentQuestion, { entities: ["LmsAssessmentQuestion"] }),
-  action(submitAssessmentAnswers, {
-    entities: ["LmsAssessmentResult", "LmsAssessment", "LmsAssessmentQuestion"],
-  }),
+  action(createCourseAssessment, { entities: [...cbtEntities] }),
+  action(addAssessmentQuestion, { entities: [...cbtEntities] }),
+  action(submitAssessmentAnswers, { entities: [...cbtEntities] }),
+  action(updateCbtAssessmentSettings, { entities: [...cbtEntities] }),
+  action(regenerateCbtToken, { entities: [...cbtEntities] }),
+  action(saveCbtQuestionBankItem, { entities: [...cbtEntities] }),
+  action(deleteCbtQuestionBankItem, { entities: [...cbtEntities] }),
+  action(addCbtQuestion, { entities: [...cbtEntities] }),
+  action(updateCbtQuestion, { entities: [...cbtEntities] }),
+  action(deleteCbtQuestion, { entities: [...cbtEntities] }),
+  action(addCbtQuestionFromBank, { entities: [...cbtEntities] }),
+  action(importCbtQuestions, { entities: [...cbtEntities] }),
+  action(startCbtAttempt, { entities: [...cbtEntities] }),
+  action(saveCbtAnswers, { entities: [...cbtEntities] }),
+  action(submitCbtAttempt, { entities: [...cbtEntities] }),
+  action(gradeCbtEssayAnswer, { entities: [...cbtEntities] }),
   action(upsertTeachingSchedule, { entities: [...teachingEntities] }),
   action(deactivateTeachingSchedule, { entities: [...teachingEntities] }),
   action(startTeachingSession, { entities: [...teachingEntities] }),
@@ -169,6 +217,11 @@ export const lmsSpec: Spec = [
     "LmsCoursesRoute",
     "/school/lms/courses",
     page(LmsCoursesPage, { authRequired: true })
+  ),
+  route(
+    "LmsAssessmentRoute",
+    "/school/lms/courses/:id/cbt/:assessmentId",
+    page(LmsAssessmentPage, { authRequired: true })
   ),
   route(
     "LmsCourseDetailRoute",

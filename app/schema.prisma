@@ -307,6 +307,10 @@ model User {
   recordedEngagementScores  LmsEngagementScore[]       @relation("EngagementScoreRecorder")
   assignmentSubmissions     LmsSubmission[]
   assessmentResults         LmsAssessmentResult[]
+  assessmentAttempts        LmsAssessmentAttempt[]      @relation("AssessmentAttemptStudent")
+  gradedAssessmentAnswers   LmsAssessmentAnswer[]       @relation("AssessmentAnswerGrader")
+  createdQuestionBankItems  LmsQuestionBankItem[]       @relation("QuestionBankCreator")
+  assessmentEvents          LmsAssessmentEvent[]        @relation("AssessmentEventActor")
   dutyReports               DutyTeacherReport[]
   dailyAttendances          SchoolDailyAttendance[]   @relation("DailyAttendanceStudent")
   recordedDailyAttendances  SchoolDailyAttendance[]   @relation("DailyAttendanceRecorder")
@@ -397,6 +401,7 @@ model School {
   pklWorkSchedules      PklWorkSchedule[]
   pklPlacementEvents    PklPlacementEvent[]
   lmsCourses           LmsCourse[]
+  lmsQuestionBankItems LmsQuestionBankItem[]
   dutyReports          DutyTeacherReport[]
   dailyAttendances     SchoolDailyAttendance[]
   wakasekAssignments   WakasekAssignment[]
@@ -1425,6 +1430,7 @@ model LmsCourse {
   materials          LmsMaterial[]
   assignments        LmsAssignment[]
   assessments        LmsAssessment[]
+  questionBankItems  LmsQuestionBankItem[]
   attendances        LmsAttendanceSession[]
   teachingSchedules  LmsTeachingSchedule[]
   teachingSessions   LmsTeachingSession[]
@@ -1633,42 +1639,164 @@ model LmsAssessment {
   courseId        String
   course          LmsCourse               @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title           String
+  instructions    String?
   durationMinutes Int                     @default(60)
   startTime       DateTime
   endTime         DateTime
   isRandomized    Boolean                 @default(true)
+  shuffleOptions  Boolean                 @default(false)
+  status          String                  @default("PUBLISHED")
+  attemptLimit    Int                     @default(1)
+  passingScore    Float                   @default(75)
+  requireToken    Boolean                 @default(false)
+  accessToken     String?
+  showScoreMode   String                  @default("IMMEDIATE")
+  version         Int                     @default(1)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
   questions       LmsAssessmentQuestion[]
   results         LmsAssessmentResult[]
+  attempts        LmsAssessmentAttempt[]
+  events          LmsAssessmentEvent[]
 
   @@index([courseId, startTime, endTime])
+  @@index([courseId, status, startTime])
+}
+
+model LmsQuestionBankItem {
+  id           String    @id @default(uuid())
+  schoolId     String
+  school       School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  courseId     String
+  course       LmsCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User      @relation("QuestionBankCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  questionType String
+  prompt       String
+  imageUrl     String?
+  options      Json?
+  points       Float     @default(10.0)
+  difficulty   String    @default("MEDIUM")
+  tags         Json?
+  explanation  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  questions    LmsAssessmentQuestion[]
+
+  @@index([schoolId, courseId, updatedAt])
+  @@index([courseId, questionType, difficulty])
 }
 
 model LmsAssessmentQuestion {
-  id           String        @id @default(uuid())
+  id           String                   @id @default(uuid())
   assessmentId String
-  assessment   LmsAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessment   LmsAssessment            @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  bankItemId   String?
+  bankItem     LmsQuestionBankItem?     @relation(fields: [bankItemId], references: [id], onDelete: SetNull)
   questionType String // "MULTIPLE_CHOICE", "ESSAY"
   prompt       String
   imageUrl     String?
   options      Json? // [{ id: "A", text: "...", isCorrect: true }, ...]
-  points       Float         @default(10.0)
+  points       Float                    @default(10.0)
+  position     Int                      @default(0)
+  explanation  String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  answers      LmsAssessmentAnswer[]
 
-  @@index([assessmentId])
+  @@index([assessmentId, position])
+  @@index([bankItemId])
+}
+
+model LmsAssessmentAttempt {
+  id            String                @id @default(uuid())
+  assessmentId  String
+  assessment    LmsAssessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       User                  @relation("AssessmentAttemptStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  attemptNo     Int
+  status        String                @default("IN_PROGRESS")
+  startedAt     DateTime              @default(now())
+  expiresAt     DateTime
+  submittedAt   DateTime?
+  scoreAuto     Float                 @default(0)
+  scoreManual   Float                 @default(0)
+  scoreTotal    Float                 @default(0)
+  percentage    Float                 @default(0)
+  passed        Boolean?
+  gradingStatus String                @default("NOT_REQUIRED")
+  questionOrder Json?
+  optionOrder   Json?
+  lastSavedAt   DateTime?
+  version       Int                   @default(1)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  answers       LmsAssessmentAnswer[]
+  events        LmsAssessmentEvent[]
+  result        LmsAssessmentResult?
+
+  @@unique([assessmentId, studentId, attemptNo])
+  @@index([assessmentId, status, updatedAt])
+  @@index([studentId, updatedAt])
+}
+
+model LmsAssessmentAnswer {
+  id               String                 @id @default(uuid())
+  attemptId        String
+  attempt          LmsAssessmentAttempt   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         LmsAssessmentQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionId String?
+  answerText       String?
+  autoScore        Float?
+  manualScore      Float?
+  feedback         String?
+  gradedById       String?
+  gradedBy         User?                  @relation("AssessmentAnswerGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+  gradedAt         DateTime?
+  answeredAt       DateTime?
+  version          Int                    @default(1)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@unique([attemptId, questionId])
+  @@index([questionId, gradedAt])
+  @@index([gradedById, gradedAt])
 }
 
 model LmsAssessmentResult {
-  id           String        @id @default(uuid())
+  id           String                 @id @default(uuid())
   assessmentId String
-  assessment   LmsAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessment   LmsAssessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   studentId    String
-  student      User          @relation(fields: [studentId], references: [id])
+  student      User                   @relation(fields: [studentId], references: [id])
+  attemptId    String?                @unique
+  attempt      LmsAssessmentAttempt?  @relation(fields: [attemptId], references: [id], onDelete: SetNull)
   score        Float
-  startedAt    DateTime      @default(now())
+  startedAt    DateTime               @default(now())
   finishedAt   DateTime?
-  answers      Json // Raw jawaban siswa
+  answers      Json // Raw jawaban siswa / compatibility projection
 
   @@unique([assessmentId, studentId])
   @@index([studentId, finishedAt])
+}
+
+model LmsAssessmentEvent {
+  id           String                @id @default(uuid())
+  assessmentId String
+  assessment   LmsAssessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  attemptId    String?
+  attempt      LmsAssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  actorId      String?
+  actor        User?                 @relation("AssessmentEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  eventType    String
+  payload      Json?
+  createdAt    DateTime              @default(now())
+
+  @@index([assessmentId, createdAt])
+  @@index([attemptId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([eventType, createdAt])
 }
 
 model DutyTeacherReport {
