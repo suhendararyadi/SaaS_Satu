@@ -15,6 +15,11 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Arsitektur memory permanen VPS di luar folder proyek.
    - Menjelaskan `~/.mso/agent-memory`, Project/RASMIC memory `.agent/memory`, workflow memory, promotion policy, privacy, backup, dan recovery contract.
 
+0.2. [**Current TODO & Progress Backlog (`SCHOOL_OS_TODO_PROGRESS.md`)**](./SCHOOL_OS_TODO_PROGRESS.md)
+   - Living document hasil audit lintas modul School OS.
+   - Menjadi source of truth backlog P1–P7: TU official issuing, aktivasi Attendance 360, jadwal Guru Piket nyata, CBT Gen2, Website SMKN 12 Garut, SaaS/Super Admin, dan cleanup/polish.
+   - Membedakan fitur yang belum selesai dari fitur yang sudah production-grade tetapi belum dikonfigurasi atau belum dipakai.
+
 1. [**Konteks Proyek Aktif (`PROJECT_CONTEXT.md`)**](./PROJECT_CONTEXT.md)
    - Snapshot lintas chat/sesi yang harus dibaca sebelum melanjutkan School OS.
    - Mencatat worktree/branch aktif, pointer production terakhir, status seed demo, guardrails, dan pekerjaan berikutnya yang belum selesai.
