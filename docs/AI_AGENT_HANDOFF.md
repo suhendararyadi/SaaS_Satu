@@ -18,12 +18,14 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Current backend/runtime commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d` — Teacher/GTK Login Provisioning.
 - Current backend release: `3bd5515-teacher-login-provisioning`.
 - Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/3bd5515-teacher-login-provisioning`.
-- Current static/frontend release: `3bd5515-teacher-login-provisioning`.
-- Current static pointer: `/var/www/saas-satu/releases/3bd5515-teacher-login-provisioning`.
-- Runtime rollback: backend `c7814f5-lms-teaching-session-gen1`, static `c3297df-sidebar-color-polish`.
+- Current static/frontend source commit: `bf79043747f36d8099b295876fad240d6930b4eb` — School Profile / SaaS Account Separation.
+- Current static/frontend release: `bf79043-school-profile-routing`.
+- Current static pointer: `/var/www/saas-satu/releases/bf79043-school-profile-routing`.
+- Runtime rollback: backend `c7814f5-lms-teaching-session-gen1`; static rollback `3bd5515-teacher-login-provisioning`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
+- School Profile is separated from SaaS Account: operational school roles use `/school/profile`, while SaaS subscription/account stays on `/account`; see [`RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`](./RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md).
 - Global Attendance → LMS one-way contract is live; see [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
@@ -563,3 +565,23 @@ Verification: policy unit **3/3**, production-clone Auth lifecycle UAT **10/10**
 The `[DEMO] SMKN12 Rina Contoh — RPL` master record exists but **no Auth was auto-created during deployment**. An automated credential-handling attempt was stopped by execution safety controls and integrity checks confirmed zero partial Auth/session rows. Provision the demo teacher through the new Admin panel when a credential is needed.
 
 Release record: [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
+
+## School Profile / SaaS Account separation production contract — 29 September 2026
+
+Static release `bf79043-school-profile-routing` is live while backend release remains `3bd5515-teacher-login-provisioning`.
+
+Routing contract:
+
+- `TEACHER`, `STUDENT`, and `DUDI_MENTOR` use `/school/profile` as their personal School OS profile;
+- those operational roles are defensively redirected away from `/account` even when the URL is typed directly or the school link is incomplete;
+- `SCHOOL_ADMIN` and `SUPERADMIN` retain SaaS account/subscription access where appropriate;
+- the avatar menu shows **Profil Saya** for school users and only shows **Akun & Langganan** to SaaS-management roles;
+- Admin Teacher master/detail remains `/school/teachers/:id`; it is not replaced by the teacher self-profile.
+
+Teacher `/school/profile` is read-mostly and reuses the existing `getSchoolTeacherDetail({ id: user.id })` authorization/masking contract. It shows identity/employment, teaching load, homeroom/Wakasek/staff assignments, contact, and School OS security information. Student profile reuses `getMyStudentAccountProfile`. DUDI Mentor receives a safe generic school profile.
+
+Verification: targeted routing/menu **8/8 PASS**, full regression **200/200 PASS across 37 files**, Wasp build PASS, server bundle PASS, final Vite SSR/client PASS, static preflight/deploy PASS, repeated static deploy idempotent, backend pointer unchanged, HTTP routes 200, backend Auth operations remain 401 unauthenticated, logs clean.
+
+The release performed no database writes. Current Teacher Auth count in SMKN 12 Garut is 1 and belongs to synthetic demo `[DEMO] SMKN12 Maya Contoh — TJKT`; it is unrelated to this static release.
+
+Release record: [`RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`](./RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md).

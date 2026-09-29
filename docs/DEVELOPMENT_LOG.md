@@ -1279,3 +1279,25 @@ Backup: `/home/ubuntu/backups/SaaS_Satu/pre-teacher-login-provisioning-20260929-
 No schema migration was required. The demo teacher account was **not** auto-provisioned: execution safety controls blocked automated temporary-credential handling and integrity checks confirmed zero partial Teacher Auth/session rows. The supported path is the new Admin UI.
 
 Release record: `docs/RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`.
+
+---
+
+## 29 September 2026 — School Profile / SaaS Account separation live
+
+School OS now separates the personal operational school profile from the SaaS subscription/account surface. A new authenticated route `/school/profile` is live. Teacher, Student, and DUDI Mentor roles use this route as **Profil Saya** and are defensively redirected away from `/account`, including direct URL access. School Admin and Super Admin retain separate SaaS account/subscription access.
+
+The top-bar account menu now shows **Profil Saya** for school users. **Akun & Langganan** appears only for roles allowed to manage the SaaS account. The older generic account-settings menu also routes operational school users to School Profile.
+
+Teacher self-profile is read-mostly and reuses existing `getSchoolTeacherDetail({ id: user.id })` authorization/masking. It displays identity/employment, teaching load, homeroom/Wakasek/staff assignments, contact, and School OS security. Student profile reuses `getMyStudentAccountProfile`. Admin Teacher Detail at `/school/teachers/:id` remains the administrative master-data/login-provisioning surface.
+
+Verification: targeted routing/menu **8/8 PASS**, full regression **200/200 PASS across 37 files**, Wasp 0.25 build PASS, generated server bundle PASS, final Vite SSR/client production builds PASS, official static preflight/deploy PASS, repeated static deploy `idempotent=true`, service active, relevant HTTP routes 200, backend Teacher Auth operations remain 401 unauthenticated, recent service error scan clean.
+
+Source commit: `bf79043747f36d8099b295876fad240d6930b4eb`.
+
+Live static release: `bf79043-school-profile-routing`.
+
+Backend remains `3bd5515-teacher-login-provisioning`; this was a static-only rollout with no schema migration or database write.
+
+Current Teacher Auth count in SMKN 12 Garut is 1 and belongs to synthetic demo `[DEMO] SMKN12 Maya Contoh — TJKT`; it was not created or modified by this profile release.
+
+Release record: `docs/RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`.

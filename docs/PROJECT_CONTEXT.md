@@ -11,10 +11,10 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - `/home/ubuntu/projects/SaaS_Satu-hardening` is a **legacy linked worktree** on `redesign/apple-hig`; it is not the live production source and should no longer be used as the default development workspace.
 - Development pattern: verify actual backend/static production pointers first, create an isolated feature/hardening worktree under `/home/ubuntu/.cache/mso-worktrees/`, test there, then reconcile verified work back into canonical `main`.
 - Live backend app: `3bd5515` / `3bd5515-teacher-login-provisioning`.
-- Live static/frontend: `3bd5515` / `3bd5515-teacher-login-provisioning`.
+- Live static/frontend: `bf79043` / `bf79043-school-profile-routing`; backend remains `3bd5515-teacher-login-provisioning`.
 - Live service: `saas-satu.service` active.
 - `main` was reconciled on 26 September 2026 to include the live backend/static lineage plus the OpenClaw integration history already present on GitHub.
-- Student login provisioning, Teacher/GTK login provisioning, Attendance Global→LMS one-way, and Teaching Session Gen1 release artifacts are retained in `docs/`.
+- Student login provisioning, Teacher/GTK login provisioning, School Profile / SaaS Account separation, Attendance Global→LMS one-way, and Teaching Session Gen1 release artifacts are retained in `docs/`.
 - SMKN 12 Garut integrated demo runner/artifact is tracked under `app/scripts/school-os-demo-smkn12*.mjs` and [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Real/Dapodik baseline remains **1,539 students and 50 class rooms**. Current integrated demo overlay adds **21 students, 5 class rooms, 4 companies, 8 PKL placements, and 5 Teaching Sessions**. A separate legacy demo company `DEMO-PKL-01 — PT Demo PKL School OS` with one placement also remains; never classify it as authoritative industry master data.
 - Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md).
@@ -70,10 +70,11 @@ Domain: `https://sekolah.suhendararyadi.com`.
 Verified production state on **29 September 2026**:
 
 - **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/3bd5515-teacher-login-provisioning`;
-- **static current**: `/var/www/saas-satu/releases/3bd5515-teacher-login-provisioning`;
-- runtime/source commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d` — Teacher/GTK Login Provisioning;
+- **static current**: `/var/www/saas-satu/releases/bf79043-school-profile-routing`;
+- backend runtime/source commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d` — Teacher/GTK Login Provisioning;
+- static/frontend source commit: `bf79043747f36d8099b295876fad240d6930b4eb` — School Profile / SaaS Account Separation;
 - rollback backend: `c7814f5-lms-teaching-session-gen1`;
-- rollback static lineage before full release: `c3297df-sidebar-color-polish`;
+- rollback static: `3bd5515-teacher-login-provisioning`;
 - `saas-satu.service`: **active**;
 - canonical source: `/home/ubuntu/projects/SaaS_Satu`, branch `main`;
 - operational tenant: **SMKN 12 Garut**;
@@ -92,6 +93,16 @@ Latest Auth capability:
 Quality gate for current release: Teacher policy **3/3 PASS**, production-clone lifecycle UAT **10/10 PASS**, full regression **194/194 PASS across 36 files**, Wasp build, server bundle, Vite SSR/client, immutable preflight/deploy and idempotent redeploy PASS.
 
 Release record: [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
+
+School-profile routing is also live:
+
+- `/school/profile` is the operational personal profile for Teacher/Student/DUDI school users;
+- `/account` is the SaaS account/subscription surface and is hidden/redirected for operational roles;
+- School Admin/Super Admin retain separate SaaS account access;
+- Teacher self-profile is read-mostly and does not expose billing/subscription information;
+- this was deployed static-only; backend/database behavior did not change.
+
+Release record: [`RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`](./RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md).
 
 Historical note: the earlier 21 September pointer `197c969-pkl-company-edit-fix` documented below in older release sections is provenance only and is **not** the current runtime.
 ## 3.1 School OS Spotlight Search — LIVE
