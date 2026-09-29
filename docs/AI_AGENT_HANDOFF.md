@@ -15,12 +15,12 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - **Canonical branch**: `main`.
 - Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
 - New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
-- Current backend/runtime commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818` — CBT Gen2.
-- Current backend release: `9b49eb6-cbt-gen2`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/9b49eb6-cbt-gen2`.
-- Current static/frontend source commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818` — CBT Gen2.
-- Current static/frontend release: `9b49eb6-cbt-gen2`.
-- Current static pointer: `/var/www/saas-satu/releases/9b49eb6-cbt-gen2`.
+- Current backend/runtime commit: `4ee295bac1d0cf32c430855ee38558b239255197` — Website SMKN 12 Garut + object-storage media proxy.
+- Current backend release: `4ee295b-website-smkn12-media-proxy`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/4ee295b-website-smkn12-media-proxy`.
+- Current static/frontend source commit: `4ee295bac1d0cf32c430855ee38558b239255197` — Website SMKN 12 Garut + object-storage media proxy.
+- Current static/frontend release: `4ee295b-website-smkn12-media-proxy`.
+- Current static pointer: `/var/www/saas-satu/releases/4ee295b-website-smkn12-media-proxy`.
 - Application rollback: backend `3bd5515-teacher-login-provisioning`; previous static `bf79043-school-profile-routing`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
@@ -611,3 +611,12 @@ Verification: production-clone migration compatibility PASS; official Prisma mig
 Immediate postdeploy production counts remained **24 assessments / 36 legacy results / 48 questions**, with zero Gen2 attempts before first real use.
 
 Release record: [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md).
+
+
+## Website SMKN 12 Garut + object storage — 29 September 2026
+
+Website SMKN 12 Garut is live at `/site/smkn-12-garut`. Tenant seed is idempotent and currently provides 5 published content items and 4 visible navigation items. Do not invent school vision/mission/history; initial profile is explicitly sourced from public data until authoritative school-owned material is supplied.
+
+Object storage is Garage v2.4.1, single-node, private and loopback-only. Secrets live outside Git. Direct Website upload is School Admin-only, JPEG/PNG/WebP <=5 MB, tenant-scoped, and public delivery is proxied through `/operations/site-media/:mediaId`.
+
+Release record: [`RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md`](./RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md).

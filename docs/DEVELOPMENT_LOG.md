@@ -1326,3 +1326,14 @@ Backup: `/home/ubuntu/backups/SaaS_Satu/pre-cbt-gen2-20260929-045036.dump` (SHA-
 P4 in `SCHOOL_OS_TODO_PROGRESS.md` is now marked DONE. Optional advanced proctoring/full-offline/QTI/attendance-warning enhancements remain deferred and are not part of the completed CBT Gen2 core.
 
 Release record: `docs/RELEASE_2026-09-29_CBT_GEN2.md`.
+
+
+---
+
+## 29 September 2026 — Website SMKN 12 Garut + object storage live
+
+P5 was completed. SMKN 12 Garut public Website tenant is published with 2 profile/pages, 3 source-backed news items, 4 header navigation items, sitemap/SEO/public routes, and an official-source Kemendikdasmen hero image. Agenda/Pengumuman routes are active but no fabricated item was seeded where authoritative public information was unavailable.
+
+Garage v2.4.1 now provides private loopback-only S3-compatible storage. School Website Admin can upload JPEG/PNG/WebP up to 5 MB with required alt text. Storage keys are tenant-scoped and public files are served through the School OS backend media proxy. S3 Head/Put/Get/Delete and synthetic public PNG delivery passed; temporary test row/object were cleaned.
+
+Verification: Website/media 10/10, full regression 204/204 across 38 files, Wasp build/server bundle/Vite SSR+client PASS, preflight/deploy PASS. Runtime commit `4ee295bac1d0cf32c430855ee38558b239255197`. DB backup: `/home/ubuntu/backups/SaaS_Satu/pre-website-smkn12-object-storage-20260929-075800.dump`, SHA-256 `49ab1664b5c15f2a5f5bf2daffa3f7ecd279709c459d01acb385c2653f39d744`.

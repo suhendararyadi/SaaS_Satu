@@ -39,6 +39,7 @@ Selamat datang di pusat dokumentasi resmi **SaaS Sistem Informasi Sekolah**, seb
    - Kehadiran Global → LMS one-way: [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
    - LMS Teaching Session Gen1: [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
    - CBT Gen2 production release: [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md); architecture: [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
+   - Website SMKN 12 Garut + object storage: [`RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md`](./RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md).
    - Sidebar color polish (live static): [`RELEASE_2026-09-24_SIDEBAR_COLOR_POLISH.md`](./RELEASE_2026-09-24_SIDEBAR_COLOR_POLISH.md).
    - SMKN 12 Garut integrated demo scenario: [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
    - Canonical repository reconciliation: [`RELEASE_2026-09-26_CANONICAL_RECONCILIATION.md`](./RELEASE_2026-09-26_CANONICAL_RECONCILIATION.md).

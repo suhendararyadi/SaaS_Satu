@@ -266,63 +266,71 @@ Legacy CBT tetap kompatibel. Pada saat deployment:
 
 ## P5 — Website Sekolah SMKN 12 Garut + media infrastructure
 
-**Status: ✅ engine DONE / 🟡 tenant CONFIG / 🔵 infra enhancement**
+**Status: ✅ DONE — live 29 September 2026**
 
-Website Sekolah CMS Phase 2 sudah selesai dan live secara engine.
+Release:
 
-Sudah tersedia:
+- runtime commit: `4ee295bac1d0cf32c430855ee38558b239255197`;
+- release: `4ee295b-website-smkn12-media-proxy`;
+- release record: [`RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md`](./RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md).
 
-- Landing Composer;
-- Profil;
-- Berita;
-- Agenda;
-- Pengumuman;
-- Gallery/media via HTTPS URL;
-- preview parity;
-- revision/audit snapshot;
-- SEO metadata;
-- canonical;
-- sitemap;
-- structured data `EducationalOrganization` / `NewsArticle`;
-- responsive public renderer.
+### Aktivasi tenant selesai
 
-Snapshot tenant SMKN 12 Garut:
+- [x] Inisialisasi Website Sekolah SMKN 12 Garut.
+- [x] Isi title/tagline/kontak resmi dari sumber publik terverifikasi.
+- [x] Isi Profil Sekolah awal dari Kemendikdasmen.
+- [x] Program/konsentrasi tetap dinamis dari master data School OS.
+- [x] Isi konten publik awal: 2 halaman + 3 berita terverifikasi.
+- [x] Aktifkan indeks Agenda/Pengumuman tanpa membuat item fiktif.
+- [x] Isi navigasi publik: Profil, Berita, Agenda, Pengumuman.
+- [x] Publish secara terkontrol.
+- [x] UAT public routes, sitemap dan SEO/public renderer.
+- [x] Hero/media awal menggunakan sumber resmi Kemendikdasmen melalui URL eksternal.
 
-- `SchoolSite`: **0**;
-- `SchoolSiteMedia`: **0**.
+Snapshot production setelah seed idempotent:
 
-### TODO P5 — aktivasi tenant
+- `SchoolSite`: **1**;
+- published content: **5**;
+- PAGE: **2**;
+- NEWS: **3**;
+- visible nav: **4**;
+- media library: **1** external official-source image.
 
-- [ ] Inisialisasi Website Sekolah SMKN 12 Garut.
-- [ ] Isi title/tagline/kontak resmi.
-- [ ] Isi Profil Sekolah.
-- [ ] Isi Program/Konsentrasi.
-- [ ] Isi berita/agenda/pengumuman awal.
-- [ ] Isi navigasi publik.
-- [ ] Verifikasi preview.
-- [ ] Publish secara terkontrol.
-- [ ] UAT public routes dan SEO.
+### Object storage production selesai
 
-### Enhancement infrastruktur
+- [x] Validasi object-storage production.
+- [x] Aktifkan direct upload Website Sekolah.
+- [x] Private S3-compatible Garage v2.4.1 aktif di loopback.
+- [x] Tenant-scoped object key.
+- [x] JPEG/PNG/WebP, max 5 MB, alt text wajib.
+- [x] Public delivery melalui `/operations/site-media/:mediaId`.
+- [x] UAT Head/Put/Get/Delete S3.
+- [x] UAT synthetic public image: HTTP 200 `image/png`, lalu cleanup DB+object.
+- [x] Upload tanpa login ditolak 401; nonexistent public media 404 JSON.
 
-Current deployment:
+Verification:
 
-- `FILE_UPLOADS_ENABLED=false`;
-- S3 credentials/bucket ada, tetapi upload engine sengaja disabled.
+- targeted Website/media: **10/10 PASS**;
+- full regression: **204/204 PASS across 38 files**;
+- Wasp build/server bundle/Vite SSR+client: **PASS**;
+- immutable preflight/deploy: **PASS**;
+- Website public routes + sitemap: **PASS**;
+- `saas-satu.service` + `garage.service`: **active**.
 
-Backlog:
+### Enhancement P5 yang sengaja ditunda
 
-- [ ] Validasi object-storage production.
-- [ ] Aktifkan direct upload setelah ownership/security verification.
-- [ ] Image variants WebP/AVIF.
+**Status: 🔵 DEFERRED / bukan blocker P5 core**
+
+- [ ] Image variants WebP/AVIF otomatis.
 - [ ] Image transformation/CDN tuning.
 - [ ] Custom domain verification.
 - [ ] Optional AUTHOR/EDITOR role.
 - [ ] Privacy-safe public analytics.
-- [ ] Structured data `Event` jika agenda detail membutuhkan.
+- [ ] Structured data `Event`.
 - [ ] Cache/CDN tuning lanjutan.
+- [ ] Ganti profil sementara hasil riset publik dengan visi/misi/sejarah resmi milik sekolah setelah dokumen authoritative tersedia.
 
-**Definition of Done P5:** Website SMKN 12 Garut memiliki konten nyata dan bisa dikelola tanpa ketergantungan URL gambar manual bila storage telah diaktifkan.
+**Definition of Done P5:** ✅ tercapai. Website SMKN 12 Garut telah published dengan konten nyata/source-backed dan admin dapat mengunggah media langsung ke object storage private tanpa ketergantungan URL eksternal untuk konten baru.
 
 ---
 
@@ -579,7 +587,7 @@ Urutan kerja setelah audit:
 2. **P2 — Attendance 360 production activation**
 3. **P3 — Guru Piket real schedule**
 4. **P4 — CBT Gen 2** ✅ selesai 29 September 2026
-5. **P5 — Website SMKN 12 Garut activation**
+5. **P5 — Website SMKN 12 Garut activation** ✅ selesai 29 September 2026
 6. **P6 — SaaS/Super Admin completion**
 7. **P7 — cleanup/polish**
 

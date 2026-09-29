@@ -10,8 +10,8 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Canonical branch: `main`.
 - `/home/ubuntu/projects/SaaS_Satu-hardening` is a **legacy linked worktree** on `redesign/apple-hig`; it is not the live production source and should no longer be used as the default development workspace.
 - Development pattern: verify actual backend/static production pointers first, create an isolated feature/hardening worktree under `/home/ubuntu/.cache/mso-worktrees/`, test there, then reconcile verified work back into canonical `main`.
-- Live backend app: `9b49eb6` / `9b49eb6-cbt-gen2`.
-- Live static/frontend: `9b49eb6` / `9b49eb6-cbt-gen2`; backend is the same release.
+- Live backend app: `4ee295b` / `4ee295b-website-smkn12-media-proxy`.
+- Live static/frontend: `4ee295b` / `4ee295b-website-smkn12-media-proxy`; backend is the same release.
 - Live service: `saas-satu.service` active.
 - `main` was reconciled on 26 September 2026 to include the live backend/static lineage plus the OpenClaw integration history already present on GitHub.
 - Student login provisioning, Teacher/GTK login provisioning, School Profile / SaaS Account separation, Attendance Global→LMS one-way, Teaching Session Gen1, and CBT Gen2 release artifacts are retained in `docs/`.
@@ -763,3 +763,19 @@ Do not redesign the TU document header as a generic SaaS card/header. The admini
 - School/Department/contact values from tenant master data.
 
 Application chrome around the document still follows `DESIGN.md`. Runtime release: `3a675e4-tu-letterhead-exact`.
+
+
+## Website SMKN 12 Garut production activation — 29 September 2026
+
+Latest Website Sekolah capability:
+
+- public site live at `/site/smkn-12-garut`;
+- initial tenant content: 2 PAGE + 3 NEWS, source-backed from Kemendikdasmen/public reporting;
+- header nav: Profil, Berita, Agenda, Pengumuman;
+- official-source external hero/media from Kemendikdasmen; no third-party news image copied to storage;
+- Garage v2.4.1 private S3-compatible storage runs loopback-only;
+- Website Admin direct upload supports JPEG/PNG/WebP <=5 MB with required alt text;
+- public object delivery uses `/operations/site-media/:mediaId`;
+- verification: targeted 10/10, regression 204/204, Wasp/server/Vite PASS, S3 Head/Put/Get/Delete PASS, synthetic public image PASS.
+
+Release: [`RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md`](./RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md).
