@@ -1,5 +1,6 @@
 import { action, api, page, query, route, type Spec } from "@wasp.sh/spec";
 import { SchoolDashboardPage } from "./pages/SchoolDashboardPage" with { type: "ref" };
+import { SchoolProfilePage } from "./pages/SchoolProfilePage" with { type: "ref" };
 import { DepartmentsPage } from "./pages/DepartmentsPage" with { type: "ref" };
 import { AcademicYearsPage } from "./pages/AcademicYearsPage" with { type: "ref" };
 import { ClassRoomsPage } from "./pages/ClassRoomsPage" with { type: "ref" };
@@ -390,6 +391,7 @@ export const schoolSpec: Spec = [
   route("SarprasInventoryRoute", "/school/sarpras", page(SarprasInventoryPage, { authRequired: true })),
   route("FollowUpWorkflowRoute", "/school/follow-up", page(FollowUpWorkflowPage, { authRequired: true })),
   route("SchoolDashboardRoute", "/school", page(SchoolDashboardPage, { authRequired: true })),
+  route("SchoolProfileRoute", "/school/profile", page(SchoolProfilePage, { authRequired: true })),
   route("DepartmentsRoute", "/school/departments", page(DepartmentsPage, { authRequired: true })),
   route("AcademicYearsRoute", "/school/academic-years", page(AcademicYearsPage, { authRequired: true })),
   route("ClassRoomsRoute", "/school/classes", page(ClassRoomsPage, { authRequired: true })),

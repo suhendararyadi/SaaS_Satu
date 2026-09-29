@@ -1,4 +1,5 @@
 import React from "react";
+import { Navigate } from "react-router";
 import { getCustomerPortalUrl, getMyStudentAccountProfile, useQuery } from "wasp/client/operations";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import type { User } from "wasp/entities";
@@ -18,6 +19,7 @@ import {
   CardTitle,
 } from "../client/components/ui/card";
 import { Separator } from "../client/components/ui/separator";
+import { shouldUseSchoolProfile } from "./profileRouting";
 import {
   PaymentPlanId,
   SubscriptionStatus,
@@ -240,8 +242,8 @@ function StudentAccountContent({ student }: { student: any }) {
 }
 
 export function AccountPage({ user }: { user: User }) {
-  if (user.role === "STUDENT" && user.schoolId) {
-    return <StudentAccountPage user={user} />;
+  if (shouldUseSchoolProfile(user)) {
+    return <Navigate to="/school/profile" replace />;
   }
 
   return (

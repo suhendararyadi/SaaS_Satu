@@ -3,6 +3,7 @@ import { logout } from "wasp/client/auth";
 import { Link as WaspRouterLink } from "wasp/client/router";
 import { type User } from "wasp/entities";
 import { userMenuItems } from "./constants";
+import { canManageSaasAccount, primaryProfileHref } from "./profileRouting";
 
 export function UserMenuItems({
   user,
@@ -16,6 +17,21 @@ export function UserMenuItems({
       {userMenuItems.map((item) => {
         if (item.isAuthRequired && !user) return null;
         if (item.isAdminOnly && (!user || !user.isAdmin)) return null;
+        const isAccountSettings = item.name === "Account Settings";
+        if (isAccountSettings && user && !canManageSaasAccount(user)) {
+          return (
+            <li key={item.name}>
+              <WaspRouterLink
+                to={primaryProfileHref(user)}
+                onClick={onItemClick}
+                className="text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium leading-7 transition-colors"
+              >
+                <item.icon size="1.1rem" />
+                Profil Saya
+              </WaspRouterLink>
+            </li>
+          );
+        }
 
         return (
           <li key={item.name}>

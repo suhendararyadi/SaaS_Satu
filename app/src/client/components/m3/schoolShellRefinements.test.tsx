@@ -68,3 +68,50 @@ describe("School shell refinements", () => {
     expect(trigger).not.toHaveTextContent("expand_more");
   });
 });
+
+describe("School account routing", () => {
+  it("shows School Profile but hides SaaS account for teachers", async () => {
+    render(
+      <MemoryRouter>
+        <M3AccountMenu
+          user={{
+            id: "teacher-test",
+            name: "Guru Test",
+            email: "guru@example.invalid",
+            username: "guru-test",
+            schoolId: "school-a",
+            isAdmin: false,
+            role: "TEACHER",
+          } as any}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Buka menu akun Guru Test" }), { button: 0, ctrlKey: false });
+    const profile = await screen.findByRole("menuitem", { name: /Profil Saya/i });
+    expect(profile.querySelector("a")?.getAttribute("href") || profile.getAttribute("href")).toContain("/school/profile");
+    expect(screen.queryByText("Akun & Langganan")).not.toBeInTheDocument();
+  });
+
+  it("keeps both School Profile and SaaS account for school admins", async () => {
+    render(
+      <MemoryRouter>
+        <M3AccountMenu
+          user={{
+            id: "school-admin-test",
+            name: "Admin Sekolah",
+            email: "admin@example.invalid",
+            username: "admin-school",
+            schoolId: "school-a",
+            isAdmin: false,
+            role: "SCHOOL_ADMIN",
+          } as any}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Buka menu akun Admin Sekolah" }), { button: 0, ctrlKey: false });
+    expect(await screen.findByText("Profil Saya")).toBeInTheDocument();
+    expect(screen.getByText("Akun & Langganan")).toBeInTheDocument();
+  });
+});

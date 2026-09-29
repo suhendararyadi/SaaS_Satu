@@ -4,10 +4,13 @@ import { Link } from "react-router";
 import { type AuthUser } from "wasp/auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { M3Icon } from "./M3Icon";
+import { canManageSaasAccount, primaryProfileHref } from "../../../user/profileRouting";
 
 export function M3AccountMenu({ user }: { user: AuthUser }) {
   const name = user.name || user.username || user.email || "Akun";
   const initial = name.charAt(0).toUpperCase();
+  const profileHref = primaryProfileHref(user);
+  const showSaasAccount = canManageSaasAccount(user);
 
   return (
     <DropdownMenu>
@@ -40,10 +43,17 @@ export function M3AccountMenu({ user }: { user: AuthUser }) {
           </>
         )}
         <DropdownMenuItem asChild>
-          <Link to="/account" className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px]">
-            <M3Icon name="person" size={17} />Akun Saya
+          <Link to={profileHref} className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px]">
+            <M3Icon name="person" size={17} />Profil Saya
           </Link>
         </DropdownMenuItem>
+        {showSaasAccount && (
+          <DropdownMenuItem asChild>
+            <Link to="/account" className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px]">
+              <M3Icon name="payments" size={17} />Akun & Langganan
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => logout()} className="flex min-h-10 items-center gap-2.5 rounded-[8px] px-2.5 text-[13px] text-md-error focus:text-md-error">
           <M3Icon name="logout" size={17} />Keluar
