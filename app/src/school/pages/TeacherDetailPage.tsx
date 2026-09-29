@@ -1,7 +1,13 @@
 import React from "react";
 import { type AuthUser } from "wasp/auth";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { getSchoolTeacherDetail, useQuery } from "wasp/client/operations";
+import {
+  getSchoolTeacherDetail,
+  provisionTeacherLogin,
+  resetTeacherLoginPassword,
+  revokeTeacherLogin,
+  useQuery,
+} from "wasp/client/operations";
 import { SchoolLayout } from "../components/SchoolLayout";
 import {
   M3Badge,
@@ -65,6 +71,12 @@ export function TeacherDetailPage({ user }: { user: AuthUser }) {
     { id },
     { enabled: !!id },
   );
+  const [loginBusy, setLoginBusy] = React.useState(false);
+  const [loginError, setLoginError] = React.useState("");
+  const [temporaryLogin, setTemporaryLogin] = React.useState<{
+    loginEmail: string;
+    temporaryPassword: string;
+  } | null>(null);
 
   if (query.isLoading) {
     return (
@@ -90,13 +102,79 @@ export function TeacherDetailPage({ user }: { user: AuthUser }) {
     );
   }
 
-  const { teacher, canManage, profileStats } = query.data as any;
+  const { teacher, canManage, profileStats, hasLogin, loginEmail } = query.data as any;
   const profile = teacher.teacherProfile || {};
   const activeHomerooms = (teacher.homeroomClasses || []).filter(
     (room: any) => room.academicYear?.isActive,
   );
   const assignments = teacher.staffAssignments || [];
   const wakasekAssignments = teacher.wakasekAssignments || [];
+
+  const provisionLogin = async () => {
+    if (!window.confirm("Buat akun login sementara untuk Guru/GTK ini? Password hanya ditampilkan sekali.")) {
+      return;
+    }
+    setLoginBusy(true);
+    setLoginError("");
+    try {
+      const result: any = await provisionTeacherLogin({
+        teacherId: teacher.id,
+        confirm: "PROVISION_TEACHER_TEMPORARY_LOGIN",
+      });
+      setTemporaryLogin({
+        loginEmail: result.loginEmail,
+        temporaryPassword: result.temporaryPassword,
+      });
+      await query.refetch();
+    } catch (error: any) {
+      setLoginError(error?.message || "Akun login Guru/GTK belum dapat dibuat.");
+    } finally {
+      setLoginBusy(false);
+    }
+  };
+
+  const resetLogin = async () => {
+    if (!window.confirm("Reset password akun Guru/GTK ini? Semua sesi login aktif akan diputus dan password baru hanya ditampilkan sekali.")) {
+      return;
+    }
+    setLoginBusy(true);
+    setLoginError("");
+    try {
+      const result: any = await resetTeacherLoginPassword({
+        teacherId: teacher.id,
+        confirm: "RESET_TEACHER_TEMPORARY_PASSWORD",
+      });
+      setTemporaryLogin({
+        loginEmail: result.loginEmail,
+        temporaryPassword: result.temporaryPassword,
+      });
+      await query.refetch();
+    } catch (error: any) {
+      setLoginError(error?.message || "Password Guru/GTK belum dapat direset.");
+    } finally {
+      setLoginBusy(false);
+    }
+  };
+
+  const revokeLogin = async () => {
+    if (!window.confirm("Cabut akun login Guru/GTK ini? Profil, penugasan, LMS, presensi, dan data PKL tidak akan dihapus.")) {
+      return;
+    }
+    setLoginBusy(true);
+    setLoginError("");
+    try {
+      await revokeTeacherLogin({
+        teacherId: teacher.id,
+        confirm: "REVOKE_TEACHER_LOGIN",
+      });
+      setTemporaryLogin(null);
+      await query.refetch();
+    } catch (error: any) {
+      setLoginError(error?.message || "Akun login Guru/GTK belum dapat dicabut.");
+    } finally {
+      setLoginBusy(false);
+    }
+  };
 
   return (
     <SchoolLayout user={user}>
@@ -160,6 +238,91 @@ export function TeacherDetailPage({ user }: { user: AuthUser }) {
               setSearchParams(next, { replace: true });
             }}
           />
+        )}
+
+        {canManage && loginError && (
+          <M3Banner
+            variant="error"
+            headline="Akun login belum dapat diproses"
+            supportingText={loginError}
+          />
+        )}
+
+        {canManage && temporaryLogin && (
+          <M3Banner
+            variant="success"
+            headline="Kredensial sementara Guru/GTK berhasil dibuat"
+            supportingText={
+              "Salin sekarang. Email: " +
+              temporaryLogin.loginEmail +
+              " · Password sementara: " +
+              temporaryLogin.temporaryPassword
+            }
+          />
+        )}
+
+        {canManage && (
+          <M3Card variant="outlined" className="overflow-hidden">
+            <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-md-primary-container text-md-primary">
+                  <M3Icon name="key" size={19} />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-[15px] font-semibold text-md-on-surface">Akun Login</h2>
+                    <M3Badge variant={hasLogin ? "success" : "outline"} size="sm">
+                      {hasLogin ? "Aktif" : "Belum dibuat"}
+                    </M3Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-5 text-md-on-surface-variant">
+                    {hasLogin
+                      ? "Identitas login: " + (loginEmail || "provider non-email")
+                      : "Guru/GTK belum memiliki identitas Auth School OS."}
+                  </p>
+                  {hasLogin && !temporaryLogin && (
+                    <p className="mt-1 text-[11px] text-md-on-surface-variant">
+                      Password tidak dapat ditampilkan kembali. Gunakan reset untuk membuat password sementara baru.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {!hasLogin ? (
+                  <M3Button
+                    variant="tonal"
+                    size="sm"
+                    icon="key"
+                    isLoading={loginBusy}
+                    onClick={provisionLogin}
+                  >
+                    Buat Akun Login
+                  </M3Button>
+                ) : (
+                  <>
+                    <M3Button
+                      variant="tonal"
+                      size="sm"
+                      icon="password"
+                      isLoading={loginBusy}
+                      onClick={resetLogin}
+                    >
+                      Reset Password
+                    </M3Button>
+                    <M3Button
+                      variant="outlined"
+                      size="sm"
+                      icon="key_off"
+                      disabled={loginBusy}
+                      onClick={revokeLogin}
+                    >
+                      Cabut Akun Login
+                    </M3Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </M3Card>
         )}
 
         {!canManage && (

@@ -1,8 +1,17 @@
+import { randomBytes } from "node:crypto";
 import { HttpError, prisma } from "wasp/server";
+import {
+  createProviderId,
+  findAuthIdentity,
+  getProviderDataWithPassword,
+  sanitizeAndSerializeProviderData,
+  updateAuthIdentityProviderData,
+} from "wasp/auth/utils";
 import { type User } from "wasp/entities";
 import * as z from "zod";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { requireSchoolAdmin, requireSchoolDirectoryAccess } from "./authGuards";
+import { buildTeacherTemporaryLoginEmail } from "./teacherLoginPolicy";
 
 const teacherDetailSchema = z.object({
   id: z.string().uuid(),
@@ -121,7 +130,26 @@ export const getSchoolTeacherDetail = async (
   };
 
   if (canManage || !profile) {
-    return { teacher, canManage, profileStats };
+    const auth = canManage
+      ? await prisma.auth.findUnique({
+          where: { userId: teacher.id },
+          select: {
+            id: true,
+            identities: {
+              where: { providerName: "email" },
+              select: { providerUserId: true },
+              take: 1,
+            },
+          },
+        })
+      : null;
+    return {
+      teacher,
+      canManage,
+      profileStats,
+      hasLogin: !!auth,
+      loginEmail: auth?.identities?.[0]?.providerUserId || null,
+    };
   }
 
   return {
@@ -333,4 +361,123 @@ export const updateSchoolTeacherProfile = async (
 
     return { user: updatedUser, teacherProfile };
   });
+};
+const provisionTeacherLoginSchema = z.object({
+  teacherId: z.string().uuid("ID guru tidak valid"),
+  confirm: z.literal("PROVISION_TEACHER_TEMPORARY_LOGIN"),
+});
+
+const resetTeacherLoginSchema = z.object({
+  teacherId: z.string().uuid("ID guru tidak valid"),
+  confirm: z.literal("RESET_TEACHER_TEMPORARY_PASSWORD"),
+});
+
+const revokeTeacherLoginSchema = z.object({
+  teacherId: z.string().uuid("ID guru tidak valid"),
+  confirm: z.literal("REVOKE_TEACHER_LOGIN"),
+});
+
+async function getTeacherLoginTarget(schoolId: string, teacherId: string) {
+  const teacher = await prisma.user.findFirst({
+    where: { id: teacherId, schoolId, role: "TEACHER" },
+    include: {
+      auth: { include: { identities: true } },
+      teacherProfile: { select: { nip: true } },
+    },
+  });
+  if (!teacher) throw new HttpError(404, "Guru/GTK tidak ditemukan di unit sekolah ini.");
+  return teacher;
+}
+
+function generateTeacherTemporaryPassword() {
+  return "TmpGTK-" + randomBytes(12).toString("base64url") + "!7a";
+}
+
+export const provisionTeacherLogin = async (rawArgs: unknown, context: { user?: User }) => {
+  const admin = requireSchoolAdmin(context);
+  const args = ensureArgsSchemaOrThrowHttpError(provisionTeacherLoginSchema, rawArgs);
+  const teacher = await getTeacherLoginTarget(admin.schoolId, args.teacherId);
+  if (teacher.auth) throw new HttpError(409, "Guru/GTK ini sudah memiliki akun login.");
+
+  let loginEmail = buildTeacherTemporaryLoginEmail({
+    id: teacher.id,
+    username: teacher.username,
+    nip: teacher.teacherProfile?.nip,
+    email: teacher.email,
+  });
+  let providerId = createProviderId("email", loginEmail);
+  if (await findAuthIdentity(providerId)) {
+    loginEmail = buildTeacherTemporaryLoginEmail({
+      id: teacher.id,
+      username: teacher.username,
+      nip: teacher.teacherProfile?.nip,
+      email: teacher.email,
+      forceIdSuffix: true,
+    });
+    providerId = createProviderId("email", loginEmail);
+    if (await findAuthIdentity(providerId)) {
+      throw new HttpError(409, "Identitas login Guru/GTK sudah digunakan. Hubungi administrator.");
+    }
+  }
+
+  const temporaryPassword = generateTeacherTemporaryPassword();
+  const providerData = await sanitizeAndSerializeProviderData<"email">({
+    hashedPassword: temporaryPassword,
+    isEmailVerified: true,
+    emailVerificationSentAt: null,
+    passwordResetSentAt: null,
+  });
+
+  await prisma.auth.create({
+    data: {
+      userId: teacher.id,
+      identities: {
+        create: {
+          providerName: providerId.providerName,
+          providerUserId: providerId.providerUserId,
+          providerData,
+        },
+      },
+    },
+  });
+
+  return { teacherId: teacher.id, name: teacher.name, loginEmail, temporaryPassword };
+};
+
+export const resetTeacherLoginPassword = async (rawArgs: unknown, context: { user?: User }) => {
+  const admin = requireSchoolAdmin(context);
+  const args = ensureArgsSchemaOrThrowHttpError(resetTeacherLoginSchema, rawArgs);
+  const teacher = await getTeacherLoginTarget(admin.schoolId, args.teacherId);
+  if (!teacher.auth) throw new HttpError(409, "Guru/GTK ini belum memiliki akun login.");
+
+  const identity = teacher.auth.identities.find((item) => item.providerName === "email");
+  if (!identity) {
+    throw new HttpError(409, "Akun Guru/GTK tidak menggunakan login email yang dapat direset dari panel sekolah.");
+  }
+
+  const providerId = createProviderId("email", identity.providerUserId);
+  const existingProviderData = getProviderDataWithPassword<"email">(identity.providerData);
+  const temporaryPassword = generateTeacherTemporaryPassword();
+  await updateAuthIdentityProviderData<"email">(providerId, existingProviderData, {
+    hashedPassword: temporaryPassword,
+    isEmailVerified: true,
+    passwordResetSentAt: null,
+  });
+  await prisma.session.deleteMany({ where: { userId: teacher.auth.id } });
+
+  return {
+    teacherId: teacher.id,
+    name: teacher.name,
+    loginEmail: identity.providerUserId,
+    temporaryPassword,
+  };
+};
+
+export const revokeTeacherLogin = async (rawArgs: unknown, context: { user?: User }) => {
+  const admin = requireSchoolAdmin(context);
+  const args = ensureArgsSchemaOrThrowHttpError(revokeTeacherLoginSchema, rawArgs);
+  const teacher = await getTeacherLoginTarget(admin.schoolId, args.teacherId);
+  if (!teacher.auth) return { teacherId: teacher.id, revoked: false };
+  await prisma.auth.delete({ where: { id: teacher.auth.id } });
+  return { teacherId: teacher.id, revoked: true };
 };
