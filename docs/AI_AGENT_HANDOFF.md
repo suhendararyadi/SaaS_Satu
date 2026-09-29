@@ -1,6 +1,6 @@
 # School OS — AI Agent Handoff
 
-Last verified: **26 September 2026 (Asia/Jakarta)**.
+Last verified: **29 September 2026 (Asia/Jakarta)**.
 
 This is the fast, durable entry point for any AI agent continuing School OS work. Read this file first, then [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) for the full persistent context and the release documents linked below.
 
@@ -15,13 +15,15 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - **Canonical branch**: `main`.
 - Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
 - New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
-- Current backend runtime commit: `c7814f5de663cac48df38eeca860782af940923d` — LMS Teaching Session Gen1.
-- Current backend release: `c7814f5-lms-teaching-session-gen1`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/c7814f5-lms-teaching-session-gen1`.
-- Current static/frontend release: `c3297df-sidebar-color-polish`.
-- Current static pointer: `/var/www/saas-satu/releases/c3297df-sidebar-color-polish`.
+- Current backend/runtime commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d` — Teacher/GTK Login Provisioning.
+- Current backend release: `3bd5515-teacher-login-provisioning`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/3bd5515-teacher-login-provisioning`.
+- Current static/frontend release: `3bd5515-teacher-login-provisioning`.
+- Current static pointer: `/var/www/saas-satu/releases/3bd5515-teacher-login-provisioning`.
+- Runtime rollback: backend `c7814f5-lms-teaching-session-gen1`, static `c3297df-sidebar-color-polish`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
+- Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
 - Global Attendance → LMS one-way contract is live; see [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
@@ -370,7 +372,7 @@ Do not store raw student/PTK PII, credentials, tokens, or private keys in either
 
 ## 13. Current continuation point
 
-Current live backend is `c7814f5-lms-teaching-session-gen1` and current live static/frontend is `c3297df-sidebar-color-polish`. Attendance 360, Global→LMS one-way attendance, Kesiswaan/Follow-Up hardening, PKL Gen2, TU foundation, OpenClaw read-only integration, and LMS Teaching Session Gen1 are all part of the verified production lineage. The SMKN 12 Garut integrated demo overlay is active and explicitly reversible. New work must start from the verified live lineage in an isolated worktree and then be reconciled back into canonical `main`; do not resume from `SaaS_Satu-hardening`.
+Current live backend/static is `3bd5515-teacher-login-provisioning`. Attendance 360, Global→LMS one-way attendance, Kesiswaan/Follow-Up hardening, PKL Gen2, TU foundation, OpenClaw read-only integration, and LMS Teaching Session Gen1 are all part of the verified production lineage. The SMKN 12 Garut integrated demo overlay is active and explicitly reversible. New work must start from the verified live lineage in an isolated worktree and then be reconciled back into canonical `main`; do not resume from `SaaS_Satu-hardening`.
 
 Before starting the next feature:
 
@@ -541,3 +543,23 @@ Release record: `docs/RELEASE_2026-09-23_OPENCLAW_READONLY_INTEGRATION.md`.
 **Follow-up (same day):** runtime backend moved to `34fcd3b-openclaw-tenant-attribution` (rollback `884abc6-openclaw-integration`). Every class row now carries `schoolId`/`schoolName`/`schoolSlug`, a `schools[]` per-tenant rollup was added, and `attendance/daily` accepts `from`/`to` for ranges (reporting `mode`, `from`, `to`; `from > to` returns 400). The security contract above is unchanged and must stay that way. Release record: `docs/RELEASE_2026-09-23_OPENCLAW_TENANT_ATTRIBUTION.md`.
 
 Operator scripts (`/home/ubuntu/.openclaw/scripts/schoolos-attendance-summary.sh`, `schoolos-api.sh`) must read the token with `read -r TOKEN < "$TOKEN_FILE"`. Do not reintroduce a `$(cat <token-file>)` command substitution: it is redacted at write time and produces an invalid Authorization header.
+
+## Teacher/GTK login provisioning production contract — 29 September 2026
+
+Release `3bd5515-teacher-login-provisioning` is live for backend and static. Admin School can now open **Guru & Tendik → Detail Guru → Akun Login** and create, reset, or revoke a login identity for an existing `TEACHER` record.
+
+Security contract:
+
+- operation caller must satisfy `requireSchoolAdmin`;
+- target must belong to the same tenant and primary role must be exactly `TEACHER`;
+- `SCHOOL_ADMIN` targets are deliberately excluded from this flow;
+- Auth password hashing uses Wasp auth utilities; never write password hashes with raw SQL;
+- reset replaces the password hash and invalidates all active sessions for that Auth;
+- revoke removes Auth/identity/session data only and preserves User, TeacherProfile, penugasan, LMS, attendance, and PKL data;
+- temporary password is returned only at create/reset time and must never be committed to Git or documentation.
+
+Verification: policy unit **3/3**, production-clone Auth lifecycle UAT **10/10**, full regression **194/194 across 36 files**, Wasp/server/SSR/client builds PASS, immutable preflight/deploy PASS, repeated deploy idempotent, unauthenticated provision/reset/revoke endpoints all **401**, service/log/HTTP smoke clean.
+
+The `[DEMO] SMKN12 Rina Contoh — RPL` master record exists but **no Auth was auto-created during deployment**. An automated credential-handling attempt was stopped by execution safety controls and integrity checks confirmed zero partial Auth/session rows. Provision the demo teacher through the new Admin panel when a credential is needed.
+
+Release record: [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).

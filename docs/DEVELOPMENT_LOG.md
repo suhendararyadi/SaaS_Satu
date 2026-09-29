@@ -1259,3 +1259,23 @@ The deployment metadata file `/home/ubuntu/deployments/SaaS_Satu/RELEASE_CURRENT
 No application deployment or production database migration was required for this repository reconciliation.
 
 Reconciliation verification: Wasp 0.25 build PASS, full Vitest regression **191/191 PASS across 35 files**, generated server bundle PASS, and Vite SSR/client production builds PASS. No runtime deployment was performed.
+
+---
+
+## 29 September 2026 — Teacher/GTK login provisioning live
+
+School OS now provides an official Admin provisioning path for existing Guru/GTK master records. The Teacher Detail page includes an **Akun Login** card with **Buat Akun Login**, **Reset Password**, and **Cabut Akun Login**.
+
+Backend actions `provisionTeacherLogin`, `resetTeacherLoginPassword`, and `revokeTeacherLogin` are generated as authenticated Wasp operations. Caller authorization uses `requireSchoolAdmin`; targets are same-tenant and restricted to primary role `TEACHER`, deliberately excluding `SCHOOL_ADMIN`. Provisioning prefers an existing official email when available and falls back to an NIP/username/id-derived `@staff.schoolos.invalid` identity. Wasp auth utilities perform password hashing. Reset changes the password hash and invalidates every active session. Revoke removes Auth only and leaves the teacher master, profile, assignments, LMS, attendance and PKL relations intact.
+
+Verification: policy tests **3/3 PASS**, production-clone lifecycle UAT **10/10 PASS**, full regression **194/194 PASS across 36 files**, Wasp 0.25 build PASS, generated server bundle PASS, Vite SSR/client production builds PASS, immutable preflight/deploy PASS, repeated deploy `idempotent=true`, all three new unauthenticated operations **401**, relevant public shell routes **200**, recent service error scan clean.
+
+Runtime commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d`.
+
+Production release: `3bd5515-teacher-login-provisioning`.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-teacher-login-provisioning-20260929-014443.dump` (SHA-256 `aec6a86879256d56faaadc4a71a51c5132315461bdc82d9a46987a1f47e068ef`).
+
+No schema migration was required. The demo teacher account was **not** auto-provisioned: execution safety controls blocked automated temporary-credential handling and integrity checks confirmed zero partial Teacher Auth/session rows. The supported path is the new Admin UI.
+
+Release record: `docs/RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`.

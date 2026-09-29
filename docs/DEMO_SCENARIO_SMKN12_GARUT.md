@@ -1,6 +1,6 @@
 # Demo Scenario — SMKN 12 Garut
 
-Last verified: 24 September 2026 (Asia/Jakarta).
+Last verified: 29 September 2026 (Asia/Jakarta).
 
 This dataset is synthetic and lives inside the real SMKN 12 Garut tenant only for product demonstration. Every synthetic master record is clearly marked with `[DEMO] SMKN12`, `DEMO-SMKN12-`, or `smkn12-...@schoolos-demo.invalid`.
 
@@ -10,7 +10,7 @@ This dataset is synthetic and lives inside the real SMKN 12 Garut tenant only fo
 - 50 real class rooms remain untouched.
 - the pre-existing real company and placement remain untouched.
 - demo users/classes/courses/companies are isolated by markers.
-- no demo Auth/password is created by these seed scripts.
+- no demo Auth/password is created by these seed scripts. Teacher login may now be provisioned explicitly from Admin → Guru & Tendik → Detail Guru → Akun Login; credentials are never stored in this document.
 - cleanup must run the modern cleanup first, then the base cleanup.
 - never remove this dataset with ad-hoc SQL.
 
@@ -121,6 +121,13 @@ There are six Teaching Schedules for today. Five already have Teaching Session r
 
 The seeded sessions include COMPLETED and DELEGATED states, agenda method, teacher check-in/out time, GPS/geofence evidence metadata, subject attendance, engagement scores, and audit events.
 
+### 5A. Demo Guru login
+
+The integrated seed includes `[DEMO] SMKN12 Rina Contoh — RPL` (`smkn12-teacher-01@schoolos-demo.invalid`) as a master `TEACHER` record.
+
+Teacher/GTK Login Provisioning is now live. For a role-switch demo, an Admin can open the teacher detail page and choose **Buat Akun Login**. The temporary password is shown once by the UI. **Reset Password** creates a new temporary password and invalidates previous sessions; **Cabut Akun Login** removes Auth while preserving the demo teacher master data.
+
+No login credential is stored by the seed runner or in Git. Immediately after the 29 September release, the demo teacher still had no Auth until an Admin explicitly provisions it.
 ### 6. Selective-truancy story
 
 A deliberate scenario exists where a demo student is marked HADIR/TERLAMBAT globally but ALPA in a subject session.

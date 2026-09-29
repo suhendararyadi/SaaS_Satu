@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last verified: **26 September 2026 (Asia/Jakarta)**.
+Last verified: **29 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Agen baru harus membaca [`AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md) terlebih dahulu sebagai ringkasan cepat, lalu dokumen ini untuk konteks lengkap. Jika dokumentasi bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot.
 
@@ -10,11 +10,11 @@ Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS
 - Canonical branch: `main`.
 - `/home/ubuntu/projects/SaaS_Satu-hardening` is a **legacy linked worktree** on `redesign/apple-hig`; it is not the live production source and should no longer be used as the default development workspace.
 - Development pattern: verify actual backend/static production pointers first, create an isolated feature/hardening worktree under `/home/ubuntu/.cache/mso-worktrees/`, test there, then reconcile verified work back into canonical `main`.
-- Live backend app: `c7814f5` / `c7814f5-lms-teaching-session-gen1`.
-- Live static/frontend: `c3297df` / `c3297df-sidebar-color-polish`.
+- Live backend app: `3bd5515` / `3bd5515-teacher-login-provisioning`.
+- Live static/frontend: `3bd5515` / `3bd5515-teacher-login-provisioning`.
 - Live service: `saas-satu.service` active.
 - `main` was reconciled on 26 September 2026 to include the live backend/static lineage plus the OpenClaw integration history already present on GitHub.
-- Student login provisioning, Attendance Global→LMS one-way, and Teaching Session Gen1 release artifacts are retained in `docs/`.
+- Student login provisioning, Teacher/GTK login provisioning, Attendance Global→LMS one-way, and Teaching Session Gen1 release artifacts are retained in `docs/`.
 - SMKN 12 Garut integrated demo runner/artifact is tracked under `app/scripts/school-os-demo-smkn12*.mjs` and [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Real/Dapodik baseline remains **1,539 students and 50 class rooms**. Current integrated demo overlay adds **21 students, 5 class rooms, 4 companies, 8 PKL placements, and 5 Teaching Sessions**. A separate legacy demo company `DEMO-PKL-01 — PT Demo PKL School OS` with one placement also remains; never classify it as authoritative industry master data.
 - Global persistent Agent Memory: `/home/ubuntu/.mso/agent-memory`; architecture: [`GLOBAL_PERSISTENT_MEMORY.md`](./GLOBAL_PERSISTENT_MEMORY.md).
@@ -67,23 +67,33 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Production runtime pada snapshot 21 September 2026:
+Verified production state on **29 September 2026**:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/197c969-pkl-company-edit-fix`
-- **static current**: `/var/www/saas-satu/releases/197c969-pkl-company-edit-fix`
-- runtime/source commit: `197c969` — PKL Mitra DUDI nullable optional-field validation fix
-- rollback backend release: `d0809d4-pkl-uat-hardening`
-- rollback static release: `066254d-pkl-foundation-permission-ui`
-- `saas-satu.service`: **active**
-- branch pengembangan aktif: `redesign/apple-hig`
-- tenant operasional yang menjadi fokus lanjutan: **SMKN 12 Garut**
-- detail baseline data tenant: [`RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md`](./RELEASE_2026-09-15_SMKN12_GARUT_STUDENT_ONBOARDING.md)
-- baseline master data terbaru: [`RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md`](./RELEASE_2026-09-15_SMKN12_PROFILE_PTK_SARPRAS_IMPORT.md)
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/3bd5515-teacher-login-provisioning`;
+- **static current**: `/var/www/saas-satu/releases/3bd5515-teacher-login-provisioning`;
+- runtime/source commit: `3bd5515cdebdba7a63d60cf282a2cca0cf28a36d` — Teacher/GTK Login Provisioning;
+- rollback backend: `c7814f5-lms-teaching-session-gen1`;
+- rollback static lineage before full release: `c3297df-sidebar-color-polish`;
+- `saas-satu.service`: **active**;
+- canonical source: `/home/ubuntu/projects/SaaS_Satu`, branch `main`;
+- operational tenant: **SMKN 12 Garut**;
+- authoritative real/Dapodik baseline remains **1,539 students / 50 class rooms**; synthetic demo overlay must be reported separately.
 
-Fondasi **Dapodik Student Database** dari `783ff2c` + runtime fix `2c07ede` tetap menjadi kontrak model/import siswa. Migration Dapodik bersifat additive dan sudah applied.
+Latest Auth capability:
 
-Angka `student_users=21`, `student_profiles=21`, dan `dapodik_imported=0` yang dicatat pada release 13 September adalah **historical pre-import preservation proof** untuk tenant lama, bukan jumlah siswa production saat ini. Setelah onboarding SMKN 12 Garut, baseline production tenant aktif adalah **1.539 StudentProfile pada 50 rombel**, tanpa pembuatan akun/login siswa.
+- Student login provisioning remains available from Student Detail.
+- Teacher/GTK login provisioning is now available from **Admin → Guru & Tendik → Detail Guru → Akun Login**.
+- Teacher operations: create temporary login, reset temporary password, revoke login.
+- Teacher target is restricted to same-tenant primary role `TEACHER`; `SCHOOL_ADMIN` is intentionally excluded.
+- Password hashing uses Wasp Auth helpers; direct Auth SQL is prohibited.
+- Reset invalidates active Auth sessions; revoke preserves teacher master/profile/operational data.
+- No Teacher Auth is auto-created on deploy.
 
+Quality gate for current release: Teacher policy **3/3 PASS**, production-clone lifecycle UAT **10/10 PASS**, full regression **194/194 PASS across 36 files**, Wasp build, server bundle, Vite SSR/client, immutable preflight/deploy and idempotent redeploy PASS.
+
+Release record: [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
+
+Historical note: the earlier 21 September pointer `197c969-pkl-company-edit-fix` documented below in older release sections is provenance only and is **not** the current runtime.
 ## 3.1 School OS Spotlight Search — LIVE
 
 Entry point:
