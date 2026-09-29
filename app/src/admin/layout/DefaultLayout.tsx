@@ -20,7 +20,6 @@ const adminPageTitles: Array<[string, string]> = [
   ["/admin/users", "Pengguna"],
   ["/admin/settings", "Pengaturan Platform"],
   ["/admin/calendar", "Kalender"],
-  ["/admin/messages", "Pesan"],
   ["/admin/ui/buttons", "Komponen UI"],
   ["/admin", "Super Admin"],
 ];
@@ -60,7 +59,6 @@ export function DefaultLayout({ children, user }: Props) {
     {
       title: "OPERASIONAL",
       items: [
-        { label: "Pesan", href: "/admin/messages", icon: "mail" },
         { label: "Kalender", href: "/admin/calendar", icon: "calendar_month" },
         { label: "Pengaturan", href: "/admin/settings", icon: "settings" },
       ],
