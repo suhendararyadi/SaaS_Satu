@@ -1,7 +1,7 @@
 # School OS — Current TODO & Progress Backlog
 
 **Status:** Living document / source of truth backlog
-**Last audited:** 29 September 2026 (Asia/Jakarta)
+**Last audited:** 30 September 2026 (Asia/Jakarta)
 **Production tenant context:** SMKN 12 Garut
 **Canonical repository:** `/home/ubuntu/projects/SaaS_Satu`
 
@@ -16,12 +16,14 @@
 
 ## 1. Snapshot production saat audit
 
-Pada audit 29 September 2026:
+Pada audit 30 September 2026 setelah P7:
 
-- canonical `main == origin/main`: `984d3ec5ac472e9f2944001e66f085ab29c0e8cd`;
-- live backend: `3bd5515-teacher-login-provisioning`;
-- live static/frontend: `bf79043-school-profile-routing`;
+- canonical source commit for P7: `328c47dca40a8de0b2b91b5c78d04e62814596f0`;
+- live backend: `19acc6e-p6-super-admin`;
+- live static/frontend: `328c47d-p7-profile-cleanup`;
+- static rollback: `19acc6e-p6-super-admin`;
 - `saas-satu.service`: active;
+- `af4bf88-ews-monitoring`: staging only, bukan production pointer;
 - tenant operasional: **SMKN 12 Garut**;
 - siswa real/Dapodik: **1.539**;
 - rombel aktif: **50**.
