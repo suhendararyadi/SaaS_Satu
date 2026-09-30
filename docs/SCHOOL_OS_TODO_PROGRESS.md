@@ -16,13 +16,15 @@
 
 ## 1. Snapshot production saat audit
 
-Pada audit 30 September 2026 setelah P7:
+Pada audit 30 September 2026 setelah attendance unrecorded-default rollout:
 
-- canonical source commit for P7: `328c47dca40a8de0b2b91b5c78d04e62814596f0`;
-- live backend: `19acc6e-p6-super-admin`;
-- live static/frontend: `328c47d-p7-profile-cleanup`;
-- static rollback: `19acc6e-p6-super-admin`;
+- canonical runtime source commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6`;
+- live backend: `e4bd953-attendance-unrecorded`;
+- live static/frontend: `e4bd953-attendance-unrecorded`;
+- backend rollback: `19acc6e-p6-super-admin`;
+- static rollback: `328c47d-p7-profile-cleanup`;
 - `saas-satu.service`: active;
+- presensi harian: siswa tanpa record = **Belum diinput**; tidak lagi auto-Hadir;
 - `af4bf88-ews-monitoring`: staging only, bukan production pointer;
 - tenant operasional: **SMKN 12 Garut**;
 - siswa real/Dapodik: **1.539**;

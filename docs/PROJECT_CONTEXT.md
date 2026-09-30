@@ -68,21 +68,29 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Verified production state on **30 September 2026** after P7 promotion:
+Verified production state on **30 September 2026** after attendance unrecorded-default rollout:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/19acc6e-p6-super-admin`;
-- backend runtime source commit: `19acc6e96ddf36871150923c02ee1ab5d2da7953` — P6 SaaS/Super Admin completion;
-- **static current**: `/var/www/saas-satu/releases/328c47d-p7-profile-cleanup`;
-- static/frontend runtime source commit: `328c47dca40a8de0b2b91b5c78d04e62814596f0` — P7 profile/account UX cleanup;
-- static rollback: `19acc6e-p6-super-admin`;
-- backend rollback baseline: `4ee295b-website-smkn12-media-proxy`;
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/e4bd953-attendance-unrecorded`;
+- **static current**: `/var/www/saas-satu/releases/e4bd953-attendance-unrecorded`;
+- runtime source commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6`;
+- backend rollback: `19acc6e-p6-super-admin`;
+- static rollback: `328c47d-p7-profile-cleanup`;
 - `saas-satu.service`: **active**;
 - canonical source: `/home/ubuntu/projects/SaaS_Satu`, branch `main`;
 - operational tenant: **SMKN 12 Garut**;
 - authoritative real/Dapodik baseline remains **1,539 students / 50 class rooms**; synthetic demo overlay must be reported separately;
 - staging `af4bf88-ews-monitoring` still exists but is **not** a production pointer.
 
-P7 quality gate: focused routing/shell regression **9/9 PASS**; full normal regression **205/205 PASS across 38 files**; Wasp build PASS; Vite SSR/client production build PASS; bounded `school_os_deploy_static_preflight` and `school_os_deploy_static` PASS; repeated static deploy returned idempotent; public `/school` and `/school/profile` return 200; unauthenticated admin dashboard operation remains 401; backend pointer stayed unchanged.
+Attendance unrecorded-default contract:
+
+- missing `SchoolDailyAttendance` row is represented as **Belum diinput**;
+- UI no longer converts missing attendance into `HADIR`;
+- `ALPA` remains an explicit human/system attendance decision, not a fallback for missing input;
+- save operation supports a valid subset of students from the selected active class, so operators can input attendance progressively;
+- students outside the selected class are rejected server-side;
+- explicit **Tandai Semua Hadir** remains available as a deliberate bulk action.
+
+Quality gate: focused daily-attendance/access regression **12/12 PASS**; full normal regression **207/207 PASS across 38 files**; Wasp build PASS; generated server bundle PASS; Vite SSR/client PASS; bounded full preflight/deploy PASS; repeated deploy idempotent; public `/school/attendance` and `/school` return 200; `/auth/me` health is 200; unauthenticated admin dashboard operation remains 401.
 
 Latest Auth capability:
 

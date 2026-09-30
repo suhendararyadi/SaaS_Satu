@@ -15,20 +15,21 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - **Canonical branch**: `main`.
 - Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
 - New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
-- Current backend/runtime commit: `19acc6e96ddf36871150923c02ee1ab5d2da7953` — P6 SaaS/Super Admin completion (Messages removed, real platform Settings, payments disabled).
-- Current backend release: `19acc6e-p6-super-admin`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/19acc6e-p6-super-admin`.
-- Current static/frontend source commit: `328c47dca40a8de0b2b91b5c78d04e62814596f0` — P7 profile/account UX cleanup.
-- Current static/frontend release: `328c47d-p7-profile-cleanup`.
-- Current static pointer: `/var/www/saas-satu/releases/328c47d-p7-profile-cleanup`.
-- Backend rollback baseline: `4ee295b-website-smkn12-media-proxy` (pre-P6).
-- Static rollback: `19acc6e-p6-super-admin`.
+- Current backend/runtime commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6` — attendance unrecorded-default hardening.
+- Current backend release: `e4bd953-attendance-unrecorded`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/e4bd953-attendance-unrecorded`.
+- Current static/frontend source commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6`.
+- Current static/frontend release: `e4bd953-attendance-unrecorded`.
+- Current static pointer: `/var/www/saas-satu/releases/e4bd953-attendance-unrecorded`.
+- Backend rollback: `19acc6e-p6-super-admin`.
+- Static rollback: `328c47d-p7-profile-cleanup`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
 - School Profile is separated from SaaS Account: operational school roles use `/school/profile`, while SaaS subscription/account stays on `/account`; see [`RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`](./RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md).
 - P7 is production-live via static release `328c47d-p7-profile-cleanup`: Student and DUDI operational navigation links directly to `/school/profile`; `/account` remains for legitimate SaaS account/subscription flows. Backend remains `19acc6e-p6-super-admin`. Quality gate: focused 9/9, full regression 205/205 across 38 files, Wasp build PASS, Vite SSR/client PASS, bounded static preflight/deploy PASS, repeated deploy idempotent, public smoke PASS. See [`RELEASE_2026-09-30_P7_PROFILE_CLEANUP.md`](./RELEASE_2026-09-30_P7_PROFILE_CLEANUP.md).
 - Global Attendance → LMS one-way contract is live; see [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
+- Daily Attendance input now treats students without a saved record as **Belum diinput**, never as implicit Hadir/Alpa. Partial roster saves are supported; only explicitly selected statuses are persisted. See [`RELEASE_2026-09-30_ATTENDANCE_UNRECORDED_DEFAULT.md`](./RELEASE_2026-09-30_ATTENDANCE_UNRECORDED_DEFAULT.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
 - CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
