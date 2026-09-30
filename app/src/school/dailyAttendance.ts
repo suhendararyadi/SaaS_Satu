@@ -81,3 +81,23 @@ export function summarizeDailyAttendance(
 
   return summary;
 }
+
+
+export function areAttendanceRecordStudentsInClass(
+  recordStudentIds: ReadonlyArray<string>,
+  classStudentIds: ReadonlySet<string>,
+): boolean {
+  return recordStudentIds.every((studentId) => classStudentIds.has(studentId));
+}
+
+export function summarizeDailyAttendanceDraft(
+  records: ReadonlyArray<{ status: DailyAttendanceStatus | null | undefined }>,
+) {
+  const recorded = records.filter((record) => !!record.status);
+  return {
+    ...summarizeDailyAttendance(recorded as ReadonlyArray<{ status: string }>),
+    rosterTotal: records.length,
+    recorded: recorded.length,
+    unrecorded: records.length - recorded.length,
+  };
+}

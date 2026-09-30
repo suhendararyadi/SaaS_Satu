@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  areAttendanceRecordStudentsInClass,
   getAcademicSemesterDateRange,
   isDateWithinAcademicSemester,
   isValidDateOnly,
   jakartaDateOnly,
   summarizeDailyAttendance,
+  summarizeDailyAttendanceDraft,
 } from "./dailyAttendance";
 
 describe("daily attendance helpers", () => {
@@ -37,6 +39,36 @@ describe("daily attendance helpers", () => {
       terlambat: 1,
     });
   });
+
+  it("allows partial roster input but rejects students outside the class", () => {
+    const classStudents = new Set(["student-a", "student-b", "student-c"]);
+    expect(areAttendanceRecordStudentsInClass(["student-a"], classStudents)).toBe(true);
+    expect(areAttendanceRecordStudentsInClass(["student-a", "student-c"], classStudents)).toBe(true);
+    expect(areAttendanceRecordStudentsInClass(["student-a", "student-x"], classStudents)).toBe(false);
+  });
+
+  it("keeps unrecorded students separate from attendance statuses", () => {
+    expect(
+      summarizeDailyAttendanceDraft([
+        { status: null },
+        { status: undefined },
+        { status: "HADIR" },
+        { status: "SAKIT" },
+        { status: "ALPA" },
+      ]),
+    ).toEqual({
+      total: 3,
+      hadir: 1,
+      sakit: 1,
+      izin: 0,
+      alpa: 1,
+      terlambat: 0,
+      rosterTotal: 5,
+      recorded: 3,
+      unrecorded: 2,
+    });
+  });
+
   it("derives strict active-semester date ranges", () => {
     expect(getAcademicSemesterDateRange("2026/2027", "GANJIL")).toEqual({
       startDateOnly: "2026-07-01",

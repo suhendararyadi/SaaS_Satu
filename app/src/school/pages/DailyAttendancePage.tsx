@@ -26,11 +26,12 @@ import {
   DAILY_ATTENDANCE_STATUSES,
   getAcademicSemesterDateRange,
   jakartaDateOnly,
+  summarizeDailyAttendanceDraft,
   type DailyAttendanceStatus,
 } from "../dailyAttendance";
 
 type DraftRecord = {
-  status: DailyAttendanceStatus;
+  status: DailyAttendanceStatus | null;
   notes: string;
 };
 
@@ -241,7 +242,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
     const next: Record<string, DraftRecord> = {};
     for (const student of data.students as any[]) {
       next[student.id] = {
-        status: (student.attendance?.status || "HADIR") as DailyAttendanceStatus,
+        status: (student.attendance?.status || null) as DailyAttendanceStatus | null,
         notes: student.attendance?.notes || "",
       };
     }
@@ -278,17 +279,10 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
     );
   }, [data?.students, search]);
 
-  const draftSummary = useMemo(() => {
-    const values = Object.values(draft);
-    return {
-      total: values.length,
-      hadir: values.filter((record) => record.status === "HADIR").length,
-      sakit: values.filter((record) => record.status === "SAKIT").length,
-      izin: values.filter((record) => record.status === "IZIN").length,
-      alpa: values.filter((record) => record.status === "ALPA").length,
-      terlambat: values.filter((record) => record.status === "TERLAMBAT").length,
-    };
-  }, [draft]);
+  const draftSummary = useMemo(
+    () => summarizeDailyAttendanceDraft(Object.values(draft)),
+    [draft],
+  );
 
   const activeSemesterRange = data?.activeAcademicYear
     ? getAcademicSemesterDateRange(data.activeAcademicYear.yearName, data.activeAcademicYear.semester)
@@ -326,14 +320,23 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
     setMessage("");
     setErrorMsg("");
     try {
+      const records = (data.students as any[]).flatMap((student) => {
+        const record = draft[student.id];
+        if (!record?.status) return [];
+        return [{
+          studentId: student.id,
+          status: record.status,
+          notes: record.notes?.trim() || null,
+        }];
+      });
+      if (!records.length) {
+        setErrorMsg("Pilih minimal satu status presensi sebelum menyimpan.");
+        return;
+      }
       await saveDailySchoolAttendance({
         classRoomId,
         dateOnly,
-        records: (data.students as any[]).map((student) => ({
-          studentId: student.id,
-          status: draft[student.id]?.status || "HADIR",
-          notes: draft[student.id]?.notes?.trim() || null,
-        })),
+        records,
       });
       await refetch();
       setMessage(
@@ -386,7 +389,10 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
   const dutyOnly = !!data?.access?.isDutyTeacher
     && !data?.access?.isAdmin
     && !data?.access?.hasHomeroomAssignment;
-  const canSave = !!data?.students?.length && dateOnly <= today && !submitting;
+  const canSave = !!data?.students?.length
+    && Object.values(draft).some((record) => !!record.status)
+    && dateOnly <= today
+    && !submitting;
   const attendanceTabs = dutyOnly
     ? [{ id: "INPUT", label: "Kehadiran Global", icon: "fact_check" }]
     : [
@@ -515,8 +521,9 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
               </div>
             </M3Card>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-              <StatCard label="Total" value={draftSummary.total} icon="groups" tone="TOTAL" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+              <StatCard label="Total Siswa" value={draftSummary.rosterTotal} icon="groups" tone="TOTAL" />
+              <StatCard label="Belum Diinput" value={draftSummary.unrecorded} icon="pending_actions" tone="TOTAL" />
               <StatCard label="Hadir" value={draftSummary.hadir} icon="check_circle" tone="HADIR" />
               <StatCard label="Sakit" value={draftSummary.sakit} icon="medical_services" tone="SAKIT" />
               <StatCard label="Izin" value={draftSummary.izin} icon="event_available" tone="IZIN" />
@@ -561,18 +568,16 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {data.savedCount ? (
-                        <M3Badge variant="success">{data.savedCount} tersimpan</M3Badge>
-                      ) : (
-                        <M3Badge variant="secondary">Belum disimpan</M3Badge>
-                      )}
+                      <M3Badge variant={draftSummary.unrecorded > 0 ? "warning" : "success"}>
+                        {draftSummary.recorded} tercatat · {draftSummary.unrecorded} belum diinput
+                      </M3Badge>
                       <M3Button
                         variant="outlined"
                         size="sm"
                         icon="done_all"
                         onClick={setAllPresent}
                       >
-                        Semua Hadir
+                        Tandai Semua Hadir
                       </M3Button>
                     </div>
                   </div>
@@ -580,7 +585,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
 
                 <div className="divide-y divide-md-outline-variant/25">
                   {filteredStudents.map((student: any, index: number) => {
-                    const record = draft[student.id] || { status: "HADIR", notes: "" };
+                    const record = draft[student.id] || { status: null, notes: "" };
                     return (
                       <div
                         key={student.id}
@@ -598,7 +603,10 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {!record.status && (
+                            <M3Badge variant="outline">Belum diinput</M3Badge>
+                          )}
                           {DAILY_ATTENDANCE_STATUSES.map((status) => (
                             <StatusButton
                               key={status}
@@ -617,7 +625,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                         <M3TextField
                           size="sm"
                           aria-label={`Catatan presensi ${student.name || "siswa"}`}
-                          placeholder={record.status === "HADIR" ? "Catatan opsional" : "Tambahkan keterangan"}
+                          placeholder={!record.status ? "Isi status terlebih dahulu" : record.status === "HADIR" ? "Catatan opsional" : "Tambahkan keterangan"}
                           value={record.notes}
                           onChange={(event) =>
                             setDraft((current) => ({
@@ -634,7 +642,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
 
                 <div className="sticky bottom-0 flex flex-col gap-3 border-t border-md-outline-variant/30 bg-md-surface/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <p className="text-xs leading-5 text-md-on-surface-variant">
-                    Data yang disimpan di sini adalah Kehadiran Global resmi. Koreksi manusia dipertahankan dan sumber perubahan tercatat pada audit kehadiran.
+                    Siswa tanpa status tetap dianggap belum diinput dan tidak dihitung Hadir maupun Alpa. Hanya status yang dipilih yang disimpan sebagai Kehadiran Global resmi.
                   </p>
                   <M3Button
                     variant="filled"

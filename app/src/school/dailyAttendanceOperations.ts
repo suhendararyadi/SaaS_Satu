@@ -6,6 +6,7 @@ import { ensureSchoolUser } from "./authGuards";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import {
   DAILY_ATTENDANCE_STATUSES,
+  areAttendanceRecordStudentsInClass,
   isValidDateOnly,
   jakartaDateOnly,
   isDateWithinAcademicSemester,
@@ -262,13 +263,10 @@ export const saveDailySchoolAttendance = async (
   }
 
   const classStudentIds = new Set(classRoom.students.map((student) => student.id));
-  if (
-    args.records.length !== classStudentIds.size ||
-    uniqueStudentIds.some((studentId) => !classStudentIds.has(studentId))
-  ) {
+  if (!areAttendanceRecordStudentsInClass(uniqueStudentIds, classStudentIds)) {
     throw new HttpError(
       400,
-      "Daftar presensi harus memuat seluruh siswa aktif pada rombel ini tepat satu kali.",
+      "Setiap siswa yang dicatat harus merupakan siswa aktif pada rombel ini.",
     );
   }
 
