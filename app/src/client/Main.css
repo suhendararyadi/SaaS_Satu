@@ -630,6 +630,12 @@
     color: var(--md-sys-color-on-surface-variant);
   }
 
+  @media (max-width: 767px) {
+    .hig-list-row { min-height: 52px; padding-top: .75rem; padding-bottom: .75rem; }
+    .hig-section-title { font-size: 16px; line-height: 1.4; }
+    .hig-section-note { font-size: 14px; line-height: 1.5; }
+  }
+
   @media (min-width: 1024px) {
     .hig-list-row { min-height: 40px; padding-top: .55rem; padding-bottom: .55rem; }
   }

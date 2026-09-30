@@ -162,12 +162,12 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
 
         {/* Student List Table */}
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-title-large font-bold text-md-on-surface">
                 Daftar Siswa Bimbingan Rombel
               </h2>
-              <p className="text-body-small text-md-on-surface-variant">
+              <p className="text-[14px] leading-5 text-md-on-surface-variant md:text-body-small">
                 {usesPkl ? "Progres PKL, presensi terkini, dan aktivitas jurnal harian" : "Daftar peserta didik pada rombongan belajar aktif"}
               </p>
             </div>
@@ -192,7 +192,64 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
             </M3Card>
           ) : (
             <div className="space-y-4">
-              <M3Card variant="outlined" className="p-0 overflow-hidden">
+              <div className="space-y-3 md:hidden">
+                {paginatedStudents.map((student: any) => {
+                  const placement = student.studentPlacements?.[0];
+                  const lastAttendance = placement?.attendances?.[0];
+                  const lastJournal = placement?.journals?.[0];
+                  const activityCount =
+                    (student._count?.studentViolations || 0) +
+                    (student._count?.studentCoachings || 0) +
+                    (student._count?.studentAchievements || 0) +
+                    (student._count?.studentPermits || 0);
+                  return (
+                    <M3Card key={student.id} variant="outlined" className="p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-md-primary-container text-[15px] font-bold text-md-primary">
+                          {(student.name || "S").charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[16px] font-semibold leading-5 text-md-on-surface">{student.name}</h3>
+                          <p className="mt-1 text-[13px] leading-5 text-md-on-surface-variant">
+                            NIS {student.studentProfile?.nis || "-"} · NISN {student.studentProfile?.nisn || "-"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-2">
+                        {usesPkl && (
+                          <div className="rounded-[12px] bg-md-surface-container-low p-3">
+                            <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-md-on-surface-variant">PKL</p>
+                            <p className="mt-1 text-[14px] font-semibold text-md-on-surface">{placement?.company?.name || "Belum ditempatkan"}</p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              <M3Badge variant={lastAttendance?.status === "HADIR" ? "success" : lastAttendance ? "warning" : "outline"}>
+                                Presensi: {lastAttendance?.status || "Belum ada"}
+                              </M3Badge>
+                              <M3Badge variant={lastJournal?.status === "APPROVED" ? "success" : lastJournal ? "warning" : "outline"}>
+                                Jurnal: {lastJournal?.status || "Belum ada"}
+                              </M3Badge>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-1.5">
+                          {(student._count?.studentViolations || 0) > 0 && <M3Badge variant="warning">{student._count.studentViolations} pelanggaran</M3Badge>}
+                          {(student._count?.studentCoachings || 0) > 0 && <M3Badge variant="secondary">{student._count.studentCoachings} pembinaan</M3Badge>}
+                          {(student._count?.studentAchievements || 0) > 0 && <M3Badge variant="success">{student._count.studentAchievements} prestasi</M3Badge>}
+                          {(student._count?.studentPermits || 0) > 0 && <M3Badge variant="outline">{student._count.studentPermits} izin</M3Badge>}
+                          {!activityCount && <span className="text-[13px] text-md-on-surface-variant">Belum ada catatan kesiswaan.</span>}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <M3Button variant="tonal" href={"/school/students/" + student.id} className="w-full">Buka Profil</M3Button>
+                        <M3Button variant="outlined" href={"/school/student-affairs?student=" + student.id} className="w-full">Kesiswaan</M3Button>
+                      </div>
+                    </M3Card>
+                  );
+                })}
+              </div>
+
+              <M3Card variant="outlined" className="hidden p-0 overflow-hidden md:block">
                 <M3Table>
                   <M3TableHeader>
                     <M3TableRow>
@@ -217,7 +274,7 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                               <span className="font-semibold block text-md-on-surface">
                                 {student.name}
                               </span>
-                              <span className="text-label-small font-mono text-md-on-surface-variant block">
+                              <span className="text-[13px] font-mono md:text-label-small text-md-on-surface-variant block">
                                 NIS: {student.studentProfile?.nis || "-"} • NISN: {student.studentProfile?.nisn || "-"}
                               </span>
                             </div>
@@ -232,7 +289,7 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                                     <M3Icon name="apartment" size={14} className="shrink-0" />
                                     <span>{placement.company.name}</span>
                                   </div>
-                                  <span className="text-body-small text-md-on-surface-variant block">
+                                  <span className="text-[14px] leading-5 text-md-on-surface-variant md:text-body-small block">
                                     PIC: {placement.company.picName || "-"} ({placement.company.picPhone || "-"})
                                   </span>
                                 </div>
@@ -249,7 +306,7 @@ export function WaliKelasPage({ user }: { user: AuthUser }) {
                                   <M3Badge variant={lastAttendance.status === "HADIR" ? "success" : "error"}>
                                     {lastAttendance.status} ({lastAttendance.type})
                                   </M3Badge>
-                                  <span className="text-label-small font-mono text-md-on-surface-variant block">
+                                  <span className="text-[13px] font-mono md:text-label-small text-md-on-surface-variant block">
                                     {new Date(lastAttendance.timestamp).toLocaleTimeString("id-ID", {
                                       hour: "2-digit",
                                       minute: "2-digit",

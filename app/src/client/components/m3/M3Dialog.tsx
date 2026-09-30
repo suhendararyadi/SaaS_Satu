@@ -104,7 +104,7 @@ export function M3Dialog({
         )}
         {children && <div className="text-[13px] text-md-on-surface">{children}</div>}
         {actions && (
-          <div className="mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-md-outline-variant pt-3.5">
+          <div className="sticky -bottom-4 z-10 mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-md-outline-variant bg-md-surface pb-1 pt-3.5 sm:static sm:bottom-auto sm:pb-0">
             {actions}
           </div>
         )}

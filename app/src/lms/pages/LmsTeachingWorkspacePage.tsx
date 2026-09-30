@@ -124,7 +124,7 @@ export function LmsTeachingWorkspacePage({ user }: { user: AuthUser }) {
       <div className="space-y-5">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-md-primary">LMS · Teaching Session</p>
+            <p className="text-[13px] lg:text-[11px] font-semibold uppercase tracking-[.08em] text-md-primary">LMS · Teaching Session</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-[-.02em]">KBM Hari Ini</h1>
             <p className="mt-1 max-w-3xl text-sm text-md-on-surface-variant">
               Jadwal → agenda → check-in guru → presensi siswa → keaktifan → check-out. Kehadiran mapel tetap independen dari Kehadiran Global.
@@ -174,7 +174,7 @@ export function LmsTeachingWorkspacePage({ user }: { user: AuthUser }) {
                   <div key={row.id} className="grid gap-3 p-4 lg:grid-cols-[120px_1fr_auto] lg:items-center">
                     <div>
                       <p className="text-sm font-bold">{row.startTime}–{row.endTime}</p>
-                      <p className="text-[11px] text-md-on-surface-variant">{row.roomLabel || "Ruang belum ditentukan"}</p>
+                      <p className="text-[13px] lg:text-[11px] text-md-on-surface-variant">{row.roomLabel || "Ruang belum ditentukan"}</p>
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -238,7 +238,7 @@ export function LmsTeachingWorkspacePage({ user }: { user: AuthUser }) {
             label="Selfie check-in guru"
             uploadUrl="/operations/lms-teaching-evidence-upload"
           />
-          <p className="text-[11px] leading-5 text-md-on-surface-variant">
+          <p className="text-[13px] lg:text-[11px] leading-5 text-md-on-surface-variant">
             GPS divalidasi server terhadap geofence sekolah bila koordinat sekolah sudah dikonfigurasi.
           </p>
         </div>

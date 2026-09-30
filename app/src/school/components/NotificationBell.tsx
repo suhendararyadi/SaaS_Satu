@@ -103,7 +103,7 @@ export function NotificationBell() {
         aria-label={unread ? `Notifikasi, ${unread} belum dibaca` : "Notifikasi"}
         aria-expanded={open}
         title="Notifikasi"
-        className="relative inline-flex size-9 items-center justify-center rounded-[10px] text-md-on-surface-variant transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/35 dark:hover:bg-white/[.075]"
+        className="relative inline-flex size-11 items-center justify-center rounded-[11px] lg:size-9 lg:rounded-[10px] text-md-on-surface-variant transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/35 dark:hover:bg-white/[.075]"
       >
         <Bell size={18} strokeWidth={1.8} aria-hidden="true" />
         {unread > 0 && (
@@ -115,7 +115,7 @@ export function NotificationBell() {
 
       {open && (
         <section
-          className="absolute right-0 top-[43px] z-50 w-[min(400px,calc(100vw-24px))] overflow-hidden rounded-[18px] border border-md-outline-variant/60 bg-md-surface shadow-[0_18px_48px_rgba(0,0,0,.18),0_2px_8px_rgba(0,0,0,.08)] dark:shadow-[0_18px_48px_rgba(0,0,0,.38)]"
+          className="absolute right-0 top-[49px] lg:top-[43px] z-50 w-[min(400px,calc(100vw-24px))] overflow-hidden rounded-[18px] border border-md-outline-variant/60 bg-md-surface shadow-[0_18px_48px_rgba(0,0,0,.18),0_2px_8px_rgba(0,0,0,.08)] dark:shadow-[0_18px_48px_rgba(0,0,0,.38)]"
           aria-label="Panel notifikasi"
         >
           <div className="flex items-center justify-between border-b border-md-outline-variant/40 px-4 py-3">

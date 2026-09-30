@@ -412,12 +412,23 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ...(studentHasPkl ? [{ label: "PKL", href: "/school/pkl", icon: "work" }] : []),
       { label: "Profil", href: "/school/profile", icon: "person" },
     ];
-    if (isTeacher) return [
-      { label: "Beranda", href: "/school", icon: "home" },
-      { label: "KBM", href: "/school/lms/teaching", icon: "play_circle" },
-      ...(teacherHasPkl ? [{ label: "PKL", href: "/school/pkl", icon: "work" }] : []),
-      { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
-    ];
+    if (isTeacher) {
+      const homeroomClass = teacherDashboard?.assignments?.homeroomClass;
+      if (homeroomClass) return [
+        { label: "Beranda", href: "/school", icon: "home" },
+        { label: "Hari Ini", href: "/school/lms/teaching", icon: "play_circle" },
+        { label: "Presensi", href: "/school/attendance", icon: "fact_check" },
+        { label: "Wali Kelas", href: "/school/governance/walikelas", icon: "supervisor_account" },
+        { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
+      ];
+      return [
+        { label: "Beranda", href: "/school", icon: "home" },
+        { label: "Hari Ini", href: "/school/lms/teaching", icon: "play_circle" },
+        { label: "Kelas", href: "/school/lms/courses", icon: "menu_book" },
+        ...(teacherHasPkl ? [{ label: "PKL", href: "/school/pkl", icon: "work" }] : []),
+        { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
+      ];
+    }
     if (isSchoolAdmin) return [
       { label: "Beranda", href: "/school", icon: "home" },
       { label: "Siswa", href: "/school/students", icon: "groups" },
@@ -474,7 +485,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
             leading={!isStudent ? <M3Button variant="icon" size="icon-md" onClick={() => setMobileDrawerOpen(true)} aria-label="Buka navigasi" title="Buka navigasi" icon={<Menu size={18} strokeWidth={1.8} aria-hidden="true" />} className="text-md-on-surface-variant hover:text-md-on-surface lg:hidden" /> : undefined}
             title={getPageTitle(location.pathname)}
             subtitle={topBarContext}
-            actions={<>{isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}<button type="button" onClick={() => setSpotlightOpen(true)} aria-label="Buka Spotlight Search" title="Cari di School OS (⌘K)" className="inline-flex h-9 items-center gap-2 rounded-[10px] px-2.5 text-md-on-surface-variant transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/35 dark:hover:bg-white/[.075]"><Search size={17} strokeWidth={1.8} aria-hidden="true"/><span className="hidden text-[12.5px] font-medium md:inline">Cari</span><kbd className="hidden rounded-[6px] border border-black/[.08] bg-black/[.035] px-1.5 py-0.5 text-[10px] font-semibold text-md-on-surface-variant lg:inline dark:border-white/[.09] dark:bg-white/[.06]">⌘K</kbd></button><NotificationBell /><M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} /><M3AccountMenu user={user} /></>}
+            actions={<>{isPlatformAdmin && <M3Button variant="text" size="sm" icon="swap_horiz" onClick={() => setSwitcherOpen(true)} className="hidden md:inline-flex text-md-on-surface-variant hover:text-md-on-surface">Ganti Sekolah</M3Button>}<button type="button" onClick={() => setSpotlightOpen(true)} aria-label="Buka Spotlight Search" title="Cari di School OS (⌘K)" className="hidden h-11 items-center gap-2 rounded-[10px] px-2.5 text-md-on-surface-variant transition-colors hover:bg-black/[.055] hover:text-md-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary/35 md:inline-flex md:h-9 dark:hover:bg-white/[.075]"><Search size={17} strokeWidth={1.8} aria-hidden="true"/><span className="hidden text-[12.5px] font-medium md:inline">Cari</span><kbd className="hidden rounded-[6px] border border-black/[.08] bg-black/[.035] px-1.5 py-0.5 text-[10px] font-semibold text-md-on-surface-variant lg:inline dark:border-white/[.09] dark:bg-white/[.06]">⌘K</kbd></button><NotificationBell /><M3Button variant="icon" size="icon-md" onClick={toggleDarkMode} aria-label={isDarkMode ? "Gunakan tema terang" : "Gunakan tema gelap"} icon={isDarkMode ? "light_mode" : "dark_mode"} /><M3AccountMenu user={user} /></>}
           />
           <main className={`v2-mobile-safe-bottom mx-auto w-full max-w-[1600px] flex-1 ${isStudentAttendancePage ? "px-3 pb-4 pt-3 sm:p-5 lg:px-7 lg:py-6" : "p-4 sm:p-5 lg:px-7 lg:py-6"}`} id="main-content">{children}</main>
         </div>

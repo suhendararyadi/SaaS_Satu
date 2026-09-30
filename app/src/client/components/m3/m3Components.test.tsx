@@ -29,6 +29,7 @@ import {
   M3TextField,
   M3Text,
   M3Banner,
+  M3BottomNavigation,
   M3NavigationDrawer,
 } from "./index";
 
@@ -270,10 +271,29 @@ describe("Shared UI Components", () => {
         { id: "tab2", label: "Tab 2" },
       ];
       render(<M3Tabs tabs={tabs} activeTab="tab1" onChange={handleChange} />);
+      expect(screen.getByRole("tab", { name: /Tab 1/i })).toHaveClass("min-h-11");
       expect(screen.getByText("Tab 1")).toBeInTheDocument();
       expect(screen.getByText("5")).toBeInTheDocument();
       fireEvent.click(screen.getByText("Tab 2"));
       expect(handleChange).toHaveBeenCalledWith("tab2");
+    });
+  });
+
+  describe("M3BottomNavigation", () => {
+    it("keeps mobile destinations large enough for reliable touch input", () => {
+      render(
+        <BrowserRouter>
+          <M3BottomNavigation
+            items={[
+              { label: "Beranda", href: "/school", icon: "home" },
+              { label: "Hari Ini", href: "/school/lms/teaching", icon: "play_circle" },
+              { label: "Menu", icon: "menu", onClick: vi.fn() },
+            ]}
+          />
+        </BrowserRouter>,
+      );
+      expect(screen.getByRole("link", { name: /Beranda/i })).toHaveClass("min-h-[64px]");
+      expect(screen.getByRole("button", { name: /Menu/i })).toHaveClass("min-h-[64px]");
     });
   });
 

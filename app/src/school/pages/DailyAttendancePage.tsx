@@ -111,22 +111,22 @@ function StatusButton({
       onClick={onClick}
       aria-pressed={active}
       className={[
-        "group relative inline-flex min-h-9 items-center gap-1.5 rounded-[999px] border py-1.5 pl-1.5 pr-3 text-[11.5px] transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[.98]",
+        "group relative inline-flex min-h-11 items-center gap-2 rounded-[999px] border py-2 pl-2 pr-3.5 text-[13px] transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[.98] lg:min-h-9 lg:gap-1.5 lg:py-1.5 lg:pl-1.5 lg:pr-3 lg:text-[11.5px]",
         active ? visual.activeClass : visual.idleClass,
       ].join(" ")}
     >
       <span
         className={[
-          "flex size-[22px] shrink-0 items-center justify-center rounded-full transition-transform duration-150 group-hover:scale-105",
+          "flex size-[26px] shrink-0 items-center justify-center rounded-full transition-transform duration-150 group-hover:scale-105 lg:size-[22px]",
           active ? "bg-white/80 text-current shadow-sm dark:bg-black/20" : visual.iconClass,
         ].join(" ")}
       >
-        <M3Icon name={visual.icon} size={15} filled={active} weight={active ? 600 : 500} />
+        <M3Icon name={visual.icon} size={17} filled={active} weight={active ? 600 : 500} />
       </span>
       <span className={active ? "font-extrabold" : "font-semibold"}>{statusLabels[status]}</span>
       {active && (
         <span
-          className="ml-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full bg-current/12"
+          className="ml-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-current/12 lg:size-[18px]"
           aria-hidden="true"
         >
           <M3Icon name="check" size={13} filled weight={700} />
@@ -605,13 +605,13 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                           </span>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-md-on-surface">{student.name || "Tanpa Nama"}</p>
-                            <p className="truncate text-[11.5px] text-md-on-surface-variant">
+                            <p className="truncate text-[13px] text-md-on-surface-variant lg:text-[11.5px]">
                               NIS {student.studentProfile?.nis || "-"} · NISN {student.studentProfile?.nisn || "-"}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2 lg:gap-1.5">
                           {!record.status && (
                             <M3Badge variant="outline">Belum diinput</M3Badge>
                           )}
@@ -657,7 +657,7 @@ export function DailyAttendancePage({ user }: { user: AuthUser }) {
                     icon="save"
                     onClick={handleSave}
                     disabled={!canSave}
-                    className="shrink-0"
+                    className="w-full shrink-0 sm:w-auto"
                   >
                     {submitting ? "Menyimpan..." : "Simpan Presensi Harian"}
                   </M3Button>

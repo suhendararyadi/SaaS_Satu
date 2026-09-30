@@ -18,8 +18,8 @@ export function M3BottomNavigation({ items, floating = false }: { items: M3Botto
       if (item.href === "/school/my-attendance") return location.pathname === item.href && !location.hash;
       return location.pathname.startsWith(itemPath);
     })() : false;
-    const content = <><span className={`flex h-7 min-w-10 items-center justify-center rounded-[9px] px-2 transition-colors ${active ? "bg-md-primary-container/65 text-md-primary" : "text-md-on-surface-variant"}`}><M3Icon name={item.icon} size={22} filled={active} /></span><span className="max-w-full truncate">{item.label}</span></>;
-    const className = `flex min-h-[58px] flex-col items-center justify-center gap-0.5 px-1 text-[10.5px] font-medium transition-colors ${active ? "text-md-primary" : "text-md-on-surface-variant"}`;
+    const content = <><span className={`flex h-8 min-w-11 items-center justify-center rounded-[10px] px-2.5 transition-colors ${active ? "bg-md-primary-container/75 text-md-primary shadow-[inset_0_0_0_1px_rgba(0,122,255,.08)]" : "text-md-on-surface-variant"}`}><M3Icon name={item.icon} size={23} filled={active} /></span><span className="max-w-full truncate leading-4">{item.label}</span></>;
+    const className = `flex min-h-[64px] flex-col items-center justify-center gap-1 px-1 text-[11.5px] font-semibold transition-colors active:scale-[.98] ${active ? "text-md-primary" : "text-md-on-surface-variant"}`;
     if (item.href) return <Link key={`${item.label}-${item.href}`} to={item.href} className={className} aria-current={active ? "page" : undefined}>{content}</Link>;
     return <button key={item.label} type="button" onClick={item.onClick} className={className}>{content}</button>;
   })}</div></nav>;

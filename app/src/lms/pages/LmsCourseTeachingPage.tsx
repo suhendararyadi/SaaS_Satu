@@ -114,6 +114,16 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
   const roster: any[] = course?.classRoom?.students || [];
   const missingAttendance = roster.filter((student) => !statusMap[student.id]).length;
   const attendanceComplete = roster.length > 0 && missingAttendance === 0;
+  const engagementCount = roster.filter((student) => scoreMap[student.id] != null).length;
+  const mobileStep = !targetSession
+    ? 0
+    : !targetSession.teacherCheckInAt
+      ? 0
+      : !attendanceComplete
+        ? 1
+        : activeSession?.id === targetSession.id
+          ? 2
+          : 3;
   const canManage = !!user.isAdmin || user.role === "SCHOOL_ADMIN" || user.role === "SUPERADMIN" || course?.teacherId === user.id;
 
   const selectedCounts = useMemo(() => {
@@ -247,6 +257,24 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
           />
         )}
 
+        <div className="grid grid-cols-4 gap-1.5 rounded-[14px] border border-md-outline-variant bg-md-surface p-2 md:hidden" aria-label="Tahapan Teaching Session">
+          {[
+            ["1", "Mulai"],
+            ["2", "Presensi"],
+            ["3", "Tinjau"],
+            ["4", "Selesai"],
+          ].map(([number, label], index) => {
+            const active = index === mobileStep;
+            const done = index < mobileStep;
+            return (
+              <div key={number} className={`rounded-[10px] px-1.5 py-2 text-center ${active ? "bg-md-primary-container text-md-primary" : done ? "bg-md-secondary-container text-md-on-secondary-container" : "text-md-on-surface-variant"}`}>
+                <span className="mx-auto flex size-6 items-center justify-center rounded-full border border-current/25 text-[12px] font-bold">{done ? "✓" : number}</span>
+                <span className="mt-1 block text-[11.5px] font-semibold leading-4">{label}</span>
+              </div>
+            );
+          })}
+        </div>
+
         <M3Tabs
           activeTab={activeTab}
           onChange={setActiveTab}
@@ -305,17 +333,17 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
                       <div key={student.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="text-sm font-semibold">{student.name || "Siswa"}</p>
-                          <p className="text-[11px] text-md-on-surface-variant">
+                          <p className="text-[13px] text-md-on-surface-variant lg:text-[11px]">
                             Global: {attendanceSeedQ.data?.students?.find((item: any) => item.id === student.id)?.globalStatus || "Belum tercatat"}
                           </p>
                         </div>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-1">
                           {ATTENDANCE_OPTIONS.map((status) => (
                             <button
                               key={status}
                               type="button"
                               onClick={() => setStatusMap((current) => ({ ...current, [student.id]: status }))}
-                              className={"min-h-9 rounded-full border px-2.5 text-[11px] font-semibold " + (statusMap[student.id] === status ? "border-md-primary bg-md-primary-container text-md-on-primary-container" : "border-md-outline-variant text-md-on-surface-variant")}
+                              className={"min-h-12 w-full rounded-[12px] border px-3 text-[13px] font-bold transition-colors sm:min-h-9 sm:w-auto sm:rounded-full sm:px-2.5 sm:text-[11px] sm:font-semibold " + (statusMap[student.id] === status ? "border-md-primary bg-md-primary-container text-md-on-primary-container ring-2 ring-md-primary/20" : "border-md-outline-variant text-md-on-surface-variant")}
                             >
                               {status}
                             </button>
@@ -325,9 +353,11 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
                     ))}
                   </div>
                   {canManage && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-md-outline-variant/25 p-4">
-                      <p className="text-xs text-md-on-surface-variant">{missingAttendance ? String(missingAttendance) + " siswa belum memiliki status." : "Seluruh roster sudah memiliki status."}</p>
-                      <M3Button variant="filled" disabled={!attendanceComplete || busy} loading={busy} onClick={saveAttendance}>Simpan Presensi</M3Button>
+                    <div className="sticky bottom-[70px] z-10 flex flex-col gap-3 border-t border-md-outline-variant/25 bg-md-surface/96 p-4 backdrop-blur sm:static sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-[13px] leading-5 text-md-on-surface-variant lg:text-xs">{missingAttendance ? String(missingAttendance) + " siswa belum memiliki status." : "Seluruh roster sudah memiliki status."}</p>
+                      <M3Button variant="filled" className="w-full sm:w-auto" disabled={!attendanceComplete || busy} loading={busy} onClick={saveAttendance}>
+                        {attendanceComplete ? "Simpan Presensi" : `Lengkapi Presensi · ${roster.length - missingAttendance}/${roster.length}`}
+                      </M3Button>
                     </div>
                   )}
                 </M3Card>
@@ -341,13 +371,13 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
                     {roster.map((student) => (
                       <div key={student.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm font-semibold">{student.name || "Siswa"}</p>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-1">
                           {RUBRICS.map((rubric) => (
                             <button
                               key={rubric.score}
                               type="button"
                               onClick={() => setScoreMap((current) => ({ ...current, [student.id]: rubric.score }))}
-                              className={"min-h-9 rounded-full border px-2.5 text-[11px] font-semibold " + (scoreMap[student.id] === rubric.score ? "border-md-primary bg-md-primary-container text-md-on-primary-container" : "border-md-outline-variant text-md-on-surface-variant")}
+                              className={"min-h-12 w-full rounded-[12px] border px-3 text-[13px] font-bold transition-colors sm:min-h-9 sm:w-auto sm:rounded-full sm:px-2.5 sm:text-[11px] sm:font-semibold " + (scoreMap[student.id] === rubric.score ? "border-md-primary bg-md-primary-container text-md-on-primary-container ring-2 ring-md-primary/20" : "border-md-outline-variant text-md-on-surface-variant")}
                             >
                               {rubric.label} · {rubric.score}
                             </button>
@@ -356,7 +386,7 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
                       </div>
                     ))}
                   </div>
-                  {canManage && <div className="flex justify-end border-t border-md-outline-variant/25 p-4"><M3Button variant="tonal" disabled={busy} onClick={saveScores}>Simpan Keaktifan</M3Button></div>}
+                  {canManage && <div className="flex flex-col gap-2 border-t border-md-outline-variant/25 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-[13px] text-md-on-surface-variant lg:text-xs">{engagementCount} dari {roster.length} siswa sudah diberi penilaian keaktifan.</p><M3Button variant="tonal" className="w-full sm:w-auto" disabled={busy} onClick={saveScores}>Simpan Keaktifan</M3Button></div>}
                 </M3Card>
 
                 {activeSession?.id === targetSession.id && canManage && (
@@ -366,7 +396,7 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
                         <h2 className="font-semibold">Selesaikan Pertemuan</h2>
                         <p className="mt-1 text-xs text-md-on-surface-variant">Check-out baru dapat berhasil setelah seluruh roster memiliki presensi mapel.</p>
                       </div>
-                      <M3Button variant="filled" icon="logout" disabled={!attendanceComplete} onClick={() => setFinishOpen(true)}>Check-Out KBM</M3Button>
+                      <M3Button variant="filled" className="w-full sm:w-auto" icon="logout" disabled={!attendanceComplete} onClick={() => setFinishOpen(true)}>Check-Out KBM</M3Button>
                     </div>
                   </M3Card>
                 )}
@@ -410,7 +440,7 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
                   <div key={session.id} className="grid gap-3 p-4 lg:grid-cols-[120px_1fr_auto] lg:items-center">
                     <div>
                       <p className="text-xs font-bold">{session.dateOnly}</p>
-                      <p className="text-[11px] text-md-on-surface-variant">{timeLabel(session.scheduledStartAt)}–{timeLabel(session.scheduledEndAt)}</p>
+                      <p className="text-[13px] text-md-on-surface-variant lg:text-[11px]">{timeLabel(session.scheduledStartAt)}–{timeLabel(session.scheduledEndAt)}</p>
                     </div>
                     <div>
                       <div className="flex flex-wrap gap-2"><p className="font-semibold">{session.agenda?.competency || "Tanpa agenda"}</p><M3Badge variant={session.status === "COMPLETED" ? "success" : "outline"} size="sm">{session.status}</M3Badge></div>
@@ -431,7 +461,7 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
               <div className="divide-y divide-md-outline-variant/20">
                 {(data?.attendanceRecap || []).map((row: any) => (
                   <div key={row.studentId} className="grid grid-cols-[1fr_auto] gap-3 p-3">
-                    <div><p className="text-sm font-semibold">{row.studentName || "Siswa"}</p><p className="text-[11px] text-md-on-surface-variant">H {row.hadir} · S {row.sakit} · I {row.izin} · A {row.alpa} · {row.total} sesi</p></div>
+                    <div><p className="text-sm font-semibold">{row.studentName || "Siswa"}</p><p className="text-[13px] text-md-on-surface-variant lg:text-[11px]">H {row.hadir} · S {row.sakit} · I {row.izin} · A {row.alpa} · {row.total} sesi</p></div>
                     <M3Badge variant={row.percentage != null && row.percentage < 85 ? "warning" : "success"}>{row.percentage == null ? "—" : String(row.percentage) + "%"}</M3Badge>
                   </div>
                 ))}
@@ -443,7 +473,7 @@ export function LmsCourseTeachingPage({ user }: { user: AuthUser }) {
               <div className="divide-y divide-md-outline-variant/20">
                 {(data?.engagementRecap || []).map((row: any) => (
                   <div key={row.studentId} className="flex items-center justify-between gap-3 p-3">
-                    <div><p className="text-sm font-semibold">{row.studentName || "Siswa"}</p><p className="text-[11px] text-md-on-surface-variant">{row.count} pertemuan dinilai</p></div>
+                    <div><p className="text-sm font-semibold">{row.studentName || "Siswa"}</p><p className="text-[13px] text-md-on-surface-variant lg:text-[11px]">{row.count} pertemuan dinilai</p></div>
                     <M3Badge variant="outline">{row.average == null ? "—" : row.average}</M3Badge>
                   </div>
                 ))}

@@ -49,7 +49,7 @@ function DashboardLoading() {
         <div className="h-56 animate-pulse rounded-[16px] bg-md-surface-container-low" />
         <div className="h-56 animate-pulse rounded-[16px] bg-md-surface-container-low" />
       </div>
-      <p className="text-[12.5px] text-md-on-surface-variant">Menyiapkan ringkasan...</p>
+      <p className="text-[14px] lg:text-[12.5px] text-md-on-surface-variant">Menyiapkan ringkasan...</p>
     </div>
   );
 }
@@ -73,7 +73,7 @@ function DashboardIntro({ title, note, actions }: { title: string; note?: string
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-md-on-surface">{title}</h2>
-        {note && <p className="mt-0.5 text-[12.5px] leading-5 text-md-on-surface-variant">{note}</p>}
+        {note && <p className="mt-0.5 text-[14px] lg:text-[12.5px] leading-5 text-md-on-surface-variant">{note}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -204,8 +204,8 @@ function StudentDashboard() {
           <div className="flex min-w-0 items-start gap-3">
             <ListDot tone={nextAssignment || nextAssessment ? "primary" : "success"} />
             <div className="min-w-0">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">Prioritas berikutnya</p>
-              {nextAssignment ? <><div className="flex flex-wrap items-center gap-1.5"><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssignment.title}</h3>{nextAssignment.isOverdue && <M3Badge variant="error" size="sm">Terlambat</M3Badge>}</div><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{nextAssignment.courseName} · tenggat {formatDateTime(nextAssignment.deadline)}</p></> : nextAssessment ? <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssessment.title}</h3><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">{nextAssessment.courseName} · mulai {formatDateTime(nextAssessment.startsAt)}</p></> : <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">Tidak ada pekerjaan mendesak</h3><p className="mt-0.5 text-[12.5px] text-md-on-surface-variant">Tugas dan CBT yang perlu ditangani akan muncul di sini.</p></>}
+              <p className="text-[12px] lg:text-[10.5px] font-semibold uppercase tracking-[0.055em] text-md-on-surface-variant/70">Prioritas berikutnya</p>
+              {nextAssignment ? <><div className="flex flex-wrap items-center gap-1.5"><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssignment.title}</h3>{nextAssignment.isOverdue && <M3Badge variant="error" size="sm">Terlambat</M3Badge>}</div><p className="mt-0.5 text-[14px] lg:text-[12.5px] text-md-on-surface-variant">{nextAssignment.courseName} · tenggat {formatDateTime(nextAssignment.deadline)}</p></> : nextAssessment ? <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">{nextAssessment.title}</h3><p className="mt-0.5 text-[14px] lg:text-[12.5px] text-md-on-surface-variant">{nextAssessment.courseName} · mulai {formatDateTime(nextAssessment.startsAt)}</p></> : <><h3 className="mt-1 text-[15px] font-semibold text-md-on-surface">Tidak ada pekerjaan mendesak</h3><p className="mt-0.5 text-[14px] lg:text-[12.5px] text-md-on-surface-variant">Tugas dan CBT yang perlu ditangani akan muncul di sini.</p></>}
             </div>
           </div>
           {(nextAssignment || nextAssessment) && <M3Button href={`/school/lms/courses/${(nextAssignment || nextAssessment).courseId}`} variant="filled" size="sm">Buka kelas</M3Button>}
@@ -216,8 +216,8 @@ function StudentDashboard() {
         <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="student-work-title">
           <SectionTitle title="Tugas dan CBT" note="Pekerjaan belajar yang masih aktif." trailing={<M3Badge variant="outline">{data.pendingAssignments.length + pendingAssessments.length}</M3Badge>} />
           <div className="hig-list mt-4">
-            {data.pendingAssignments.slice(0, 4).map((assignment: any) => <a key={assignment.assignmentId} href={`/school/lms/courses/${assignment.courseId}`} className="hig-list-row"><ListDot tone={assignment.isOverdue ? "warning" : "primary"} /><span className="min-w-0 flex-1"><span className="flex items-center gap-1.5"><span className="block truncate text-[13px] font-medium text-md-on-surface">{assignment.title}</span>{assignment.isOverdue && <M3Badge variant="error" size="sm">Terlambat</M3Badge>}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{assignment.courseName} · {formatDateTime(assignment.deadline)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
-            {pendingAssessments.slice(0, 3).map((assessment: any) => <a key={assessment.assessmentId} href={`/school/lms/courses/${assessment.courseId}`} className="hig-list-row"><ListDot tone="warning" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{assessment.title}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{assessment.courseName} · {formatDateTime(assessment.startsAt)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+            {data.pendingAssignments.slice(0, 4).map((assignment: any) => <a key={assignment.assignmentId} href={`/school/lms/courses/${assignment.courseId}`} className="hig-list-row"><ListDot tone={assignment.isOverdue ? "warning" : "primary"} /><span className="min-w-0 flex-1"><span className="flex items-center gap-1.5"><span className="block truncate text-[13px] font-medium text-md-on-surface">{assignment.title}</span>{assignment.isOverdue && <M3Badge variant="error" size="sm">Terlambat</M3Badge>}</span><span className="block truncate text-[13px] lg:text-[11.5px] text-md-on-surface-variant">{assignment.courseName} · {formatDateTime(assignment.deadline)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+            {pendingAssessments.slice(0, 3).map((assessment: any) => <a key={assessment.assessmentId} href={`/school/lms/courses/${assessment.courseId}`} className="hig-list-row"><ListDot tone="warning" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{assessment.title}</span><span className="block truncate text-[13px] lg:text-[11.5px] text-md-on-surface-variant">{assessment.courseName} · {formatDateTime(assessment.startsAt)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
             {!data.pendingAssignments.length && !pendingAssessments.length && <M3EmptyState compact icon="task_alt" title="Semua tertangani" description="Tidak ada tugas atau CBT aktif yang menunggu." />}
           </div>
         </section>
@@ -225,7 +225,7 @@ function StudentDashboard() {
         <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="student-courses-title">
           <SectionTitle title="Ruang belajar" note={`${data.courses.length} kelas aktif`} />
           <div className="hig-list mt-4">
-            {data.courses.slice(0, 6).map((course: any) => <a key={course.id} href={`/school/lms/courses/${course.id}`} className="hig-list-row"><ListDot tone="success" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{course.subjectName}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{course.teacherDisplayName}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+            {data.courses.slice(0, 6).map((course: any) => <a key={course.id} href={`/school/lms/courses/${course.id}`} className="hig-list-row"><ListDot tone="success" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{course.subjectName}</span><span className="block truncate text-[13px] lg:text-[11.5px] text-md-on-surface-variant">{course.teacherDisplayName}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
           </div>
           {data.courses.length > 6 && <M3Button variant="text" href="/school/lms/courses" size="sm" className="mt-3">Lihat semua</M3Button>}
         </section>
@@ -252,6 +252,21 @@ function TeacherDashboard() {
     <div className="space-y-5">
       <DashboardIntro title={`Halo, ${data.teacher.displayName}`} note={`${formatDate(new Date())} · Ringkasan pekerjaan mengajar`} />
 
+      <M3Card variant="outlined" className="p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold uppercase tracking-[.055em] text-md-primary lg:text-[11px]">Mulai dari sini</p>
+            <h3 className="mt-1 text-[18px] font-semibold tracking-[-.015em] text-md-on-surface">Pekerjaan guru hari ini</h3>
+            <p className="mt-1 text-[14px] leading-5 text-md-on-surface-variant lg:text-[12.5px]">Buka aktivitas yang paling sering dipakai tanpa mencari lewat menu.</p>
+          </div>
+          <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
+            <M3Button variant="filled" href="/school/lms/teaching" icon="play_circle" className="w-full sm:w-auto">KBM Hari Ini</M3Button>
+            {data.assignments.homeroomClass && <M3Button variant="tonal" href="/school/attendance" icon="fact_check" className="w-full sm:w-auto">Presensi {data.assignments.homeroomClass.name}</M3Button>}
+            {data.assignments.homeroomClass && <M3Button variant="outlined" href="/school/governance/walikelas" icon="supervisor_account" className="w-full sm:w-auto sm:col-span-2">Ruang Wali Kelas</M3Button>}
+          </div>
+        </div>
+      </M3Card>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <M3StatCard label="Ruang mengajar" value={data.courses.length} tone="blue" href="/school/lms/courses" />
         <M3StatCard label="Belum dinilai" value={data.attention.ungradedSubmissionCount} tone="orange" />
@@ -271,15 +286,15 @@ function TeacherDashboard() {
         <section className="hig-grouped-surface p-4 sm:p-5" aria-labelledby="teacher-courses-title">
           <SectionTitle title="Ruang mengajar" note={`${data.courses.length} kelas dan mapel`} />
           <div className="hig-list mt-4">
-            {data.courses.slice(0, 7).map((course: any) => <a key={course.id} href={`/school/lms/courses/${course.id}`} className="hig-list-row"><ListDot tone="primary" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{course.subjectName}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{course.classRoom.name} · {course.academicYear}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+            {data.courses.slice(0, 7).map((course: any) => <a key={course.id} href={`/school/lms/courses/${course.id}`} className="hig-list-row"><ListDot tone="primary" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{course.subjectName}</span><span className="block truncate text-[13px] lg:text-[11.5px] text-md-on-surface-variant">{course.classRoom.name} · {course.academicYear}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
             {!data.courses.length && <M3EmptyState compact icon="menu_book" title="Belum ada ruang mapel" description="Ruang mengajar akan muncul setelah Admin Sekolah menetapkan mapel dan rombel." />}
           </div>
         </section>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {data.pkl && <section className="hig-grouped-surface p-4 sm:p-5"><SectionTitle title="PKL bimbingan" note={`${data.pkl.activePlacementCount} siswa aktif`} /><div className="hig-list mt-4">{data.pkl.pendingJournalReviews.slice(0, 5).map((journal: any) => <a key={journal.journalId} href="/school/pkl/journals" className="hig-list-row"><ListDot tone="warning" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{journal.studentDisplayName}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{journal.companyName} · {formatDate(journal.date)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}</div></section>}
-        <section className="hig-grouped-surface p-4 sm:p-5"><SectionTitle title="Tanggung jawab tambahan" note="Peran sekolah yang tercatat pada akun Anda." /><div className="mt-4 flex flex-wrap gap-2">{data.assignments.homeroomClass && <M3Button variant="tonal" href="/school/governance/walikelas" size="sm">Wali {data.assignments.homeroomClass.name}</M3Button>}{((data.assignments.wakasekRoles || []) as WakasekRoleCode[]).map((wakaRole) => <M3Button key={wakaRole} variant="tonal" href={"/school/governance/wakasek?role=" + wakaRole} size="sm">{WAKASEK_ROLE_META[wakaRole].label}</M3Button>)}{((data.assignments.staffAssignments || []) as Array<{ id: string; role: StaffAssignmentRoleCode; displayTitle: string }>).map((assignment) => <M3Button key={assignment.id} variant="tonal" href={assignment.role === "DUTY_TEACHER" ? "/school/governance/piket" : "/school/governance/organization"} size="sm">{assignment.displayTitle || STAFF_ASSIGNMENT_META[assignment.role].label}</M3Button>)}{!data.assignments.homeroomClass && !(data.assignments.wakasekRoles || []).length && !(data.assignments.staffAssignments || []).length && <p className="text-[12.5px] leading-5 text-md-on-surface-variant">Tidak ada penugasan tambahan pada akun ini.</p>}</div></section>
+        {data.pkl && <section className="hig-grouped-surface p-4 sm:p-5"><SectionTitle title="PKL bimbingan" note={`${data.pkl.activePlacementCount} siswa aktif`} /><div className="hig-list mt-4">{data.pkl.pendingJournalReviews.slice(0, 5).map((journal: any) => <a key={journal.journalId} href="/school/pkl/journals" className="hig-list-row"><ListDot tone="warning" /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{journal.studentDisplayName}</span><span className="block truncate text-[13px] lg:text-[11.5px] text-md-on-surface-variant">{journal.companyName} · {formatDate(journal.date)}</span></span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}</div></section>}
+        <section className="hig-grouped-surface p-4 sm:p-5"><SectionTitle title="Tanggung jawab tambahan" note="Peran sekolah yang tercatat pada akun Anda." /><div className="mt-4 flex flex-wrap gap-2">{data.assignments.homeroomClass && <M3Button variant="tonal" href="/school/governance/walikelas" size="sm">Wali {data.assignments.homeroomClass.name}</M3Button>}{((data.assignments.wakasekRoles || []) as WakasekRoleCode[]).map((wakaRole) => <M3Button key={wakaRole} variant="tonal" href={"/school/governance/wakasek?role=" + wakaRole} size="sm">{WAKASEK_ROLE_META[wakaRole].label}</M3Button>)}{((data.assignments.staffAssignments || []) as Array<{ id: string; role: StaffAssignmentRoleCode; displayTitle: string }>).map((assignment) => <M3Button key={assignment.id} variant="tonal" href={assignment.role === "DUTY_TEACHER" ? "/school/governance/piket" : "/school/governance/organization"} size="sm">{assignment.displayTitle || STAFF_ASSIGNMENT_META[assignment.role].label}</M3Button>)}{!data.assignments.homeroomClass && !(data.assignments.wakasekRoles || []).length && !(data.assignments.staffAssignments || []).length && <p className="text-[14px] lg:text-[12.5px] leading-5 text-md-on-surface-variant">Tidak ada penugasan tambahan pada akun ini.</p>}</div></section>
       </div>
     </div>
   );
@@ -345,7 +360,7 @@ function AdminDashboard() {
                   />
                 ))}
               </div>
-              <p className="mt-4 border-t border-md-outline-variant pt-3 text-[11.5px] leading-5 text-md-on-surface-variant">
+              <p className="mt-4 border-t border-md-outline-variant pt-3 text-[13px] lg:text-[11.5px] leading-5 text-md-on-surface-variant">
                 {data.attendance.rate !== null
                   ? `Rata-rata kehadiran sekolah ${data.attendance.rate}% dari ${data.attendance.classCount} rombel yang sudah mencatat presensi harian. Dua rombel terbawah diberi aksen jingga dan merah.`
                   : "Belum ada presensi harian tercatat hari ini. Rombel aktif tetap ditampilkan tanpa menganggap data kosong sebagai 0%."}
@@ -353,8 +368,8 @@ function AdminDashboard() {
             </>
           ) : (
             <div className="mt-4 rounded-[10px] border border-md-outline-variant bg-md-surface-container-low px-3.5 py-3">
-              <p className="text-[12.5px] font-medium text-md-on-surface">Belum ada rombel aktif</p>
-              <p className="mt-1 text-[11.5px] leading-5 text-md-on-surface-variant">Rombel akan muncul setelah tahun ajaran aktif dan kelas tersedia.</p>
+              <p className="text-[14px] lg:text-[12.5px] font-medium text-md-on-surface">Belum ada rombel aktif</p>
+              <p className="mt-1 text-[13px] lg:text-[11.5px] leading-5 text-md-on-surface-variant">Rombel akan muncul setelah tahun ajaran aktif dan kelas tersedia.</p>
             </div>
           )}
         </section>
@@ -385,7 +400,7 @@ function AdminDashboard() {
       <section className="hig-grouped-surface p-4 sm:p-5">
         <SectionTitle title="Kelola cepat" note="Akses langsung ke area administrasi yang paling sering digunakan." />
         <div className="mt-4 grid overflow-hidden rounded-[12px] border border-md-outline-variant sm:grid-cols-2 lg:grid-cols-4">
-          {quickLinks.map(([label, href], index) => <a key={href} href={href} className={`flex min-h-11 items-center gap-2.5 px-3 text-[12.5px] font-medium text-md-on-surface transition-colors hover:bg-black/[.025] dark:hover:bg-white/[.04] ${index > 0 ? "border-t border-md-outline-variant sm:border-t-0" : ""} sm:border-r sm:border-md-outline-variant`}><ListDot tone="neutral" /><span className="min-w-0 flex-1 truncate">{label}</span><span className="text-[16px] text-md-on-surface-variant/40">›</span></a>)}
+          {quickLinks.map(([label, href], index) => <a key={href} href={href} className={`flex min-h-11 items-center gap-2.5 px-3 text-[14px] lg:text-[12.5px] font-medium text-md-on-surface transition-colors hover:bg-black/[.025] dark:hover:bg-white/[.04] ${index > 0 ? "border-t border-md-outline-variant sm:border-t-0" : ""} sm:border-r sm:border-md-outline-variant`}><ListDot tone="neutral" /><span className="min-w-0 flex-1 truncate">{label}</span><span className="text-[16px] text-md-on-surface-variant/40">›</span></a>)}
         </div>
       </section>
     </div>
@@ -416,7 +431,7 @@ function MentorDashboard() {
       <section className="hig-grouped-surface p-4 sm:p-5">
         <SectionTitle title="Siswa bimbingan" note="Hanya penempatan yang berada dalam relasi bimbingan Anda." />
         <div className="hig-list mt-4">
-          {data.placements.map((placement: any) => <a key={placement.id} href="/school/pkl/journals" className="hig-list-row"><ListDot tone={placement.pendingJournalCount ? "warning" : "success"} /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{placement.studentDisplayName}</span><span className="block truncate text-[11.5px] text-md-on-surface-variant">{placement.companyName}</span></span><span className="text-[11.5px] text-md-on-surface-variant">{placement.pendingJournalCount ? `${placement.pendingJournalCount} menunggu` : "Tertangani"}</span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
+          {data.placements.map((placement: any) => <a key={placement.id} href="/school/pkl/journals" className="hig-list-row"><ListDot tone={placement.pendingJournalCount ? "warning" : "success"} /><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-md-on-surface">{placement.studentDisplayName}</span><span className="block truncate text-[13px] lg:text-[11.5px] text-md-on-surface-variant">{placement.companyName}</span></span><span className="text-[13px] lg:text-[11.5px] text-md-on-surface-variant">{placement.pendingJournalCount ? `${placement.pendingJournalCount} menunggu` : "Tertangani"}</span><span className="text-[16px] text-md-on-surface-variant/45">›</span></a>)}
           {!data.placements.length && <M3EmptyState compact icon="work_off" title="Belum ada siswa bimbingan aktif" description="Penempatan akan muncul setelah Admin Sekolah menetapkan Anda sebagai pembimbing DUDI." />}
         </div>
       </section>
