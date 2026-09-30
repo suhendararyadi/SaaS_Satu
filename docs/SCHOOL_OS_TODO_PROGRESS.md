@@ -20,9 +20,9 @@ Pada audit 30 September 2026 setelah attendance unrecorded-default rollout:
 
 - canonical runtime source commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6`;
 - live backend: `e4bd953-attendance-unrecorded`;
-- live static/frontend: `e4bd953-attendance-unrecorded`;
+- live static/frontend: `7db1b56-attendance-selected-state`;
 - backend rollback: `19acc6e-p6-super-admin`;
-- static rollback: `328c47d-p7-profile-cleanup`;
+- static rollback: `e4bd953-attendance-unrecorded`;
 - `saas-satu.service`: active;
 - presensi harian: siswa tanpa record = **Belum diinput**; tidak lagi auto-Hadir;
 - `af4bf88-ews-monitoring`: staging only, bukan production pointer;
