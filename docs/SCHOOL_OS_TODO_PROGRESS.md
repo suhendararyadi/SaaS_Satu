@@ -336,45 +336,33 @@ Verification:
 
 ## P6 — SaaS / Super Admin completion
 
-**Status: 🟠 PARTIAL**
+**Status: 🟢 DONE** (validasi 30 Sep 2026; payment tetap nonaktif per keputusan produk)
 
-School portal tidak bergantung pada item ini, tetapi platform SaaS belum seluruhnya selesai.
+School portal tidak bergantung pada item ini. Scope P6 yang disetujui user (29 Sep 2026) sudah selesai: Messages dihapus, Settings menjadi halaman nyata.
 
 ### Super Admin → Messages
 
-**Status: 🔴 TODO**
+**Status: ✅ REMOVED** (keputusan user 29 Sep 2026 — modul dihapus, bukan dibangun)
 
-Source saat audit masih:
-
-`// TODO: Add messages page`
-
-dan halaman menampilkan:
-
-`This page is under construction`
-
-TODO:
-
-- [ ] Tentukan fungsi Messages yang benar-benar dibutuhkan.
-- [ ] Jangan pertahankan menu bila tidak ada use case.
-- [ ] Jika dipakai, buat persistence, permission, unread state, dan notification contract.
+- Route `/admin/messages` dihapus dari `admin.wasp.ts`.
+- Menu sidebar dan tombol pesan di header dihapus.
+- File `MessageButton.tsx` dan `MessagesPage.tsx` dihapus.
+- Tidak ada sisa referensi "Messages"/"messages" di `app/src` (grep 30 Sep 2026: nol).
 
 ### Super Admin → Settings
 
-**Status: 🔴 TODO / placeholder**
+**Status: ✅ DONE** (29–30 Sep 2026)
 
-Saat audit halaman menyatakan:
-
-`Pengaturan platform belum tersedia di halaman ini`
-
-TODO:
-
-- [ ] Tentukan scope Settings platform.
-- [ ] Bedakan settings SaaS global dari School Settings tenant.
-- [ ] Hindari duplikasi dengan Account dan School Settings.
+Placeholder diganti halaman status platform nyata (`app/src/admin/elements/settings/SettingsPage.tsx`):
+- Menampilkan status layanan deployment: Pembayaran online (Nonaktif) dan Penyimpanan file object storage (Aktif).
+- Scope dibedakan dari Account dan School Settings: halaman ini read-only, perubahan nilai hanya via environment deployment.
+- Query admin-only `getPlatformStatus` (`app/src/admin/elements/settings/operations.ts`):
+  - 401 untuk unauthenticated, 403 untuk non-admin (`context.user.isAdmin`).
+  - Hanya mengembalikan boolean (`paymentsEnabled`, `fileUploadsEnabled`) — tidak membocorkan nilai secret.
 
 ### SaaS Payment / Subscription
 
-**Status: 🟡 CONFIG / product decision**
+**Status: 🟡 CONFIG / product decision** (tetap nonaktif — keputusan user 29 Sep 2026: "Untuk payment biarkan dulu saja")
 
 Snapshot deployment:
 
@@ -398,7 +386,7 @@ TODO bila monetisasi diaktifkan:
 - [ ] Pastikan revenue/profit tidak menampilkan angka semu saat payment disabled.
 - [ ] Tetapkan source analytics canonical.
 
-**Definition of Done P6:** Super Admin tidak memiliki menu placeholder dan seluruh fitur SaaS yang ditampilkan benar-benar memiliki backend/persistence/configuration yang aktif.
+**Definition of Done P6:** Super Admin tidak memiliki menu placeholder dan seluruh fitur SaaS yang ditampilkan benar-benar memiliki backend/persistence/configuration yang aktif. — **TERPENUHI 30 Sep 2026** (Messages dihapus; Settings menampilkan status konfigurasi deployment yang nyata).
 
 ---
 
