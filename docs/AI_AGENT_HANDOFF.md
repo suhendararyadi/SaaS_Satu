@@ -18,11 +18,11 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Current backend/runtime commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6` — attendance unrecorded-default hardening.
 - Current backend release: `e4bd953-attendance-unrecorded`.
 - Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/e4bd953-attendance-unrecorded`.
-- Current static/frontend source commit: `7db1b56470cb8288cc66fa8919759118d40c4a2c` — attendance selected-state visibility polish.
-- Current static/frontend release: `7db1b56-attendance-selected-state`.
-- Current static pointer: `/var/www/saas-satu/releases/7db1b56-attendance-selected-state`.
+- Current static/frontend source commit: `adad36c053c55dbb3f4e2204de9a9c05a37882c9` — Student/Teacher mobile UX hardening.
+- Current static/frontend release: `adad36c-mobile-ux-hardening`.
+- Current static pointer: `/var/www/saas-satu/releases/adad36c-mobile-ux-hardening`.
 - Backend rollback: `19acc6e-p6-super-admin`.
-- Static rollback: `e4bd953-attendance-unrecorded`.
+- Static rollback: `7db1b56-attendance-selected-state`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
@@ -31,6 +31,7 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Global Attendance → LMS one-way contract is live; see [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
 - Daily Attendance input now treats students without a saved record as **Belum diinput**, never as implicit Hadir/Alpa. Partial roster saves are supported; only explicitly selected statuses are persisted. See [`RELEASE_2026-09-30_ATTENDANCE_UNRECORDED_DEFAULT.md`](./RELEASE_2026-09-30_ATTENDANCE_UNRECORDED_DEFAULT.md).
 - Daily Attendance selected status state now uses stronger active contrast, a 2px status-colored ring, filled status icon, bold label, and an explicit checkmark; static release `7db1b56-attendance-selected-state`. See [`RELEASE_2026-09-30_ATTENDANCE_SELECTED_STATE.md`](./RELEASE_2026-09-30_ATTENDANCE_SELECTED_STATE.md).
+- Mobile UX hardening is production-live via static release `adad36c-mobile-ux-hardening`: teacher bottom navigation is role-aware, teacher dashboard is action-first, Wali Kelas uses mobile cards instead of horizontal tables, Teaching Session has a guided mobile flow and larger attendance/rubric targets, dialogs/tabs/chips/bottom nav have stronger mobile ergonomics, and Student Attendance secondary text is more readable. Backend behavior is unchanged. See [`RELEASE_2026-09-30_MOBILE_UX_HARDENING.md`](./RELEASE_2026-09-30_MOBILE_UX_HARDENING.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
 - CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).

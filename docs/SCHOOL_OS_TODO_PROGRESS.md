@@ -16,15 +16,16 @@
 
 ## 1. Snapshot production saat audit
 
-Pada audit 30 September 2026 setelah attendance unrecorded-default rollout:
+Pada audit 30 September 2026 setelah mobile UX hardening rollout:
 
-- canonical runtime source commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6`;
+- canonical source head: `adad36c053c55dbb3f4e2204de9a9c05a37882c9`;
 - live backend: `e4bd953-attendance-unrecorded`;
-- live static/frontend: `7db1b56-attendance-selected-state`;
+- live static/frontend: `adad36c-mobile-ux-hardening`;
 - backend rollback: `19acc6e-p6-super-admin`;
-- static rollback: `e4bd953-attendance-unrecorded`;
+- static rollback: `7db1b56-attendance-selected-state`;
 - `saas-satu.service`: active;
 - presensi harian: siswa tanpa record = **Belum diinput**; tidak lagi auto-Hadir;
+- mobile UX Student/Guru/Wali Kelas: role-aware navigation, larger touch targets, action-first teacher home, mobile Wali cards, guided Teaching Session; production-live;
 - `af4bf88-ews-monitoring`: staging only, bukan production pointer;
 - tenant operasional: **SMKN 12 Garut**;
 - siswa real/Dapodik: **1.539**;

@@ -71,11 +71,11 @@ Domain: `https://sekolah.suhendararyadi.com`.
 Verified production state on **30 September 2026** after attendance unrecorded-default rollout:
 
 - **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/e4bd953-attendance-unrecorded`;
-- **static current**: `/var/www/saas-satu/releases/7db1b56-attendance-selected-state`;
+- **static current**: `/var/www/saas-satu/releases/adad36c-mobile-ux-hardening`;
 - backend runtime source commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6`;
-- static/frontend source commit: `7db1b56470cb8288cc66fa8919759118d40c4a2c`;
+- static/frontend source commit: `adad36c053c55dbb3f4e2204de9a9c05a37882c9`;
 - backend rollback: `19acc6e-p6-super-admin`;
-- static rollback: `e4bd953-attendance-unrecorded`;
+- static rollback: `7db1b56-attendance-selected-state`;
 - `saas-satu.service`: **active**;
 - canonical source: `/home/ubuntu/projects/SaaS_Satu`, branch `main`;
 - operational tenant: **SMKN 12 Garut**;
@@ -99,7 +99,18 @@ Attendance selected-state visibility polish:
 - `aria-pressed` remains the semantic selected-state signal, so the visual enhancement does not replace accessibility semantics;
 - this was a static-only rollout; backend pointer and attendance persistence contract did not change.
 
-Quality gate: focused daily-attendance/access regression **12/12 PASS**; full normal regression **207/207 PASS across 38 files**; Wasp build PASS; generated server bundle PASS; Vite SSR/client PASS; bounded full preflight/deploy PASS; repeated deploy idempotent; public `/school/attendance` and `/school` return 200; `/auth/me` health is 200; unauthenticated admin dashboard operation remains 401.
+Mobile UX hardening baseline:
+
+- Teacher mobile bottom navigation is task- and role-aware. Wali Kelas gets one-tap `Hari Ini`, `Presensi`, and `Wali Kelas`; non-homeroom teachers get `Hari Ini` and `Kelas`, with optional PKL and `Menu`.
+- Teacher dashboard starts with an action-first `Pekerjaan guru hari ini` panel before secondary statistics.
+- Wali Kelas uses dedicated mobile student cards; the dense horizontal table is retained only for medium/desktop widths.
+- Teaching Session mobile shows a 4-step progress strip; subject-attendance and engagement controls use 48px-class targets on compact screens; save/check-out actions become full-width/sticky where relevant.
+- Daily Attendance status controls are at least 44px-class on mobile while retaining the existing selected-state contrast contract.
+- Shared mobile tabs/chips/dialog actions/bottom navigation are enlarged or made easier to reach; mobile top-bar search is moved behind the existing Menu/Spotlight path to reduce icon crowding.
+- Student Attendance keeps its existing task-first flow while increasing readability of microcopy.
+- This rollout is frontend/static only; no schema, API, attendance contract, auth policy, or backend service behavior changed.
+
+Quality gate for current static release: focused mobile/shell/attendance/teaching regression **59/59 PASS across 6 files**; full normal regression **208/208 PASS across 38 files**; Wasp build PASS; Vite SSR/client PASS; bounded static preflight/deploy PASS; repeated deploy idempotent; public `/school`, `/school/attendance`, `/school/governance/walikelas`, `/school/lms/teaching`, and `/school/my-attendance` return 200; `/auth/me` health is 200; unauthenticated admin dashboard operation remains 401. Real-device human UAT remains a follow-up because the deployment environment has no physical-device interaction.
 
 Latest Auth capability:
 
