@@ -183,7 +183,7 @@ function StudentDashboard() {
     return (
       <div className="space-y-5">
         <DashboardIntro title={`Halo, ${data.student.displayName}`} note={formatDate(new Date())} />
-        <M3Card variant="outlined"><M3EmptyState icon="meeting_room" title="Kelas belajar belum tersedia" description="Akun Anda belum ditempatkan ke rombel aktif. Hubungi admin sekolah atau wali kelas agar ruang belajar dapat ditampilkan." actionLabel="Buka Akun" actionHref="/account" /></M3Card>
+        <M3Card variant="outlined"><M3EmptyState icon="meeting_room" title="Kelas belajar belum tersedia" description="Akun Anda belum ditempatkan ke rombel aktif. Hubungi admin sekolah atau wali kelas agar ruang belajar dapat ditampilkan." actionLabel="Buka Profil" actionHref="/school/profile" /></M3Card>
       </div>
     );
   }

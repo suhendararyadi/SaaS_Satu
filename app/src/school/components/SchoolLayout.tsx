@@ -36,7 +36,7 @@ import { STAFF_ASSIGNMENT_META, type StaffAssignmentRoleCode } from "../staffAss
 interface SchoolLayoutProps { user: AuthUser; children: ReactNode }
 
 const pageTitles: Array<[string, string]> = [
-  ["/account", "Akun Siswa"],
+  ["/school/profile", "Profil"],
   ["/school/admin/schools", "Organisasi Sekolah"],
   ["/school/website/preview", "Pratinjau Website"],
   ["/school/website", "Website Sekolah"],
@@ -410,7 +410,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       { label: "Presensi", href: "/school/my-attendance", icon: "fact_check" },
       { label: "Kelas", href: "/school/lms/courses", icon: "menu_book" },
       ...(studentHasPkl ? [{ label: "PKL", href: "/school/pkl", icon: "work" }] : []),
-      { label: "Akun", href: "/account", icon: "person" },
+      { label: "Profil", href: "/school/profile", icon: "person" },
     ];
     if (isTeacher) return [
       { label: "Beranda", href: "/school", icon: "home" },
@@ -425,7 +425,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ...(usesPkl ? [{ label: "PKL", href: "/school/pkl/placements", icon: "work" }] : []),
       { label: "Menu", icon: "menu", onClick: () => setMobileDrawerOpen(true) },
     ];
-    return [{ label: "Beranda", href: "/school", icon: "home" }, { label: "Jurnal", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Saya", href: "/account", icon: "person" }];
+    return [{ label: "Beranda", href: "/school", icon: "home" }, { label: "Jurnal", href: "/school/pkl/journals", icon: "edit_note" }, { label: "Profil Saya", href: "/school/profile", icon: "person" }];
   })();
 
   const sidebarToggleLabel = isSidebarCollapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar";

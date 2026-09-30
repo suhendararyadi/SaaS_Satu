@@ -392,7 +392,7 @@ TODO bila monetisasi diaktifkan:
 
 ## P7 — Cleanup dan UX consistency
 
-**Status: ⚪ POLISH**
+**Status: ✅ DONE (30 Sep 2026)**
 
 ### Profil Saya vs Account
 
@@ -403,23 +403,23 @@ Release terbaru sudah memisahkan:
 
 Namun audit masih menemukan link legacy:
 
-- [ ] Student mobile bottom nav:
+- [x] Student mobile bottom nav:
   `Akun → /account`
   harus menjadi `Profil → /school/profile`.
-- [ ] DUDI mobile:
+- [x] DUDI mobile:
   `Saya → /account`
   harus menjadi `Profil Saya → /school/profile`.
-- [ ] Student dashboard empty state:
+- [x] Student dashboard empty state:
   `Buka Akun → /account`
   harus menjadi `Buka Profil → /school/profile`.
 
-Saat ini tidak error karena `/account` defensively redirects operational roles ke `/school/profile`, tetapi URL/label harus dirapikan untuk konsistensi.
+Selesai 30 Sep 2026: UI operasional sekolah sekarang langsung memakai `/school/profile`. Route `/account` tetap dipertahankan hanya untuk SaaS account/subscription yang sah.
 
 ### Dokumentasi lama
 
-- [ ] Saat modul berubah, koreksi snapshot lama yang masih menyebut `/account` sebagai Student Profile.
-- [ ] Tandai historical pointer sebagai historical, bukan current production.
-- [ ] Pastikan dokumen release tidak dipakai sebagai current-state source jika sudah disupersede.
+- [x] Current-state docs tidak lagi menyebut `/account` sebagai Student Profile; release docs lama tetap historical evidence.
+- [x] Historical pointer dipisahkan eksplisit dari current production snapshot.
+- [x] Current-state source tetap backlog + AI handoff + runtime verification; release docs superseded bersifat historical.
 
 ---
 

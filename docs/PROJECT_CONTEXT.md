@@ -1,6 +1,6 @@
 # School OS — Persistent Project Context
 
-Last verified: **29 September 2026 (Asia/Jakarta)**.
+Last verified: **30 September 2026 (Asia/Jakarta)**.
 
 Dokumen ini adalah snapshot lintas-sesi untuk melanjutkan pengembangan School OS. Agen baru harus membaca [`AI_AGENT_HANDOFF.md`](./AI_AGENT_HANDOFF.md) terlebih dahulu sebagai ringkasan cepat, lalu dokumen ini untuk konteks lengkap. Jika dokumentasi bertentangan dengan runtime aktual, verifikasi runtime/repository terlebih dahulu lalu perbarui snapshot.
 
@@ -68,15 +68,15 @@ Kontrak shell yang harus dipertahankan:
 
 Domain: `https://sekolah.suhendararyadi.com`.
 
-Verified production state on **29 September 2026**:
+Verified production state on **30 September 2026** before P7 promotion:
 
-- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/9b49eb6-cbt-gen2`;
-- **static current**: `/var/www/saas-satu/releases/9b49eb6-cbt-gen2`;
-- backend/static runtime source commit: `9b49eb6e8dabec72d65b356ea592fde8845a5818` — CBT Gen2;
-- application rollback backend: `3bd5515-teacher-login-provisioning`;
-- previous static release: `bf79043-school-profile-routing`;
+- **backend current**: `/home/ubuntu/deployments/SaaS_Satu/releases/19acc6e-p6-super-admin`;
+- **static current**: `/var/www/saas-satu/releases/19acc6e-p6-super-admin`;
+- backend/static runtime source commit: `19acc6e96ddf36871150923c02ee1ab5d2da7953` — P6 SaaS/Super Admin completion;
+- application rollback baseline: `4ee295b-website-smkn12-media-proxy`;
 - `saas-satu.service`: **active**;
 - canonical source: `/home/ubuntu/projects/SaaS_Satu`, branch `main`;
+- canonical repo head before P7: `21ddc91d9fcbf2f172c6520378895ba92dfa00f7`;
 - operational tenant: **SMKN 12 Garut**;
 - authoritative real/Dapodik baseline remains **1,539 students / 50 class rooms**; synthetic demo overlay must be reported separately.
 

@@ -1,6 +1,6 @@
 # School OS — AI Agent Handoff
 
-Last verified: **29 September 2026 (Asia/Jakarta)**.
+Last verified: **30 September 2026 (Asia/Jakarta)**.
 
 This is the fast, durable entry point for any AI agent continuing School OS work. Read this file first, then [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) for the full persistent context and the release documents linked below.
 
@@ -26,6 +26,7 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
 - School Profile is separated from SaaS Account: operational school roles use `/school/profile`, while SaaS subscription/account stays on `/account`; see [`RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md`](./RELEASE_2026-09-29_SCHOOL_PROFILE_ACCOUNT_SEPARATION.md).
+- P7 source cleanup completed: Student and DUDI operational navigation links directly to `/school/profile`; `/account` remains for legitimate SaaS account/subscription flows. Production pointer must still be verified after promotion.
 - Global Attendance → LMS one-way contract is live; see [`RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md`](./RELEASE_2026-09-23_ATTENDANCE_GLOBAL_LMS_ONEWAY.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
 - CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).

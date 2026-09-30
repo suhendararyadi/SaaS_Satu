@@ -28,4 +28,10 @@ describe("profile routing", () => {
     expect(primaryProfileHref({ role: "SUPERADMIN", schoolId: null, isAdmin: true })).toBe("/account");
     expect(shouldUseSchoolProfile({ role: "SUPERADMIN", schoolId: null, isAdmin: true })).toBe(false);
   });
+
+  it("keeps every school-linked profile entry on School Profile", () => {
+    for (const role of ["STUDENT", "TEACHER", "DUDI_MENTOR", "SCHOOL_ADMIN", "SUPERADMIN"]) {
+      expect(primaryProfileHref({ role, schoolId: "school-a", isAdmin: role === "SUPERADMIN" })).toBe("/school/profile");
+    }
+  });
 });
