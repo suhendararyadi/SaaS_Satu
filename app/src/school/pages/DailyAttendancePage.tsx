@@ -51,31 +51,31 @@ const statusVisuals: Record<DailyAttendanceStatus, {
 }> = {
   HADIR: {
     icon: "check_circle",
-    activeClass: "border-[#34C759]/30 bg-[#34C759]/16 text-[#187A35] shadow-[0_1px_2px_rgba(52,199,89,.16)] dark:border-[#30D158]/30 dark:bg-[#30D158]/18 dark:text-[#78E995]",
+    activeClass: "border-[#248A3D] bg-[#34C759]/28 text-[#0F5E29] ring-2 ring-[#34C759]/45 shadow-[0_2px_6px_rgba(52,199,89,.24)] dark:border-[#30D158] dark:bg-[#30D158]/28 dark:text-[#D6FFE0] dark:ring-[#30D158]/45",
     idleClass: "border-[#34C759]/16 bg-[#34C759]/[.055] text-[#4C6B55] hover:bg-[#34C759]/10 dark:border-[#30D158]/18 dark:bg-[#30D158]/[.07] dark:text-[#9CCDA9]",
     iconClass: "bg-[#34C759]/15 text-[#248A3D] dark:bg-[#30D158]/18 dark:text-[#67D881]",
   },
   SAKIT: {
     icon: "medical_services",
-    activeClass: "border-[#AF52DE]/30 bg-[#AF52DE]/15 text-[#7A2FA1] shadow-[0_1px_2px_rgba(175,82,222,.14)] dark:border-[#BF5AF2]/30 dark:bg-[#BF5AF2]/18 dark:text-[#D899F7]",
+    activeClass: "border-[#8944AB] bg-[#AF52DE]/26 text-[#652487] ring-2 ring-[#AF52DE]/40 shadow-[0_2px_6px_rgba(175,82,222,.22)] dark:border-[#BF5AF2] dark:bg-[#BF5AF2]/28 dark:text-[#F2D7FF] dark:ring-[#BF5AF2]/45",
     idleClass: "border-[#AF52DE]/16 bg-[#AF52DE]/[.05] text-[#6D5A73] hover:bg-[#AF52DE]/10 dark:border-[#BF5AF2]/18 dark:bg-[#BF5AF2]/[.07] dark:text-[#C6A9D2]",
     iconClass: "bg-[#AF52DE]/14 text-[#8944AB] dark:bg-[#BF5AF2]/18 dark:text-[#D28AF4]",
   },
   IZIN: {
     icon: "event_available",
-    activeClass: "border-[#007AFF]/28 bg-[#007AFF]/14 text-[#0058B8] shadow-[0_1px_2px_rgba(0,122,255,.14)] dark:border-[#0A84FF]/30 dark:bg-[#0A84FF]/18 dark:text-[#79B8FF]",
+    activeClass: "border-[#0066CC] bg-[#007AFF]/24 text-[#004E9B] ring-2 ring-[#007AFF]/40 shadow-[0_2px_6px_rgba(0,122,255,.22)] dark:border-[#0A84FF] dark:bg-[#0A84FF]/28 dark:text-[#D9ECFF] dark:ring-[#0A84FF]/45",
     idleClass: "border-[#007AFF]/15 bg-[#007AFF]/[.05] text-[#52677B] hover:bg-[#007AFF]/10 dark:border-[#0A84FF]/18 dark:bg-[#0A84FF]/[.07] dark:text-[#9EB9D5]",
     iconClass: "bg-[#007AFF]/13 text-[#0066CC] dark:bg-[#0A84FF]/18 dark:text-[#6BB1FF]",
   },
   ALPA: {
     icon: "cancel",
-    activeClass: "border-[#FF3B30]/28 bg-[#FF3B30]/14 text-[#C2261E] shadow-[0_1px_2px_rgba(255,59,48,.13)] dark:border-[#FF453A]/30 dark:bg-[#FF453A]/18 dark:text-[#FF8A83]",
+    activeClass: "border-[#D52B21] bg-[#FF3B30]/24 text-[#A91E17] ring-2 ring-[#FF3B30]/40 shadow-[0_2px_6px_rgba(255,59,48,.22)] dark:border-[#FF453A] dark:bg-[#FF453A]/28 dark:text-[#FFE0DE] dark:ring-[#FF453A]/45",
     idleClass: "border-[#FF3B30]/15 bg-[#FF3B30]/[.045] text-[#765B59] hover:bg-[#FF3B30]/10 dark:border-[#FF453A]/18 dark:bg-[#FF453A]/[.065] dark:text-[#D0AAA7]",
     iconClass: "bg-[#FF3B30]/13 text-[#D52B21] dark:bg-[#FF453A]/18 dark:text-[#FF817A]",
   },
   TERLAMBAT: {
     icon: "schedule",
-    activeClass: "border-[#FF9500]/30 bg-[#FF9500]/16 text-[#A65D00] shadow-[0_1px_2px_rgba(255,149,0,.14)] dark:border-[#FF9F0A]/30 dark:bg-[#FF9F0A]/18 dark:text-[#FFC56E]",
+    activeClass: "border-[#C67600] bg-[#FF9500]/26 text-[#844A00] ring-2 ring-[#FF9500]/40 shadow-[0_2px_6px_rgba(255,149,0,.22)] dark:border-[#FF9F0A] dark:bg-[#FF9F0A]/28 dark:text-[#FFF0D2] dark:ring-[#FF9F0A]/45",
     idleClass: "border-[#FF9500]/16 bg-[#FF9500]/[.055] text-[#776551] hover:bg-[#FF9500]/11 dark:border-[#FF9F0A]/18 dark:bg-[#FF9F0A]/[.07] dark:text-[#D1B896]",
     iconClass: "bg-[#FF9500]/14 text-[#C67600] dark:bg-[#FF9F0A]/18 dark:text-[#FFC15C]",
   },
@@ -111,19 +111,27 @@ function StatusButton({
       onClick={onClick}
       aria-pressed={active}
       className={[
-        "group inline-flex min-h-8 items-center gap-1.5 rounded-[999px] border py-1 pl-1.5 pr-2.5 text-[11.5px] font-semibold transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[.98]",
+        "group relative inline-flex min-h-9 items-center gap-1.5 rounded-[999px] border py-1.5 pl-1.5 pr-3 text-[11.5px] transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[.98]",
         active ? visual.activeClass : visual.idleClass,
       ].join(" ")}
     >
       <span
         className={[
           "flex size-[22px] shrink-0 items-center justify-center rounded-full transition-transform duration-150 group-hover:scale-105",
-          active ? "bg-white/55 dark:bg-black/15" : visual.iconClass,
+          active ? "bg-white/80 text-current shadow-sm dark:bg-black/20" : visual.iconClass,
         ].join(" ")}
       >
         <M3Icon name={visual.icon} size={15} filled={active} weight={active ? 600 : 500} />
       </span>
-      <span>{statusLabels[status]}</span>
+      <span className={active ? "font-extrabold" : "font-semibold"}>{statusLabels[status]}</span>
+      {active && (
+        <span
+          className="ml-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full bg-current/12"
+          aria-hidden="true"
+        >
+          <M3Icon name="check" size={13} filled weight={700} />
+        </span>
+      )}
     </button>
   );
 }
