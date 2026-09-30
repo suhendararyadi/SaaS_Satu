@@ -15,13 +15,13 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - **Canonical branch**: `main`.
 - Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
 - New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
-- Current backend/runtime commit: `4ee295bac1d0cf32c430855ee38558b239255197` — Website SMKN 12 Garut + object-storage media proxy.
-- Current backend release: `4ee295b-website-smkn12-media-proxy`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/4ee295b-website-smkn12-media-proxy`.
-- Current static/frontend source commit: `4ee295bac1d0cf32c430855ee38558b239255197` — Website SMKN 12 Garut + object-storage media proxy.
-- Current static/frontend release: `4ee295b-website-smkn12-media-proxy`.
-- Current static pointer: `/var/www/saas-satu/releases/4ee295b-website-smkn12-media-proxy`.
-- Application rollback: backend `3bd5515-teacher-login-provisioning`; previous static `bf79043-school-profile-routing`.
+- Current backend/runtime commit: `19acc6e96ddf36871150923c02ee1ab5d2da7953` — P6 SaaS/Super Admin completion (Messages removed, real platform Settings, payments disabled).
+- Current backend release: `19acc6e-p6-super-admin`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/19acc6e-p6-super-admin`.
+- Current static/frontend source commit: `19acc6e96ddf36871150923c02ee1ab5d2da7953` — P6 SaaS/Super Admin completion.
+- Current static/frontend release: `19acc6e-p6-super-admin`.
+- Current static pointer: `/var/www/saas-satu/releases/19acc6e-p6-super-admin`.
+- Application rollback: backend+static `4ee295b-website-smkn12-media-proxy` (pre-P6).
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
@@ -620,3 +620,11 @@ Website SMKN 12 Garut is live at `/site/smkn-12-garut`. Tenant seed is idempoten
 Object storage is Garage v2.4.1, single-node, private and loopback-only. Secrets live outside Git. Direct Website upload is School Admin-only, JPEG/PNG/WebP <=5 MB, tenant-scoped, and public delivery is proxied through `/operations/site-media/:mediaId`.
 
 Release record: [`RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md`](./RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md).
+
+## P6 deploy — 30 Sep 2026
+
+- Release `19acc6e-p6-super-admin` promoted via `school_os_deploy_preflight` + `school_os_deploy_release` (MSO bounded path, auto-rollback armed).
+- Preflight: commit match, backend bundle + static artifacts present, Prisma auth delegates (user/auth/session) OK, service active.
+- Deploy: backend + static pointers cut to `19acc6e-p6-super-admin`; service healthy (`/auth/me` 200); public smoke `/school` 200, `/auth/me` 200, unauthenticated admin dashboard 401.
+- Rollback pointers preserved: `4ee295b-website-smkn12-media-proxy`.
+- main == origin/main == `19acc6e`.

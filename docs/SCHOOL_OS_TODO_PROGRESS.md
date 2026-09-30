@@ -336,7 +336,7 @@ Verification:
 
 ## P6 — SaaS / Super Admin completion
 
-**Status: 🟢 DONE** (validasi 30 Sep 2026; payment tetap nonaktif per keputusan produk)
+**Status: 🟢 DONE & DEPLOYED** (validasi 30 Sep 2026; deploy production 30 Sep 2026 pagi via `school_os_deploy_preflight`+`school_os_deploy_release` — rilis `19acc6e-p6-super-admin` live, smoke test lolos; payment tetap nonaktif per keputusan produk)
 
 School portal tidak bergantung pada item ini. Scope P6 yang disetujui user (29 Sep 2026) sudah selesai: Messages dihapus, Settings menjadi halaman nyata.
 
