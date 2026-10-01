@@ -1015,10 +1015,19 @@ export const getTeachingAudit = async (rawArgs: unknown, context: { user?: User 
       session.teacherCheckInAt.getTime() <= session.scheduledStartAt.getTime() + 15 * 60_000,
   ).length;
 
+  const policy = await getAttendancePolicyOrDefault(schoolIdOf(user));
+
   return {
     from,
     to,
     scope,
+    // Titik sekolah dipakai halaman audit untuk menghitung jarak dan menandai akurasi.
+    school: {
+      latitude: policy.latitude,
+      longitude: policy.longitude,
+      radiusMeters: policy.radiusMeters,
+      maxGpsAccuracyMeters: policy.maxGpsAccuracyMeters,
+    },
     summary: {
       totalSessions: sessions.length,
       completed,
