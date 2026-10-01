@@ -12,12 +12,8 @@ import {
   M3TextField,
 } from "../../client/components/m3";
 import { TeachingEvidenceDialog, type TeachingEvidenceTarget } from "../components/TeachingEvidenceDialog";
-import {
-  LOCATION_FLAG_LABELS,
-  describeSessionLocation,
-  formatCoordinate,
-  type SessionPoint,
-} from "../teachingLocation";
+import { PointDetails, clock } from "../components/TeachingLocationPoint";
+import { LOCATION_FLAG_LABELS, describeSessionLocation } from "../teachingLocation";
 
 function todayOffset(days: number) {
   const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -29,43 +25,6 @@ function todayOffset(days: number) {
   }).format(date);
 }
 
-function clock(value: string | Date | null | undefined) {
-  if (!value) return "—";
-  return new Date(value).toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" });
-}
-
-const GEOFENCE_LABEL: Record<string, string> = {
-  INSIDE: "Dalam radius sekolah",
-  OUTSIDE: "Di luar radius sekolah",
-  UNCONFIGURED: "Geofence belum diatur",
-};
-
-function PointDetails({ label, point, onOpenPhoto }: { label: string; point: SessionPoint | null; onOpenPhoto: () => void }) {
-  return (
-    <div className="rounded-[10px] bg-md-surface-container-low p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-md-on-surface-variant">{label}{point?.at ? ` · ${clock(point.at)}` : ""}</p>
-      {point ? (
-        <div className="mt-1 space-y-0.5 text-xs">
-          <p className="font-mono">{formatCoordinate(point.latitude)}, {formatCoordinate(point.longitude)}</p>
-          <p className="text-md-on-surface-variant">
-            {point.accuracyM != null ? `±${Math.round(point.accuracyM)} m` : "akurasi tidak tercatat"}
-            {point.distanceFromSchoolM != null
-              ? ` · ${point.distanceFromSchoolM} m dari titik sekolah${point.distanceIsRecomputed ? " (dihitung sekarang)" : ""}`
-              : ""}
-          </p>
-          <p className="text-md-on-surface-variant">{point.geofence ? GEOFENCE_LABEL[point.geofence] ?? point.geofence : "Status geofence tidak tercatat"}</p>
-          {point.hasEvidence && (
-            <M3Button variant="text" size="sm" icon="photo_camera" onClick={onOpenPhoto}>
-              {point.kind === "CHECK_IN" ? "Foto masuk" : "Foto pulang"}
-            </M3Button>
-          )}
-        </div>
-      ) : (
-        <p className="mt-1 text-xs text-md-on-surface-variant">Tidak ada titik lokasi tercatat.</p>
-      )}
-    </div>
-  );
-}
 
 export function LmsTeachingAuditPage({ user }: { user: AuthUser }) {
   const [from, setFrom] = useState(todayOffset(-7));
@@ -93,9 +52,12 @@ export function LmsTeachingAuditPage({ user }: { user: AuthUser }) {
               Monitoring sesi, ketepatan check-in, penyelesaian check-out, lokasi check-in/out, agenda, dan presensi siswa sesuai cakupan tugas resmi.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <M3TextField type="date" label="Dari" value={from} onChange={(e) => setFrom(e.target.value)} />
-            <M3TextField type="date" label="Sampai" value={to} onChange={(e) => setTo(e.target.value)} />
+          <div className="flex flex-wrap items-end gap-2">
+            <M3Button variant="outlined" href="/school/lms/peta-kbm" icon="location_on">Lihat di peta</M3Button>
+            <div className="grid grid-cols-2 gap-2">
+              <M3TextField type="date" label="Dari" value={from} onChange={(e) => setFrom(e.target.value)} />
+              <M3TextField type="date" label="Sampai" value={to} onChange={(e) => setTo(e.target.value)} />
+            </div>
           </div>
         </header>
 

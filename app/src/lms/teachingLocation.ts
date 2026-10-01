@@ -158,3 +158,39 @@ export function describeSessionLocation(
 export function formatCoordinate(value: number): string {
   return value.toFixed(6);
 }
+
+export type MapPoint = {
+  id: string;
+  sessionId: string;
+  kind: "CHECK_IN" | "CHECK_OUT";
+  latitude: number;
+  longitude: number;
+  accuracyM: number | null;
+  label: string;
+};
+
+/**
+ * Titik peta dari sesi yang sudah dirangkum. `label` dibuat pemanggil agar teks marker
+ * (judul dan alt) memuat guru, mapel, rombel, dan jam.
+ */
+export function buildMapPoints(
+  rows: Array<{ sessionId: string; location: SessionLocation; label: string }>,
+  show: { checkIn: boolean; checkOut: boolean },
+): MapPoint[] {
+  const points: MapPoint[] = [];
+  for (const row of rows) {
+    for (const point of [show.checkIn ? row.location.checkIn : null, show.checkOut ? row.location.checkOut : null]) {
+      if (!point) continue;
+      points.push({
+        id: `${row.sessionId}:${point.kind}`,
+        sessionId: row.sessionId,
+        kind: point.kind,
+        latitude: point.latitude,
+        longitude: point.longitude,
+        accuracyM: point.accuracyM,
+        label: `${point.kind === "CHECK_IN" ? "Check-in" : "Check-out"} · ${row.label}`,
+      });
+    }
+  }
+  return points;
+}

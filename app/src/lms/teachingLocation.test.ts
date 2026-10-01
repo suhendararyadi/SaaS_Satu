@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LOCATION_FLAG_LABELS,
+  buildMapPoints,
   describeSessionLocation,
   formatCoordinate,
   type TeachingSessionLocationSource,
@@ -78,5 +79,31 @@ describe("describeSessionLocation", () => {
   it("has a readable label for every flag", () => {
     for (const label of Object.values(LOCATION_FLAG_LABELS)) expect(label.length).toBeGreaterThan(5);
     expect(formatCoordinate(-7.2001166)).toBe("-7.200117");
+  });
+});
+
+describe("buildMapPoints", () => {
+  const row = (sessionId: string, overrides: Partial<TeachingSessionLocationSource> = {}) => ({
+    sessionId,
+    label: `Guru ${sessionId}`,
+    location: describeSessionLocation({ ...base, ...overrides }, school, now),
+  });
+
+  it("creates one marker per stored point with a stable id and a readable label", () => {
+    const points = buildMapPoints([row("a")], { checkIn: true, checkOut: true });
+    expect(points.map((p) => p.id)).toEqual(["a:CHECK_IN", "a:CHECK_OUT"]);
+    expect(points[0]).toMatchObject({ kind: "CHECK_IN", latitude: -7.2001, longitude: 107.9002, accuracyM: 12, label: "Check-in · Guru a" });
+    expect(points[1].label).toBe("Check-out · Guru a");
+  });
+
+  it("respects the check-in / check-out toggles", () => {
+    expect(buildMapPoints([row("a")], { checkIn: true, checkOut: false }).map((p) => p.kind)).toEqual(["CHECK_IN"]);
+    expect(buildMapPoints([row("a")], { checkIn: false, checkOut: true }).map((p) => p.kind)).toEqual(["CHECK_OUT"]);
+    expect(buildMapPoints([row("a")], { checkIn: false, checkOut: false })).toEqual([]);
+  });
+
+  it("skips sessions without a stored point", () => {
+    const never = row("n", { status: "PENDING", teacherCheckInAt: null, teacherCheckOutAt: null, checkInLatitude: null, checkInLongitude: null, checkOutLatitude: null, checkOutLongitude: null });
+    expect(buildMapPoints([never, row("a")], { checkIn: true, checkOut: true }).map((p) => p.sessionId)).toEqual(["a", "a"]);
   });
 });

@@ -5,6 +5,7 @@ import { LmsAssessmentPage } from "./pages/LmsAssessmentPage" with { type: "ref"
 import { LmsTeachingWorkspacePage } from "./pages/LmsTeachingWorkspacePage" with { type: "ref" };
 import { LmsCourseTeachingPage } from "./pages/LmsCourseTeachingPage" with { type: "ref" };
 import { LmsTeachingAuditPage } from "./pages/LmsTeachingAuditPage" with { type: "ref" };
+import { LmsTeachingMapPage } from "./pages/LmsTeachingMapPage" with { type: "ref" };
 import { LmsTeachingTimetablePage } from "./pages/LmsTeachingTimetablePage" with { type: "ref" };
 import { teachingEvidenceFileApi, teachingEvidenceUploadApi } from "./teachingEvidenceApi" with { type: "ref" };
 
@@ -210,6 +211,11 @@ export const lmsSpec: Spec = [
     "LmsTeachingTimetableRoute",
     "/school/lms/schedule",
     page(LmsTeachingTimetablePage, { authRequired: true })
+  ),
+  route(
+    "LmsTeachingMapRoute",
+    "/school/lms/peta-kbm",
+    page(LmsTeachingMapPage, { authRequired: true })
   ),
   route(
     "LmsTeachingAuditRoute",

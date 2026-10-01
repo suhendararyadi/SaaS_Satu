@@ -56,6 +56,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/attendance", "Presensi Harian"],
   ["/school/import", "Import Data"],
   ["/school/lms/schedule", "Jadwal Mengajar"],
+  ["/school/lms/peta-kbm", "Peta KBM"],
   ["/school/lms/teaching/audit", "Audit Pelaksanaan KBM"],
   ["/school/lms/teaching", "KBM Hari Ini"],
   ["/school/lms/courses", "Pembelajaran"],
@@ -281,6 +282,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
         { label: "Jadwal Mengajar", href: "/school/lms/schedule", icon: "calendar_month" },
         { label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" },
         { label: "Audit KBM", href: "/school/lms/teaching/audit", icon: "monitoring" },
+        { label: "Peta KBM", href: "/school/lms/peta-kbm", icon: "location_on" },
       ] });
       sections.push({ title: "KEHADIRAN", items: [
         { label: "Command Center", href: "/school/attendance/command", icon: "monitoring" },

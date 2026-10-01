@@ -1,6 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router";
 
 const getMock = vi.fn();
 let queryResult: any;
@@ -35,7 +36,7 @@ const dataWith = (sessions: any[]) => ({
 
 function renderPage(sessions: any[]) {
   queryResult = { data: dataWith(sessions), isLoading: false, error: null };
-  return render(<LmsTeachingAuditPage user={{ id: "u1" } as any} />);
+  return render(<MemoryRouter><LmsTeachingAuditPage user={{ id: "u1" } as any} /></MemoryRouter>);
 }
 
 beforeEach(() => {
