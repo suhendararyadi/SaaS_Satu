@@ -105,3 +105,24 @@ The Email tab no longer renders Wasp's stock `LoginForm` (English copy, yellow b
 - Note: the login page does not set the theme itself (only `SchoolLayout` toggles the `dark` class), so on a fresh visit it is always the light variant.
 - Static releases: `48ca42a-login-polish` (this change; rollback `6afa3e2-student-login-toggle`). Backend unchanged.
 - Verification: full regression 238/238 across 40 files; `wasp build` PASS; local preview screenshots (light, dark, phone) reviewed before release; real browser test against production (form and copy, wallpaper loaded, wrong-email and NISN-in-email messages, NISN wrong password, correct NISN login to `/school`, logout 200, phone viewport without horizontal scroll and 44 px button). No test session remained.
+
+## Follow-up (2 October 2026): school location form (`/school/attendance/settings`)
+
+**Report:** an admin changed the school location by hand, saw the success message, and after a reload the values looked unchanged.
+
+**Investigation (read-only plus a clone):** the server log showed three `save-attendance-policy` calls (all 200) and the database held the last one: `longitude` had changed from the value originally configured, `latitude` had not. A component test of the page and the real `saveAttendancePolicy` run on a production clone both persisted and read back latitude and longitude correctly, so the save/read path is sound. The form simply gave no way to tell what had actually been stored, and it had three silent traps:
+
+- the fields were `type=number`, so pasting a pair such as `-7.2001, 107.8887` produced an empty value;
+- an empty value was sent as `null`, which the server accepts, so the location could be cleared without any message;
+- save errors appeared only as a browser `alert`.
+
+**Change (frontend only, static release `e55ab83-geo-coordinate-input`, rollback `48ca42a-login-polish`; backend unchanged):**
+
+- The page shows the **location stored on the server**, when it was last changed (WIB) and a *Lihat di peta* link above the form; the success message repeats the coordinates read back from the saved row, and a mismatch between what was sent and what the server stored is reported as an error.
+- A pair copied from a map (`-7.2001, 107.8887`, with spaces, semicolons, brackets or a Unicode minus) pasted or typed into **either** field is split across both. The fields are plain text with a decimal keypad. Decimal commas are not accepted (a comma is the pair separator).
+- Validation before saving: dot decimals only, latitude within ±90, longitude within ±180, both or neither, a hint when the order looks swapped, and an **active policy cannot be saved without coordinates**. Errors appear in the page, not in an alert.
+- Pure helpers in `app/src/attendance360/coordinates.ts` (tested) and page tests in `AttendanceSettingsPage.test.tsx`.
+
+Verification: full regression 259/259 across 42 files, `wasp build` PASS, static preflight/deploy PASS, public settings route 200, unauthenticated `save-attendance-policy` 401. The page requires an admin session, so it was verified by component tests and bundle content, not by a logged-in browser.
+
+Open item: the stored longitude is currently the value the admin saved last (it differs from the first configured one). The intended coordinates were asked of the owner and had not been confirmed when this was written; do not overwrite them without confirmation.
