@@ -278,6 +278,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
       ] });
       sections.push({ title: "PEMBELAJARAN", items: [
         { label: "KBM Hari Ini", href: "/school/lms/teaching", icon: "play_circle" },
+        { label: "Jadwal Mengajar", href: "/school/lms/schedule", icon: "calendar_month" },
         { label: "LMS & CBT", href: "/school/lms/courses", icon: "menu_book" },
         { label: "Audit KBM", href: "/school/lms/teaching/audit", icon: "monitoring" },
       ] });
