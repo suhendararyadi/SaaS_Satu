@@ -149,7 +149,8 @@ Akibatnya student self-attendance belum siap dipakai secara nyata.
 - [ ] Tetapkan window check-out.
 - [ ] Tetapkan hari kerja resmi.
 - [ ] Konfirmasi aturan selfie check-in/check-out.
-- [ ] Isi Kalender Pendidikan / hari libur / override jadwal yang relevan.
+- [x] Isi Kalender Pendidikan / hari libur — selesai 2 Oktober 2026: 49 hari libur Senin–Jumat dari kalender Disdik Jabar 2026/2027, dikelola di `/school/attendance/settings`; lihat [`RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md`](./RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md).
+- [ ] Override jadwal per tanggal yang relevan (misalnya jam pulang Jumat, hari ujian) — belum, menunggu keputusan jam dari sekolah.
 - [ ] Aktifkan policy setelah konfigurasi diverifikasi.
 - [ ] UAT siswa nyata/dummy melalui perangkat mobile:
   - GPS;
