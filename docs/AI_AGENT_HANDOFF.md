@@ -15,14 +15,14 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - **Canonical branch**: `main`.
 - Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
 - New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
-- Current backend/runtime commit: `e4bd9533cf12f9ee163b89397164d9835dcbc2f6` — attendance unrecorded-default hardening.
-- Current backend release: `e4bd953-attendance-unrecorded`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/e4bd953-attendance-unrecorded`.
-- Current static/frontend source commit: `adad36c053c55dbb3f4e2204de9a9c05a37882c9` — Student/Teacher mobile UX hardening.
-- Current static/frontend release: `adad36c-mobile-ux-hardening`.
-- Current static pointer: `/var/www/saas-satu/releases/adad36c-mobile-ux-hardening`.
-- Backend rollback: `19acc6e-p6-super-admin`.
-- Static rollback: `7db1b56-attendance-selected-state`.
+- Current backend/runtime commit: `e7a7fc3adb443b2e97320b65d79a25fbde499fb3` — Jadwal Mengajar page and teacher sidebar shortcut.
+- Current backend release: `e7a7fc3-teaching-timetable`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/e7a7fc3-teaching-timetable`.
+- Current static/frontend source commit: `e7a7fc3adb443b2e97320b65d79a25fbde499fb3` (same release).
+- Current static/frontend release: `e7a7fc3-teaching-timetable`.
+- Current static pointer: `/var/www/saas-satu/releases/e7a7fc3-teaching-timetable`.
+- Backend rollback: `e4bd953-attendance-unrecorded`.
+- Static rollback: `adad36c-mobile-ux-hardening`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
@@ -34,6 +34,7 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Mobile UX hardening is production-live via static release `adad36c-mobile-ux-hardening`: teacher bottom navigation is role-aware, teacher dashboard is action-first, Wali Kelas uses mobile cards instead of horizontal tables, Teaching Session has a guided mobile flow and larger attendance/rubric targets, dialogs/tabs/chips/bottom nav have stronger mobile ergonomics, and Student Attendance secondary text is more readable. Backend behavior is unchanged. See [`RELEASE_2026-09-30_MOBILE_UX_HARDENING.md`](./RELEASE_2026-09-30_MOBILE_UX_HARDENING.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
 - SMKN 12 Garut Class X and XI teaching timetable (468 courses, 757 schedule rows) is loaded in production LMS as of 1 October 2026; Class XII is not imported and six source-PDF teacher clashes were kept by owner decision. See [`RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md`](./RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md).
+- Jadwal Mengajar is production-live via `e7a7fc3-teaching-timetable`: teachers get a `Jadwal Mengajar` entry under `MENGAJAR` (`/school/lms/schedule`) listing every weekly session, with a scope switch for admins, Wakasek Kurikulum, the Principal and department heads. See [`RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md`](./RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md).
 - CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Current unfinished-work/progress source of truth: [`SCHOOL_OS_TODO_PROGRESS.md`](./SCHOOL_OS_TODO_PROGRESS.md). Read it before proposing new modules; it separates unfinished work from completed-but-unconfigured modules and records active priority P1–P7.
@@ -652,3 +653,19 @@ Contract and cautions:
 Backup: `/home/ubuntu/backups/SaaS_Satu/pre-schedule-import-smkn12-20261001.dump`. Cleanup: `/home/ubuntu/backups/SaaS_Satu/schedule-import-smkn12-20261001.cleanup.sql`.
 
 Release record: [`RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md`](./RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md).
+
+
+## Jadwal Mengajar page — 2 October 2026
+
+Release `e7a7fc3-teaching-timetable` is live for backend and static (rollback `e4bd953-attendance-unrecorded` / `adad36c-mobile-ux-hardening`). It adds the read-only query `getTeachingTimetable` and the page `/school/lms/schedule`; no schema change.
+
+Contract and cautions:
+
+- The query keeps the `getTeachingWorkspace` scope rules: a `TEACHER` sees only their own courses and cannot widen scope; admins, Wakasek Kurikulum, the Principal and department heads may request `ALL`; students get 403; everything is scoped by `course.schoolId`.
+- The route lives outside `/school/lms/teaching/` on purpose: the drawer matches active items with `startsWith`, so a child route would highlight `KBM Hari Ini` too.
+- The admin `PEMBELAJARAN` menu has no entry yet; admins can open the page by URL.
+- A permanent production-clone UAT exists at `app/uat/teachingTimetable.integration.ts` (config `vitest.timetable-uat.config.ts`, guarded by `TIMETABLE_UAT_DATABASE_URL` and `TIMETABLE_UAT_CONFIRM=CLONE_DATABASE_ONLY`); run it only against a clone.
+- The first deploy attempt was rolled back automatically by the guard after a smoke-request timeout; the retry succeeded. Details and the release procedure are in the release record. `wasp install` rewrites `app/package-lock.json`; restore it before committing.
+- `main` contains the release but has **not been pushed** to `origin`.
+
+Release record: [`RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md`](./RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md).
