@@ -125,4 +125,4 @@ The Email tab no longer renders Wasp's stock `LoginForm` (English copy, yellow b
 
 Verification: full regression 259/259 across 42 files, `wasp build` PASS, static preflight/deploy PASS, public settings route 200, unauthenticated `save-attendance-policy` 401. The page requires an admin session, so it was verified by component tests and bundle content, not by a logged-in browser.
 
-Open item: the stored longitude is currently the value the admin saved last (it differs from the first configured one). The intended coordinates were asked of the owner and had not been confirmed when this was written; do not overwrite them without confirmation.
+Resolved: the owner confirmed that the stored coordinates were deliberately moved to the owner's own test location during UAT (they are not the SMKN 12 Garut point). The official point the owner supplied was titik resmi SMKN 12 Garut yang diberikan pemilik (-7.200116595457873, 107.8887518789388); it must be restored before real use. Do not overwrite the stored values without the owner's say-so.

@@ -141,6 +141,7 @@ Akibatnya student self-attendance belum siap dipakai secara nyata.
 ### TODO P2
 
 - [x] Tetapkan koordinat authoritative sekolah — titik utama diberikan pemilik (2 Okt 2026); Kampus 2 belum.
+- [ ] **Kembalikan koordinat ke titik resmi sebelum rollout.** Selama uji coba pemilik sengaja memindahkan koordinat tersimpan ke lokasi ujinya (bukan SMKN 12 Garut); titik resmi SMKN 12 Garut yang diberikan pemilik (-7.200116595457873, 107.8887518789388). Jika lupa, siswa dan guru di sekolah ditolak cek-in karena di luar radius 100 m. Periksa lewat tautan "Lihat di peta" di `/school/attendance/settings`.
 - [x] Tetapkan radius geofence — 100 m (default), perlu diuji di lapangan.
 - [x] Tetapkan batas akurasi GPS — 50 m (default).
 - [x] Tetapkan jam buka check-in — 05:30 (default).

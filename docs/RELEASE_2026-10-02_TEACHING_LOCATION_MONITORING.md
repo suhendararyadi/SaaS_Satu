@@ -41,5 +41,5 @@
 - **Catatan akses** (siapa membuka peta atau foto) dan **retensi** koordinat belum ada; rencana induk memuatnya dan sebaiknya dikerjakan sebelum data nyata menumpuk.
 - Menu Peta KBM hanya ada di sidebar admin. Guru yang berwenang memantau (Wakasek, Kajur) dapat membukanya lewat URL; belum ada entri menu untuk mereka.
 - Penggunaan OpenStreetMap mengikuti kebijakan ubin mereka (cocok untuk skala sekolah). Bila pemakaian membesar, ganti sumber ubin atau gunakan denah sekolah.
-- Koordinat sekolah masih menunggu konfirmasi pemilik; semua jarak dihitung dari titik itu.
+- Semua jarak dihitung dari koordinat di Pengaturan Kehadiran. Selama uji coba nilainya sengaja dipindah pemilik ke lokasi ujinya; titik resmi SMKN 12 Garut yang diberikan pemilik (-7.200116595457873, 107.8887518789388) harus dikembalikan sebelum dipakai di sekolah.
 - Tautan "Foto" memakai endpoint yang sama dengan sebelumnya; hanya cara membukanya yang diperbaiki.
