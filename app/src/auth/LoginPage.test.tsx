@@ -6,7 +6,6 @@ import { MemoryRouter } from "react-router";
 const loginMock = vi.fn();
 vi.mock("wasp/client/auth", () => ({
   login: (...args: unknown[]) => loginMock(...args),
-  LoginForm: () => <div data-testid="wasp-login-form">Form email bawaan</div>,
   useAuth: () => ({ data: null }),
   logout: vi.fn(),
 }));
@@ -31,9 +30,13 @@ describe("LoginPage", () => {
     window.localStorage.clear();
   });
 
-  it("keeps the standard email form as the default for staff", () => {
+  it("shows the email form by default, in Indonesian, with sign-up and reset links", () => {
     renderPage();
-    expect(screen.getByTestId("wasp-login-form")).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Masuk dengan email" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toHaveAttribute("type", "email");
+    expect(screen.getByLabelText("Kata sandi")).toHaveAttribute("type", "password");
+    expect(screen.getByRole("button", { name: "Masuk" })).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Log in|Password|E-mail/);
     expect(screen.getByRole("tab", { name: "Email" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("link", { name: "Atur ulang" })).toHaveAttribute("href", "/request-password-reset");
     expect(screen.getByRole("link", { name: "Daftar akun" })).toHaveAttribute("href", "/signup");
@@ -42,7 +45,7 @@ describe("LoginPage", () => {
   it("switches to the NISN form without sign-up or reset links, and never reveals the password convention", () => {
     renderPage();
     fireEvent.click(screen.getByRole("tab", { name: "NISN (siswa)" }));
-    expect(screen.queryByTestId("wasp-login-form")).not.toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Masuk dengan email" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("NISN")).toBeInTheDocument();
     expect(screen.getByLabelText("Kata sandi")).toHaveAttribute("type", "password");
     expect(screen.queryByRole("link", { name: "Daftar akun" })).not.toBeInTheDocument();
@@ -139,5 +142,55 @@ describe("StudentNisnLoginForm", () => {
     expect(screen.getByRole("button", { name: "Sembunyikan kata sandi" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(screen.getByRole("button", { name: "Sembunyikan kata sandi" }));
     expect(screen.getByLabelText("Kata sandi")).toHaveAttribute("type", "password");
+  });
+});
+
+describe("EmailLoginForm", () => {
+  beforeEach(() => {
+    loginMock.mockReset();
+    window.localStorage.clear();
+  });
+  const fill = (email: string, password: string) => {
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: email } });
+    fireEvent.change(screen.getByLabelText("Kata sandi"), { target: { value: password } });
+  };
+
+  it("logs in with the trimmed email", async () => {
+    loginMock.mockResolvedValue(undefined);
+    renderPage();
+    fill("  guru@sekolah.sch.id ", "rahasia-123");
+    fireEvent.click(screen.getByRole("button", { name: "Masuk" }));
+    await waitFor(() => expect(loginMock).toHaveBeenCalledTimes(1));
+    expect(loginMock).toHaveBeenCalledWith({ email: "guru@sekolah.sch.id", password: "rahasia-123" });
+  });
+
+  it("rejects an invalid email or empty password before calling the server", () => {
+    renderPage();
+    fill("bukan-email", "x");
+    fireEvent.click(screen.getByRole("button", { name: "Masuk" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Masukkan alamat email yang valid.");
+    fill("guru@sekolah.sch.id", "");
+    fireEvent.click(screen.getByRole("button", { name: "Masuk" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Kata sandi belum diisi.");
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it("points a student who typed a NISN to the NISN tab", () => {
+    renderPage();
+    fill("0071001891", "x");
+    fireEvent.click(screen.getByRole("button", { name: "Masuk" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Siswa masuk lewat tab NISN (siswa).");
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it("shows one generic message for wrong credentials and a connection message otherwise", async () => {
+    loginMock.mockRejectedValueOnce(Object.assign(new Error("Invalid credentials"), { statusCode: 401 }));
+    renderPage();
+    fill("guru@sekolah.sch.id", "salah");
+    fireEvent.click(screen.getByRole("button", { name: "Masuk" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email atau kata sandi tidak sesuai.");
+    loginMock.mockRejectedValueOnce(new Error("Failed to fetch"));
+    fireEvent.click(screen.getByRole("button", { name: "Masuk" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Periksa koneksi internet"));
   });
 });

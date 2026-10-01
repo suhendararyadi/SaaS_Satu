@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <title>Gelombang berlapis malam hari (ilustrasi orisinal School OS)</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#0A0E2A"/>
+      <stop offset="0.55" stop-color="#1B1352"/>
+      <stop offset="1" stop-color="#34124A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8E7BFF" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#8E7BFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="w1" x1="0" y1="0" x2="1" y2="0.5">
+      <stop offset="0" stop-color="#1F6FE5"/>
+      <stop offset="1" stop-color="#4B47E0"/>
+    </linearGradient>
+    <linearGradient id="w2" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0" stop-color="#6A3DE8"/>
+      <stop offset="1" stop-color="#B13DDB"/>
+    </linearGradient>
+    <linearGradient id="w3" x1="0" y1="0" x2="1" y2="0.2">
+      <stop offset="0" stop-color="#D4318C"/>
+      <stop offset="1" stop-color="#FF6A4D"/>
+    </linearGradient>
+    <linearGradient id="w4" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F0801A"/>
+      <stop offset="1" stop-color="#F7C23A"/>
+    </linearGradient>
+    <linearGradient id="w5" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0FA9A4"/>
+      <stop offset="1" stop-color="#1668E8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <circle cx="1240" cy="190" r="340" fill="url(#glow)"/>
+
+  <path d="M0 420C190 322 390 296 610 362S990 478 1210 384S1490 300 1600 338V1000H0Z" fill="url(#w1)" opacity="0.95"/>
+  <path d="M0 420C190 322 390 296 610 362S990 478 1210 384S1490 300 1600 338" fill="none" stroke="#fff" stroke-opacity="0.22" stroke-width="2.5"/>
+
+  <path d="M0 568C180 470 430 446 650 520S1010 646 1250 542S1500 462 1600 500V1000H0Z" fill="url(#w2)" opacity="0.94"/>
+  <path d="M0 568C180 470 430 446 650 520S1010 646 1250 542S1500 462 1600 500" fill="none" stroke="#fff" stroke-opacity="0.2" stroke-width="2.5"/>
+
+  <path d="M0 696C220 612 470 598 710 660S1070 764 1310 692S1520 640 1600 660V1000H0Z" fill="url(#w3)" opacity="0.93"/>
+  <path d="M0 696C220 612 470 598 710 660S1070 764 1310 692S1520 640 1600 660" fill="none" stroke="#fff" stroke-opacity="0.2" stroke-width="2.5"/>
+
+  <path d="M0 806C240 744 500 744 760 794S1120 874 1360 812S1540 782 1600 792V1000H0Z" fill="url(#w4)" opacity="0.92"/>
+  <path d="M0 806C240 744 500 744 760 794S1120 874 1360 812S1540 782 1600 792" fill="none" stroke="#fff" stroke-opacity="0.25" stroke-width="2.5"/>
+
+  <path d="M0 904C260 856 540 866 800 904S1180 962 1420 914S1560 894 1600 902V1000H0Z" fill="url(#w5)" opacity="0.95"/>
+  <path d="M0 904C260 856 540 866 800 904S1180 962 1420 914S1560 894 1600 902" fill="none" stroke="#fff" stroke-opacity="0.25" stroke-width="2.5"/>
+</svg>

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { LoginForm } from "wasp/client/auth";
 import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import { M3Tabs } from "../client/components/m3";
 import { AuthPageLayout } from "./AuthPageLayout";
+import { EmailLoginForm } from "./EmailLoginForm";
 import { StudentNisnLoginForm } from "./StudentNisnLoginForm";
 import { useRedirectIfLoggedIn } from "./hooks/useRedirectIfLoggedIn";
 
@@ -53,7 +53,7 @@ export function LoginPage() {
         />
       </div>
 
-      {mode === "EMAIL" ? <LoginForm /> : <StudentNisnLoginForm />}
+      {mode === "EMAIL" ? <EmailLoginForm /> : <StudentNisnLoginForm />}
 
       <div className="mt-5 border-t border-md-outline-variant pt-4 text-center text-[12.5px] leading-6 text-md-on-surface-variant">
         {mode === "EMAIL" ? (
