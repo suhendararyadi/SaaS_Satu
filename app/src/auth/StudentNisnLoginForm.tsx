@@ -68,15 +68,11 @@ export function StudentNisnLoginForm() {
         autoComplete="current-password"
         required
       />
-      <label className="flex min-h-11 cursor-pointer items-center gap-2 text-[13px] text-md-on-surface-variant">
-        <input
-          type="checkbox"
-          checked={showPassword}
-          onChange={(event) => setShowPassword(event.target.checked)}
-          className="size-4"
-        />
-        Tampilkan kata sandi
-      </label>
+      <div className="-mt-2 flex justify-end">
+        <M3Button type="button" variant="text" size="sm" aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>
+          {showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+        </M3Button>
+      </div>
       <M3Button type="submit" fullWidth isLoading={busy} disabled={busy}>
         Masuk
       </M3Button>

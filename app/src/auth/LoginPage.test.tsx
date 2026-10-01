@@ -133,7 +133,11 @@ describe("StudentNisnLoginForm", () => {
 
   it("can reveal the password on request", () => {
     openForm();
-    fireEvent.click(screen.getByLabelText("Tampilkan kata sandi"));
+    expect(screen.getByLabelText("Kata sandi")).toHaveAttribute("type", "password");
+    fireEvent.click(screen.getByRole("button", { name: "Tampilkan kata sandi" }));
     expect(screen.getByLabelText("Kata sandi")).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Sembunyikan kata sandi" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Sembunyikan kata sandi" }));
+    expect(screen.getByLabelText("Kata sandi")).toHaveAttribute("type", "password");
   });
 });
