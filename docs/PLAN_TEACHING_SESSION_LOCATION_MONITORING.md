@@ -24,7 +24,7 @@ Role yang berwenang dapat memeriksa **titik lokasi cek-in dan cek-out guru** pad
 
 Data ruangan yang tersedia:
 
-- Jadwal KBM (hasil import 1 Okt 2026) memakai **29 label ruang**: `K-1…K-13`, `RPS-1/2`, `AA-1/2`, `AB-1…3`, `LAB DKV 1/2`, `LAB KOM`, `LAB TSM`, `UB TSM`, `LAB.BIO`, `KAMPUS 2`, `MESJID`. Label ini tetap per rombel.
+- Jadwal KBM (hasil import 1 Okt 2026) memakai **28 label ruang**: `K-1…K-13`, `RPS-1/2`, `AA-1/2`, `AB-1…3`, `LAB DKV 1/2`, `LAB KOM`, `LAB TSM`, `UB TSM`, `LAB.BIO`, `KAMPUS 2`, `MESJID`. Label ini tetap per rombel. Ada satu label ke-29, `Lab 1`, pada satu jadwal uji manual (XI A_1, Jumat 04:00–05:30, dibuat 2 Okt 2026 04:03 WIB); itu bukan bagian dari import dan belum dipakai sesi.
 - Sarpras punya **75 ruangan** dari Dapodik (`DAP-PRAS-001`, `KELAS X A1`, `BENGKEL TBSM`, …) tanpa gedung/lantai dan tanpa koordinat. **Tidak satu pun** cocok dengan label jadwal (`K-13` bukan `KELAS X A1`). Perlu tabel pemetaan.
 - "Kampus 2" dan "Mesjid" adalah lokasi tersendiri, bukan ruang kelas di titik utama.
 
@@ -83,7 +83,7 @@ Migrasi harus menyertakan `ALTER TABLE … OWNER TO saas_satu_staging` dan hak a
 
 **Halaman admin "Peta Ruang":**
 
-- daftar ruang, awalnya diisi dari 29 label jadwal;
+- daftar ruang, awalnya diisi dari 28 label jadwal;
 - tempatkan atau geser marker di peta, atau **kalibrasi di lokasi**: admin berdiri di ruang, ketuk "Gunakan lokasi saya", sistem merata-ratakan beberapa sampel dan mencatat akurasinya;
 - pemetaan ke ruang Sarpras dengan saran nama.
 
@@ -146,7 +146,7 @@ Rekomendasi: kerjakan **Fase 0 dan 1 dahulu**, kumpulkan sesi nyata beberapa min
 
 1. **Tingkat ketelitian yang diharapkan**: "area/gedung terdekat" (realistis dengan GPS) atau "ruang kelas tertentu" (butuh QR)?
 2. **Sumber peta**: OpenStreetMap (gratis, cukup untuk skala sekolah, perlu atribusi dan patuh kebijakan penggunaan), penyedia ubin berbayar, atau **denah sekolah** yang diunggah dan diselaraskan dengan beberapa titik acuan (tanpa ubin pihak ketiga, tampak seperti peta sekolah sendiri).
-3. **Titik ruang**: siapa yang mengkalibrasi 29 ruang (waktu sekitar 1–2 jam berkeliling), dan apakah ada denah/foto udara sekolah.
+3. **Titik ruang**: siapa yang mengkalibrasi 28 ruang (waktu sekitar 1–2 jam berkeliling), dan apakah ada denah/foto udara sekolah.
 4. **Kampus 2 dan Mesjid**: apakah koordinat titik utama sudah dikonfirmasi (nilai longitude yang tersimpan masih menunggu konfirmasi) dan bagaimana Kampus 2 diperlakukan.
 5. **Ambang dan sanksi**: tanda "perlu ditinjau" bersifat saran saja (rekomendasi), bukan blokir cek-in?
 6. **Retensi dan pemberitahuan** kepada guru, serta siapa yang menerima peringatan pola berulang.
@@ -155,7 +155,7 @@ Rekomendasi: kerjakan **Fase 0 dan 1 dahulu**, kumpulkan sesi nyata beberapa min
 ## 9. Risiko
 
 - Positif palsu karena GPS dalam ruangan menimbulkan ketidakpercayaan; mitigasi: tampilkan akurasi, tinjauan manusia, ambang dari uji lapangan.
-- Beban kalibrasi 29 ruang; mitigasi: kalibrasi di lokasi dengan perata-rataan sampel.
+- Beban kalibrasi 28 ruang; mitigasi: kalibrasi di lokasi dengan perata-rataan sampel.
 - Sensitivitas data lokasi guru; mitigasi: bagian 5.
 - Ketergantungan ubin peta pihak ketiga; mitigasi: sumber ubin dapat diganti, atau memakai denah.
 - Koordinat sekolah yang masih menunggu konfirmasi memengaruhi jarak ke titik utama; selesaikan sebelum Fase 1 dipakai untuk penilaian.
