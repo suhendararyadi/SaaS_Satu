@@ -150,7 +150,8 @@ Akibatnya student self-attendance belum siap dipakai secara nyata.
 - [x] Tetapkan hari kerja resmi — Senin–Jumat.
 - [x] Konfirmasi aturan selfie check-in/check-out — wajib untuk masuk dan pulang.
 - [x] Isi Kalender Pendidikan / hari libur — selesai 2 Oktober 2026: 49 hari libur Senin–Jumat dari kalender Disdik Jabar 2026/2027, dikelola di `/school/attendance/settings`; lihat [`RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md`](./RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md).
-- [ ] Override jadwal per tanggal yang relevan (misalnya jam pulang Jumat, hari ujian) — belum, menunggu keputusan jam dari sekolah.
+- [x] Override jam pulang Jumat — 12 baris `SPECIAL_SCHEDULE` (2 Okt–18 Des 2026), check-out dibuka 11:15; Jumat mulai Januari 2027 menunggu jadwal semester 2.
+- [ ] Override jadwal per tanggal lain yang relevan (misalnya hari ujian) — belum.
 - [x] Aktifkan policy — aktif sejak 2 Okt 2026 untuk uji coba; UAT perangkat nyata belum dilakukan. Lihat [`RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md`](./RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md).
 - [x] Akun login siswa — 1.539 siswa nyata sudah ber-login untuk uji coba (kata sandi sementara; wajib dirotasi/dicabut setelah uji coba).
 - [ ] Keputusan lokasi Kampus 2 (91 siswa XI A_1–A_3 dan XI F_1).

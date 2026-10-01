@@ -18,11 +18,11 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Current backend/runtime commit: `e7a7fc3adb443b2e97320b65d79a25fbde499fb3` — Jadwal Mengajar page and teacher sidebar shortcut.
 - Current backend release: `e7a7fc3-teaching-timetable`.
 - Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/e7a7fc3-teaching-timetable`.
-- Current static/frontend source commit: `6afa3e28a429075520ee7410ec0466a9cf87b5a9` — NISN sign-in tab for students.
-- Current static/frontend release: `6afa3e2-student-login-toggle`.
-- Current static pointer: `/var/www/saas-satu/releases/6afa3e2-student-login-toggle`.
+- Current static/frontend source commit: `48ca42a127d3a7b8f4e3f906d0baf57904892f1c` — restyled email sign-in and new login wallpaper.
+- Current static/frontend release: `48ca42a-login-polish`.
+- Current static pointer: `/var/www/saas-satu/releases/48ca42a-login-polish`.
 - Backend rollback: `e4bd953-attendance-unrecorded`.
-- Static rollback: `3063569-student-nisn-login`.
+- Static rollback: `6afa3e2-student-login-toggle`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
@@ -36,7 +36,7 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - SMKN 12 Garut Class X and XI teaching timetable (468 courses, 757 schedule rows) is loaded in production LMS as of 1 October 2026; Class XII is not imported and six source-PDF teacher clashes were kept by owner decision. See [`RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md`](./RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md).
 - Jadwal Mengajar is production-live via `e7a7fc3-teaching-timetable`: teachers get a `Jadwal Mengajar` entry under `MENGAJAR` (`/school/lms/schedule`) listing every weekly session, with a scope switch for admins, Wakasek Kurikulum, the Principal and department heads. See [`RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md`](./RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md).
 - SMKN 12 Garut attendance calendar for 2026/2027 is loaded (49 Monday–Friday holiday rows from the Disdik Jabar calendar, editable in `/school/attendance/settings`); the attendance policy itself is still not configured and self-attendance is still off. See [`RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md`](./RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md).
-- Attendance policy for SMKN 12 Garut is configured and **active** (school point, late after 06:30, check-out from 15:00, selfie required for both; Kampus 2 not handled), all 1,539 real students have temporary trial logins, and `/login` has a NISN tab for them. The temporary passwords must be rotated or revoked after the trial; the scheme is deliberately not recorded in the repository. See [`RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md`](./RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md).
+- Attendance policy for SMKN 12 Garut is configured and **active** (school point, late after 06:30, check-out from 15:00, selfie required for both; Kampus 2 not handled), all 1,539 real students have temporary trial logins, and `/login` has a NISN tab for them. The temporary passwords must be rotated or revoked after the trial; the scheme is deliberately not recorded in the repository. See [`RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md`](./RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md). Follow-up the same day: 12 Friday `SPECIAL_SCHEDULE` rows open check-out at 11:15 (2 Oct–18 Dec 2026), the Email tab uses the same Indonesian form as the NISN tab, and the login wallpaper is a brighter original illustration with a dark variant.
 - CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Current unfinished-work/progress source of truth: [`SCHOOL_OS_TODO_PROGRESS.md`](./SCHOOL_OS_TODO_PROGRESS.md). Read it before proposing new modules; it separates unfinished work from completed-but-unconfigured modules and records active priority P1–P7.

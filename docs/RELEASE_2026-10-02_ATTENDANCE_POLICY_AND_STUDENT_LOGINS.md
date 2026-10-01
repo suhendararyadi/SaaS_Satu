@@ -10,7 +10,7 @@ Three changes for the student self-attendance trial (P2 in `SCHOOL_OS_TODO_PROGR
 2. login accounts for every real student (data);
 3. a NISN sign-in tab on the login page (frontend, static release `6afa3e2-student-login-toggle`).
 
-Backend unchanged: `e7a7fc3-teaching-timetable`. Static rollback chain: `6afa3e2-student-login-toggle` → `3063569-student-nisn-login` → `d7eaee5-admin-timetable-menu`.
+Backend unchanged: `e7a7fc3-teaching-timetable`. Static rollback chain: `48ca42a-login-polish` → `6afa3e2-student-login-toggle` → `3063569-student-nisn-login` → `d7eaee5-admin-timetable-menu` (see the follow-up at the end for the latest two).
 
 ## 1. Attendance policy (data)
 
@@ -82,4 +82,26 @@ Release history: `3063569-student-nisn-login` added the tab; a visual check in a
 - Friday check-out override per date, and Guru Piket real schedule.
 - Real-device UAT (GPS, camera, mobile network); Chromium here has no real GPS or camera.
 - Forced password change and login rate limiting.
-- The staff **Email** tab still shows Wasp's English text and yellow button ("Log in to your account"), which clashes with the Indonesian, blue style used elsewhere. That predates this release and was left alone.
+- Friday check-out override beyond 18 December 2026 (see the follow-up below).
+
+## Follow-up (2 October 2026): Friday check-out override, email form restyle, new login wallpaper
+
+### Friday check-out override (data)
+
+Friday lessons end at 11:15 (jam 6), but the policy opens check-out at 15:00. The calendar has no per-weekday rule, so **12 `SPECIAL_SCHEDULE` rows** were added, one per Friday from 2 October to 18 December 2026 (25 December already carries its national-holiday row), each with `checkOutOpenOverride = 11:15`, label *Jumat: pelajaran selesai 11:15*. Other times (late after 06:30, check-out closes 18:00) are untouched. The calendar now holds 61 rows (49 holidays + 12 Fridays).
+
+- Verified with the real `resolveAttendanceDay` over production rows (4/4 PASS): every listed Friday is a school day with check-out from 11:15, other weekdays keep 15:00, holidays stay closed, Semester 1 still has 114 effective days. The temporary test was removed.
+- Rollback: `/home/ubuntu/backups/SaaS_Satu/friday-checkout-smkn12-20261002.cleanup.sql` (deletes only those 12 rows by date, type and label).
+- Not covered: Fridays from January 2027 (the Semester 2 timetable is not known). A real per-weekday rule would replace these rows; it needs a policy/schema change and was not built.
+
+### Email form restyle (frontend)
+
+The Email tab no longer renders Wasp's stock `LoginForm` (English copy, yellow button). A shared `CredentialsLoginForm` (Indonesian copy, M3 fields, the blue action, show/hide password, one generic credentials error, validation before any request, no double submit) now backs both `EmailLoginForm` and `StudentNisnLoginForm`, and both use the same Wasp email `login()` and the redirect from `useRedirectIfLoggedIn`. A student who types a NISN into the email field is pointed to the NISN tab. Wasp's `LoginForm` code still exists in the SDK bundle but is not rendered; that was confirmed on the live page.
+
+### Login wallpaper
+
+`school-os-auth-wallpaper.svg` was replaced by an **original** layered-wave illustration in the project's system colours (blue, indigo, purple, pink, orange, yellow, teal), brighter and more colourful, in the spirit of modern desktop wallpapers but not a copy of any Apple asset (`DESIGN.md` forbids that). A dark variant `school-os-auth-wallpaper-dark.svg` follows the same `dark` class as the login card. Header chips and the footer note became light glass with dark text so they stay readable on the brighter background. `DESIGN.md` still applies: the wallpaper is a login-only asset and must not become a general panel treatment.
+
+- Note: the login page does not set the theme itself (only `SchoolLayout` toggles the `dark` class), so on a fresh visit it is always the light variant.
+- Static releases: `48ca42a-login-polish` (this change; rollback `6afa3e2-student-login-toggle`). Backend unchanged.
+- Verification: full regression 238/238 across 40 files; `wasp build` PASS; local preview screenshots (light, dark, phone) reviewed before release; real browser test against production (form and copy, wallpaper loaded, wrong-email and NISN-in-email messages, NISN wrong password, correct NISN login to `/school`, logout 200, phone viewport without horizontal scroll and 44 px button). No test session remained.
