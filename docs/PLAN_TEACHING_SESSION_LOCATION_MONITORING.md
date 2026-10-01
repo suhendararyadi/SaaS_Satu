@@ -1,6 +1,6 @@
 # Rencana — Monitoring Lokasi Sesi Mengajar (KBM)
 
-**Status:** rencana, belum ada kode  
+**Status:** Fase 0 dan 1 selesai dan live (2 Oktober 2026, lihat [`RELEASE_2026-10-02_TEACHING_LOCATION_MONITORING.md`](./RELEASE_2026-10-02_TEACHING_LOCATION_MONITORING.md)). Fase 2–4 belum dikerjakan; pemilik memutuskan cukup marker lokasi di peta tanpa pencocokan ruangan, dengan OpenStreetMap  
 **Tanggal:** 2 Oktober 2026  
 **Konteks:** SMKN 12 Garut, modul LMS Teaching Session (Gen1, live) dan Audit KBM
 
@@ -144,8 +144,8 @@ Rekomendasi: kerjakan **Fase 0 dan 1 dahulu**, kumpulkan sesi nyata beberapa min
 
 ## 8. Keputusan yang dibutuhkan dari pemilik
 
-1. **Tingkat ketelitian yang diharapkan**: "area/gedung terdekat" (realistis dengan GPS) atau "ruang kelas tertentu" (butuh QR)?
-2. **Sumber peta**: OpenStreetMap (gratis, cukup untuk skala sekolah, perlu atribusi dan patuh kebijakan penggunaan), penyedia ubin berbayar, atau **denah sekolah** yang diunggah dan diselaraskan dengan beberapa titik acuan (tanpa ubin pihak ketiga, tampak seperti peta sekolah sendiri).
+1. **[DIPUTUSKAN 2 Okt 2026: cukup marker lokasi di peta, tanpa pencocokan ruangan]** **Tingkat ketelitian yang diharapkan**: "area/gedung terdekat" (realistis dengan GPS) atau "ruang kelas tertentu" (butuh QR)?
+2. **[DIPUTUSKAN 2 Okt 2026: OpenStreetMap]** **Sumber peta**: OpenStreetMap (gratis, cukup untuk skala sekolah, perlu atribusi dan patuh kebijakan penggunaan), penyedia ubin berbayar, atau **denah sekolah** yang diunggah dan diselaraskan dengan beberapa titik acuan (tanpa ubin pihak ketiga, tampak seperti peta sekolah sendiri).
 3. **Titik ruang**: siapa yang mengkalibrasi 28 ruang (waktu sekitar 1–2 jam berkeliling), dan apakah ada denah/foto udara sekolah.
 4. **Kampus 2 dan Mesjid**: apakah koordinat titik utama sudah dikonfirmasi (nilai longitude yang tersimpan masih menunggu konfirmasi) dan bagaimana Kampus 2 diperlakukan.
 5. **Ambang dan sanksi**: tanda "perlu ditinjau" bersifat saran saja (rekomendasi), bukan blokir cek-in?

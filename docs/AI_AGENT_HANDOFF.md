@@ -15,14 +15,14 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - **Canonical branch**: `main`.
 - Legacy `/home/ubuntu/projects/SaaS_Satu-hardening` is only an old linked worktree (`redesign/apple-hig`), **not** the production source and must not be used as the default workspace.
 - New work should use an isolated worktree under `/home/ubuntu/.cache/mso-worktrees/` based on the **verified live lineage**, then be reconciled back to canonical `main`.
-- Current backend/runtime commit: `e7a7fc3adb443b2e97320b65d79a25fbde499fb3` — Jadwal Mengajar page and teacher sidebar shortcut.
-- Current backend release: `e7a7fc3-teaching-timetable`.
-- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/e7a7fc3-teaching-timetable`.
-- Current static/frontend source commit: `e55ab835edb0c5635badeadf6aae9e511b81b4cf` — school location form shows the stored location and accepts pasted "lat, lng".
-- Current static/frontend release: `e55ab83-geo-coordinate-input`.
-- Current static pointer: `/var/www/saas-satu/releases/e55ab83-geo-coordinate-input`.
-- Backend rollback: `e4bd953-attendance-unrecorded`.
-- Static rollback: `48ca42a-login-polish`.
+- Current backend/runtime commit: `900af4000e81a1b52c5dd63e157ab712f109a64f` — Audit KBM shows check-in/out locations and fixes the evidence photos.
+- Current backend release: `900af40-teaching-audit-location`.
+- Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/900af40-teaching-audit-location`.
+- Current static/frontend source commit: `b8fd556ba0799f04884d6c1c626b9693aad701f7` — Peta KBM (OpenStreetMap view of teacher check-in/out points).
+- Current static/frontend release: `b8fd556-peta-kbm`.
+- Current static pointer: `/var/www/saas-satu/releases/b8fd556-peta-kbm`.
+- Backend rollback: `e7a7fc3-teaching-timetable`.
+- Static rollback: `900af40-teaching-audit-location`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
@@ -37,7 +37,7 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Jadwal Mengajar is production-live via `e7a7fc3-teaching-timetable`: teachers get a `Jadwal Mengajar` entry under `MENGAJAR` (`/school/lms/schedule`) listing every weekly session, with a scope switch for admins, Wakasek Kurikulum, the Principal and department heads. See [`RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md`](./RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md).
 - SMKN 12 Garut attendance calendar for 2026/2027 is loaded (49 Monday–Friday holiday rows from the Disdik Jabar calendar, editable in `/school/attendance/settings`); the attendance policy itself is still not configured and self-attendance is still off. See [`RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md`](./RELEASE_2026-10-02_SMKN12_ATTENDANCE_CALENDAR.md).
 - Attendance policy for SMKN 12 Garut is configured and **active** (school point, late after 06:30, check-out from 15:00, selfie required for both; Kampus 2 not handled), all 1,539 real students have temporary trial logins, and `/login` has a NISN tab for them. The temporary passwords must be rotated or revoked after the trial; the scheme is deliberately not recorded in the repository. See [`RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md`](./RELEASE_2026-10-02_ATTENDANCE_POLICY_AND_STUDENT_LOGINS.md). Follow-up the same day: 12 Friday `SPECIAL_SCHEDULE` rows open check-out at 11:15 (2 Oct–18 Dec 2026), the Email tab uses the same Indonesian form as the NISN tab, and the login wallpaper is a brighter original illustration with a dark variant. A later fix made `/school/attendance/settings` show the stored school location (with last-changed time and a map link), accept a pasted "lat, lng" pair, and refuse an active policy without coordinates; the location values currently stored there are the admin's last save and await owner confirmation.
-- Planned (not built): monitoring of teaching-session check-in/out locations with a map and room/area matching. Audit of what exists, GPS limits, phases 0–4, privacy and open decisions are in [`PLAN_TEACHING_SESSION_LOCATION_MONITORING.md`](./PLAN_TEACHING_SESSION_LOCATION_MONITORING.md). Known defect found there: the `Foto Masuk/Pulang` links on `/school/lms/teaching/audit` open the evidence API through a raw link, which returns 401.
+- Teaching-session location monitoring phases 0–1 are live: `/school/lms/teaching/audit` shows check-in/out coordinates, accuracy, distance and objective flags and opens the evidence photos in an in-app dialog (the old raw links returned 401), and `/school/lms/peta-kbm` ("Peta KBM", admin menu) shows the points on an OpenStreetMap map. The owner chose markers only, with no room matching, so phases 2–4 of [`PLAN_TEACHING_SESSION_LOCATION_MONITORING.md`](./PLAN_TEACHING_SESSION_LOCATION_MONITORING.md) are not planned for now. Record: [`RELEASE_2026-10-02_TEACHING_LOCATION_MONITORING.md`](./RELEASE_2026-10-02_TEACHING_LOCATION_MONITORING.md). Open: access logging and retention for location data, and no real teaching sessions exist yet.
 - CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Current unfinished-work/progress source of truth: [`SCHOOL_OS_TODO_PROGRESS.md`](./SCHOOL_OS_TODO_PROGRESS.md). Read it before proposing new modules; it separates unfinished work from completed-but-unconfigured modules and records active priority P1–P7.
