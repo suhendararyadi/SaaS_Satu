@@ -18,11 +18,11 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Current backend/runtime commit: `e7a7fc3adb443b2e97320b65d79a25fbde499fb3` — Jadwal Mengajar page and teacher sidebar shortcut.
 - Current backend release: `e7a7fc3-teaching-timetable`.
 - Current backend pointer: `/home/ubuntu/deployments/SaaS_Satu/releases/e7a7fc3-teaching-timetable`.
-- Current static/frontend source commit: `e7a7fc3adb443b2e97320b65d79a25fbde499fb3` (same release).
-- Current static/frontend release: `e7a7fc3-teaching-timetable`.
-- Current static pointer: `/var/www/saas-satu/releases/e7a7fc3-teaching-timetable`.
+- Current static/frontend source commit: `d7eaee55845081438bee1bd3c6cecc6316ccc190` — admin menu entry for Jadwal Mengajar.
+- Current static/frontend release: `d7eaee5-admin-timetable-menu`.
+- Current static pointer: `/var/www/saas-satu/releases/d7eaee5-admin-timetable-menu`.
 - Backend rollback: `e4bd953-attendance-unrecorded`.
-- Static rollback: `adad36c-mobile-ux-hardening`.
+- Static rollback: `e7a7fc3-teaching-timetable`.
 - Service: `saas-satu.service` **active**.
 - Student login provisioning for existing students is live; see [`RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-21_STUDENT_LOGIN_PROVISIONING.md).
 - Teacher/GTK login provisioning is live from Admin → Guru & Tendik → Detail Guru; see [`RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md`](./RELEASE_2026-09-29_TEACHER_GTK_LOGIN_PROVISIONING.md).
@@ -663,9 +663,9 @@ Contract and cautions:
 
 - The query keeps the `getTeachingWorkspace` scope rules: a `TEACHER` sees only their own courses and cannot widen scope; admins, Wakasek Kurikulum, the Principal and department heads may request `ALL`; students get 403; everything is scoped by `course.schoolId`.
 - The route lives outside `/school/lms/teaching/` on purpose: the drawer matches active items with `startsWith`, so a child route would highlight `KBM Hari Ini` too.
-- The admin `PEMBELAJARAN` menu has no entry yet; admins can open the page by URL.
+- Both the teacher `MENGAJAR` menu and the admin `PEMBELAJARAN` menu have a `Jadwal Mengajar` entry (admin entry added by static release `d7eaee5-admin-timetable-menu`, backend unchanged).
 - A permanent production-clone UAT exists at `app/uat/teachingTimetable.integration.ts` (config `vitest.timetable-uat.config.ts`, guarded by `TIMETABLE_UAT_DATABASE_URL` and `TIMETABLE_UAT_CONFIRM=CLONE_DATABASE_ONLY`); run it only against a clone.
 - The first deploy attempt was rolled back automatically by the guard after a smoke-request timeout; the retry succeeded. Details and the release procedure are in the release record. `wasp install` rewrites `app/package-lock.json`; restore it before committing.
-- `main` contains the release but has **not been pushed** to `origin`.
+- The release commits were pushed to `origin` on 2 October 2026 via the `gh` token (`git -c credential.helper='!gh auth git-credential' push origin main`); git on the server has no credential helper of its own.
 
 Release record: [`RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md`](./RELEASE_2026-10-02_TEACHING_TIMETABLE_PAGE.md).

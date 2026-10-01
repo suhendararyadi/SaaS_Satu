@@ -47,7 +47,7 @@ Names in the database are written `X A_1`, `XI B_3`, and so on. The mapping was 
 
 ### Teacher mapping
 
-All 80 people mapped to 80 distinct `TEACHER` users of the tenant: 70 by exact name after removing academic titles, 10 by abbreviation or spelling differences. Code **22** (`RD. … S`) was matched to the user whose name expands "RD." to Raden and "S" to a surname; it is a name inference, not an exact match, and no other candidate existed. It must not be confused with code 5, which is a different person with a similar name.
+All 80 people mapped to 80 distinct `TEACHER` users of the tenant: 70 by exact name after removing academic titles, 10 by abbreviation or spelling differences. Code **22** (`RD. … S`) was matched to the user whose name expands "RD." to Raden and "S" to a surname; it is a name inference, not an exact match, and no other candidate existed. It must not be confused with code 5, which is a different person with a similar name. The owner confirmed this mapping on 2 October 2026.
 
 ## Owner decisions
 

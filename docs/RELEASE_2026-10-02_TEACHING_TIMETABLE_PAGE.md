@@ -23,7 +23,7 @@ Teachers had no single view of their weekly teaching sessions. `KBM Hari Ini` sh
 
 The route is deliberately **not** under `/school/lms/teaching/`. The drawer marks the active item with `startsWith`, so a child route would highlight `KBM Hari Ini` as well.
 
-The admin sidebar (`PEMBELAJARAN`) was not changed. Admins can already use the page by URL; adding a menu entry is a separate decision.
+This release did not change the admin sidebar; the admin entry was added in the follow-up at the end of this document.
 
 No schema or migration change.
 
@@ -58,4 +58,13 @@ The staged static directory had mode 664/775 after `cp -a` from the build output
 - Release procedure used: detached worktree at the release commit under `/home/ubuntu/deployments/SaaS_Satu/releases/`, `npm ci`, `wasp install`, `wasp build`, restore `package-lock.json`, `npm install` and `npm run bundle` in `.wasp/out/server`, `REACT_APP_API_URL=… npx vite build`, `sudo cp -a` the build output into `/var/www/saas-satu/releases/<release>` (root-owned, 644/755), then `preflight` and `deploy` with JSON on stdin.
 - `wasp install` rewrites `app/package-lock.json`; restore it (`git checkout -- package-lock.json`) so it never enters a commit.
 - `/home/ubuntu/deployments/SaaS_Satu/RELEASE_CURRENT` is root-owned and is not updated by the deploy script; it is stale (still names `4ee295b`). Trust the `current` symlinks instead.
-- The commit was fast-forwarded into canonical `main` and **not pushed** to `origin`.
+- The commits were fast-forwarded into canonical `main` and pushed to `origin` (GitHub `suhendararyadi/SaaS_Satu`, `ae36346..0d76526`) on 2 October 2026. Git on the server has no credential helper, so the push borrowed the `gh` token for one command: `git -c credential.helper='!gh auth git-credential' push origin main`.
+
+## Follow-up (2 October 2026): admin menu entry
+
+Static-only release `d7eaee5-admin-timetable-menu` (commit `d7eaee55845081438bee1bd3c6cecc6316ccc190`) adds **Jadwal Mengajar** to the admin `PEMBELAJARAN` section, directly below `KBM Hari Ini`. The page already defaulted to the whole school for teaching admins, so no backend change was needed.
+
+- Backend unchanged: `e7a7fc3-teaching-timetable`; `saas-satu.service` was not restarted.
+- Static rollback: `e7a7fc3-teaching-timetable`.
+- Verification: full regression 221/221 across 39 files; the built bundle holds two `Jadwal Mengajar` menu entries (teacher and admin) against one in the previous static release; `static-preflight` PASS; `static` deploy PASS; repeat deploy idempotent true; `/school`, `/school/lms/schedule`, `/school/lms/teaching` and `/auth/me` 200; unauthenticated `get-teaching-timetable` 401.
+- Known and unchanged: because the drawer matches routes with `startsWith`, the admin items `KBM Hari Ini` and `Audit KBM` both highlight on `/school/lms/teaching/audit`. The new entry does not add to that, as `/school/lms/schedule` is outside that prefix.
