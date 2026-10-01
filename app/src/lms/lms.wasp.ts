@@ -5,6 +5,7 @@ import { LmsAssessmentPage } from "./pages/LmsAssessmentPage" with { type: "ref"
 import { LmsTeachingWorkspacePage } from "./pages/LmsTeachingWorkspacePage" with { type: "ref" };
 import { LmsCourseTeachingPage } from "./pages/LmsCourseTeachingPage" with { type: "ref" };
 import { LmsTeachingAuditPage } from "./pages/LmsTeachingAuditPage" with { type: "ref" };
+import { LmsTeachingTimetablePage } from "./pages/LmsTeachingTimetablePage" with { type: "ref" };
 import { teachingEvidenceFileApi, teachingEvidenceUploadApi } from "./teachingEvidenceApi" with { type: "ref" };
 
 import {
@@ -57,6 +58,7 @@ import {
   markTeachingDelegationDelivered,
   getTeachingAudit,
 } from "./teachingOperations" with { type: "ref" };
+import { getTeachingTimetable } from "./teachingTimetable" with { type: "ref" };
 
 const cbtEntities = [
   "School",
@@ -138,6 +140,7 @@ export const lmsSpec: Spec = [
   query(getCbtStudentWorkspace, { entities: [...cbtEntities] }),
   query(getCbtQuestionBank, { entities: [...cbtEntities] }),
   query(getTeachingWorkspace, { entities: [...teachingEntities] }),
+  query(getTeachingTimetable, { entities: [...teachingEntities] }),
   query(getCourseTeachingData, { entities: [...teachingEntities] }),
   query(getTeachingDutyQueue, { entities: [...teachingEntities] }),
   query(getTeachingAudit, { entities: [...teachingEntities] }),
@@ -202,6 +205,11 @@ export const lmsSpec: Spec = [
     "LmsTeachingWorkspaceRoute",
     "/school/lms/teaching",
     page(LmsTeachingWorkspacePage, { authRequired: true })
+  ),
+  route(
+    "LmsTeachingTimetableRoute",
+    "/school/lms/schedule",
+    page(LmsTeachingTimetablePage, { authRequired: true })
   ),
   route(
     "LmsTeachingAuditRoute",

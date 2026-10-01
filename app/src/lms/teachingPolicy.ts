@@ -96,3 +96,85 @@ export function attendanceRateForSubject(statuses: readonly string[]) {
   const present = statuses.filter((status) => status === "HADIR" || status === "TERLAMBAT" || status === "DISPENSASI").length;
   return Math.round((present / statuses.length) * 100);
 }
+
+export const TIMETABLE_DAY_LABELS: Record<number, string> = {
+  0: "Minggu",
+  1: "Senin",
+  2: "Selasa",
+  3: "Rabu",
+  4: "Kamis",
+  5: "Jumat",
+  6: "Sabtu",
+};
+
+// Senin dulu; Minggu terakhir.
+const TIMETABLE_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
+
+export type TimetableSlotLike = { dayOfWeek: number; startTime: string; endTime: string };
+
+export function timetableSlotMinutes(slot: Pick<TimetableSlotLike, "startTime" | "endTime">) {
+  const start = timeToMinutes(slot.startTime);
+  const end = timeToMinutes(slot.endTime);
+  if (start === null || end === null || end <= start) return 0;
+  return end - start;
+}
+
+/**
+ * Mengelompokkan jadwal per hari. Senin–Jumat selalu muncul (hari kosong tetap terlihat);
+ * Sabtu dan Minggu hanya muncul bila ada jadwalnya.
+ */
+export function groupTimetableByDay<T extends TimetableSlotLike>(slots: readonly T[]) {
+  return TIMETABLE_DAY_ORDER.map((dayOfWeek) => {
+    const daySlots = slots
+      .filter((slot) => slot.dayOfWeek === dayOfWeek)
+      .sort(
+        (a, b) =>
+          (timeToMinutes(a.startTime) ?? 0) - (timeToMinutes(b.startTime) ?? 0) ||
+          (timeToMinutes(a.endTime) ?? 0) - (timeToMinutes(b.endTime) ?? 0),
+      );
+    return {
+      dayOfWeek,
+      label: TIMETABLE_DAY_LABELS[dayOfWeek],
+      slots: daySlots,
+      minutes: daySlots.reduce((sum, slot) => sum + timetableSlotMinutes(slot), 0),
+    };
+  }).filter((day) => day.slots.length > 0 || (day.dayOfWeek >= 1 && day.dayOfWeek <= 5));
+}
+
+export function summarizeTimetable<T extends TimetableSlotLike & { classRoomId: string; courseId: string }>(
+  slots: readonly T[],
+) {
+  return {
+    sessions: slots.length,
+    minutes: slots.reduce((sum, slot) => sum + timetableSlotMinutes(slot), 0),
+    activeDays: new Set(slots.map((slot) => slot.dayOfWeek)).size,
+    classes: new Set(slots.map((slot) => slot.classRoomId)).size,
+    courses: new Set(slots.map((slot) => slot.courseId)).size,
+  };
+}
+
+export function formatTimetableDuration(totalMinutes: number) {
+  if (totalMinutes <= 0) return "0 menit";
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} menit`;
+  if (minutes === 0) return `${hours} jam`;
+  return `${hours} jam ${minutes} menit`;
+}
+
+export type TimetableSlotPhase = "OTHER_DAY" | "UPCOMING" | "NOW" | "DONE";
+
+/** Posisi sebuah slot terhadap waktu sekarang (zona waktu sekolah, sudah dipecah oleh pemanggil). */
+export function timetableSlotPhase(
+  slot: TimetableSlotLike,
+  now: { weekday: number; localTime: string },
+): TimetableSlotPhase {
+  if (slot.dayOfWeek !== now.weekday) return "OTHER_DAY";
+  const current = timeToMinutes(now.localTime);
+  const start = timeToMinutes(slot.startTime);
+  const end = timeToMinutes(slot.endTime);
+  if (current === null || start === null || end === null) return "OTHER_DAY";
+  if (current < start) return "UPCOMING";
+  if (current < end) return "NOW";
+  return "DONE";
+}

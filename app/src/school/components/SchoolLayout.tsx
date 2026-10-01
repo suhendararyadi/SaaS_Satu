@@ -55,6 +55,7 @@ const pageTitles: Array<[string, string]> = [
   ["/school/my-attendance", "Kehadiran Saya"],
   ["/school/attendance", "Presensi Harian"],
   ["/school/import", "Import Data"],
+  ["/school/lms/schedule", "Jadwal Mengajar"],
   ["/school/lms/teaching/audit", "Audit Pelaksanaan KBM"],
   ["/school/lms/teaching", "KBM Hari Ini"],
   ["/school/lms/courses", "Pembelajaran"],
@@ -320,6 +321,7 @@ export function SchoolLayout({ user, children }: SchoolLayoutProps) {
     } else if (isTeacher) {
       sections.push({ title: "MENGAJAR", items: [
         { label: "KBM Hari Ini", href: "/school/lms/teaching", icon: "play_circle" },
+        { label: "Jadwal Mengajar", href: "/school/lms/schedule", icon: "calendar_month" },
         { label: "Kelas & Mapel", href: "/school/lms/courses", icon: "menu_book" },
         { label: "Kelas & Rombel", href: "/school/classes", icon: "meeting_room" },
         { label: "Data Siswa", href: "/school/students", icon: "groups" },

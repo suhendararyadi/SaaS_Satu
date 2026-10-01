@@ -4,8 +4,13 @@ import {
   canEditEngagementScore,
   deriveTeachingScheduleState,
   engagementLevelFromScore,
+  formatTimetableDuration,
+  groupTimetableByDay,
   jakartaDateTime,
+  summarizeTimetable,
   teachingTimeRangesOverlap,
+  timetableSlotMinutes,
+  timetableSlotPhase,
   validateTeachingTimeRange,
   weekdayForDateOnly,
 } from "./teachingPolicy";
@@ -49,5 +54,56 @@ describe("teaching session policy", () => {
   it("calculates subject attendance rate", () => {
     expect(attendanceRateForSubject(["HADIR", "TERLAMBAT", "IZIN", "ALPA"])).toBe(50);
     expect(attendanceRateForSubject([])).toBeNull();
+  });
+});
+
+describe("teaching timetable helpers", () => {
+  const slots = [
+    { id: "c", dayOfWeek: 3, startTime: "13:00", endTime: "14:20", classRoomId: "k1", courseId: "m1" },
+    { id: "a", dayOfWeek: 1, startTime: "09:40", endTime: "11:00", classRoomId: "k1", courseId: "m1" },
+    { id: "b", dayOfWeek: 1, startTime: "07:20", endTime: "08:40", classRoomId: "k2", courseId: "m2" },
+  ];
+
+  it("groups by day, sorts by start time and always keeps Monday to Friday", () => {
+    const days = groupTimetableByDay(slots);
+    expect(days.map((day) => day.label)).toEqual(["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]);
+    expect(days[0].slots.map((slot) => slot.id)).toEqual(["b", "a"]);
+    expect(days[0].minutes).toBe(80 + 80);
+    expect(days[1].slots).toEqual([]);
+  });
+
+  it("only shows Saturday and Sunday when they have sessions, Sunday last", () => {
+    const days = groupTimetableByDay([
+      ...slots,
+      { id: "s", dayOfWeek: 6, startTime: "08:00", endTime: "09:00", classRoomId: "k1", courseId: "m1" },
+      { id: "m", dayOfWeek: 0, startTime: "08:00", endTime: "09:00", classRoomId: "k1", courseId: "m1" },
+    ]);
+    expect(days.map((day) => day.label)).toEqual(["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]);
+  });
+
+  it("summarises sessions, minutes, days, classes and courses", () => {
+    expect(summarizeTimetable(slots)).toEqual({ sessions: 3, minutes: 240, activeDays: 2, classes: 2, courses: 2 });
+    expect(summarizeTimetable([])).toEqual({ sessions: 0, minutes: 0, activeDays: 0, classes: 0, courses: 0 });
+  });
+
+  it("treats invalid ranges as zero minutes", () => {
+    expect(timetableSlotMinutes({ startTime: "10:00", endTime: "09:00" })).toBe(0);
+    expect(timetableSlotMinutes({ startTime: "xx", endTime: "09:00" })).toBe(0);
+  });
+
+  it("formats durations in Indonesian", () => {
+    expect(formatTimetableDuration(0)).toBe("0 menit");
+    expect(formatTimetableDuration(40)).toBe("40 menit");
+    expect(formatTimetableDuration(120)).toBe("2 jam");
+    expect(formatTimetableDuration(160)).toBe("2 jam 40 menit");
+  });
+
+  it("places a slot before, during and after the current time on the same weekday only", () => {
+    const slot = { dayOfWeek: 2, startTime: "08:00", endTime: "09:20" };
+    expect(timetableSlotPhase(slot, { weekday: 2, localTime: "07:59" })).toBe("UPCOMING");
+    expect(timetableSlotPhase(slot, { weekday: 2, localTime: "08:00" })).toBe("NOW");
+    expect(timetableSlotPhase(slot, { weekday: 2, localTime: "09:19" })).toBe("NOW");
+    expect(timetableSlotPhase(slot, { weekday: 2, localTime: "09:20" })).toBe("DONE");
+    expect(timetableSlotPhase(slot, { weekday: 3, localTime: "08:30" })).toBe("OTHER_DAY");
   });
 });
