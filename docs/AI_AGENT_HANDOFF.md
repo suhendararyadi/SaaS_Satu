@@ -33,6 +33,7 @@ If documentation and runtime disagree, **runtime + repository verification wins*
 - Daily Attendance selected status state now uses stronger active contrast, a 2px status-colored ring, filled status icon, bold label, and an explicit checkmark; static release `7db1b56-attendance-selected-state`. See [`RELEASE_2026-09-30_ATTENDANCE_SELECTED_STATE.md`](./RELEASE_2026-09-30_ATTENDANCE_SELECTED_STATE.md).
 - Mobile UX hardening is production-live via static release `adad36c-mobile-ux-hardening`: teacher bottom navigation is role-aware, teacher dashboard is action-first, Wali Kelas uses mobile cards instead of horizontal tables, Teaching Session has a guided mobile flow and larger attendance/rubric targets, dialogs/tabs/chips/bottom nav have stronger mobile ergonomics, and Student Attendance secondary text is more readable. Backend behavior is unchanged. See [`RELEASE_2026-09-30_MOBILE_UX_HARDENING.md`](./RELEASE_2026-09-30_MOBILE_UX_HARDENING.md).
 - Teaching Session Gen1 is live; see [`RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md`](./RELEASE_2026-09-23_LMS_TEACHING_SESSION_GEN1.md).
+- SMKN 12 Garut Class X and XI teaching timetable (468 courses, 757 schedule rows) is loaded in production LMS as of 1 October 2026; Class XII is not imported and six source-PDF teacher clashes were kept by owner decision. See [`RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md`](./RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md).
 - CBT Gen2 is live with server-authoritative attempts/timer, autosave/resume, question bank, essay grading, monitoring, analysis and audit; see [`RELEASE_2026-09-29_CBT_GEN2.md`](./RELEASE_2026-09-29_CBT_GEN2.md) and [`CBT_GEN2_ARCHITECTURE.md`](./CBT_GEN2_ARCHITECTURE.md).
 - Integrated SMKN 12 Garut demo dataset is active and reversible; see [`DEMO_SCENARIO_SMKN12_GARUT.md`](./DEMO_SCENARIO_SMKN12_GARUT.md).
 - Current unfinished-work/progress source of truth: [`SCHOOL_OS_TODO_PROGRESS.md`](./SCHOOL_OS_TODO_PROGRESS.md). Read it before proposing new modules; it separates unfinished work from completed-but-unconfigured modules and records active priority P1–P7.
@@ -633,3 +634,21 @@ Release record: [`RELEASE_2026-09-29_WEBSITE_SMKN12_OBJECT_STORAGE.md`](./RELEAS
 - Deploy: backend + static pointers cut to `19acc6e-p6-super-admin`; service healthy (`/auth/me` 200); public smoke `/school` 200, `/auth/me` 200, unauthenticated admin dashboard 401.
 - Rollback pointers preserved: `4ee295b-website-smkn12-media-proxy`.
 - main == origin/main == `19acc6e`.
+
+
+## SMKN 12 Garut teaching timetable import — 1 October 2026
+
+The official 2026/2027 Ganjil timetable for **Class X (18 rombel) and Class XI (16 rombel)** is loaded into production LMS: **468 `LmsCourse` and 757 `LmsTeachingSchedule`** rows. No code, schema, or deployment pointer changed; backend `e4bd953-attendance-unrecorded` and static `adad36c-mobile-ux-hardening` remain current.
+
+Contract and cautions:
+
+- Class XII is **not imported**; it needs its own source timetable.
+- Six teacher clashes that exist in the source PDF were **deliberately kept** by the owner. The UI conflict check will reject edits to those rows until the clash is resolved.
+- Bare code `17` was read as `17a` by owner decision; subject names stay generic as the school lists them.
+- Rombel are fixed-room (`roomLabel`); one rombel can hold several courses with the same generic subject name and different teachers.
+- Do not re-run the import (duplicate courses). The cleanup script is only safe while the courses are unused; once real sessions exist, deactivate schedules instead.
+- Production now holds 474 courses / 764 schedules for the tenant, including the 6 / 7 pre-existing demo rows. `LmsTeachingSession` count was unchanged.
+
+Backup: `/home/ubuntu/backups/SaaS_Satu/pre-schedule-import-smkn12-20261001.dump`. Cleanup: `/home/ubuntu/backups/SaaS_Satu/schedule-import-smkn12-20261001.cleanup.sql`.
+
+Release record: [`RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md`](./RELEASE_2026-10-01_SMKN12_SCHEDULE_IMPORT.md).
